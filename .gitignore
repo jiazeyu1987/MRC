@@ -1,2 +1,3 @@
 /backend/app/__pycache__/*.pyc
 *.pyc
+/backend/logs/*.log
