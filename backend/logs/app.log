@@ -999,3 +999,1354 @@ FROM roles ORDER BY roles.created_at DESC
  LIMIT ? OFFSET ?]
 [parameters: (20, 0)]
 (Background on this error at: https://sqlalche.me/e/14/e3q8) [in D:\ProjectPackage\MRC\backend\app\api\roles.py:53]
+2025-12-05 19:18:59,410 INFO: MultiRoleChat startup - File logging enabled [in D:\ProjectPackage\MRC\backend\app\__init__.py:75]
+2025-12-05 19:18:59,410 INFO: MultiRoleChat startup - Debug mode enabled [in D:\ProjectPackage\MRC\backend\app\__init__.py:79]
+2025-12-05 19:18:59,422 INFO: 性能监控服务初始化完成 [in D:\ProjectPackage\MRC\backend\app\services\monitoring_service.py:100]
+2025-12-05 19:18:59,423 INFO: 性能监控已启动，监控间隔: 30秒 [in D:\ProjectPackage\MRC\backend\app\services\monitoring_service.py:115]
+2025-12-05 19:18:59,423 INFO: 监控中间件已初始化 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:204]
+2025-12-05 19:18:59,424 INFO: 监控告警配置已创建 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:301]
+2025-12-05 19:18:59,490 INFO: ================================================== [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:376]
+2025-12-05 19:18:59,490 INFO: MultiRoleChat 后端服务启动 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:377]
+2025-12-05 19:18:59,490 INFO: 启动时间: 2025-12-05T19:18:59.490147 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:378]
+2025-12-05 19:18:59,490 INFO: 系统平台: Windows-11-10.0.26100-SP0 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:379]
+2025-12-05 19:18:59,490 INFO: Python版本: 3.13.5 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:380]
+2025-12-05 19:18:59,491 INFO: CPU核心数: 32 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:381]
+2025-12-05 19:18:59,491 INFO: 总内存: 31.3 GB [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:382]
+2025-12-05 19:18:59,491 INFO: ================================================== [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:383]
+2025-12-05 19:18:59,491 INFO: 监控系统初始化完成 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:402]
+2025-12-05 19:19:00,377 INFO: 简化LLM服务已初始化，模型: claude-3-5-sonnet-20241022 [in D:\ProjectPackage\MRC\backend\app\services\simple_llm.py:55]
+2025-12-05 19:19:00,379 INFO: 简化LLM管理器已初始化，模型: claude-3-sonnet-20240229 [in D:\ProjectPackage\MRC\backend\app\services\llm\manager.py:45]
+2025-12-05 19:19:06,271 INFO: MultiRoleChat startup - File logging enabled [in D:\ProjectPackage\MRC\backend\app\__init__.py:75]
+2025-12-05 19:19:06,271 INFO: MultiRoleChat startup - Debug mode enabled [in D:\ProjectPackage\MRC\backend\app\__init__.py:79]
+2025-12-05 19:19:06,284 INFO: 性能监控服务初始化完成 [in D:\ProjectPackage\MRC\backend\app\services\monitoring_service.py:100]
+2025-12-05 19:19:06,287 INFO: 性能监控已启动，监控间隔: 30秒 [in D:\ProjectPackage\MRC\backend\app\services\monitoring_service.py:115]
+2025-12-05 19:19:06,287 INFO: 监控中间件已初始化 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:204]
+2025-12-05 19:19:06,287 INFO: 监控告警配置已创建 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:301]
+2025-12-05 19:19:06,351 INFO: ================================================== [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:376]
+2025-12-05 19:19:06,351 INFO: MultiRoleChat 后端服务启动 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:377]
+2025-12-05 19:19:06,351 INFO: 启动时间: 2025-12-05T19:19:06.351026 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:378]
+2025-12-05 19:19:06,351 INFO: 系统平台: Windows-11-10.0.26100-SP0 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:379]
+2025-12-05 19:19:06,351 INFO: Python版本: 3.13.5 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:380]
+2025-12-05 19:19:06,352 INFO: CPU核心数: 32 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:381]
+2025-12-05 19:19:06,352 INFO: 总内存: 31.3 GB [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:382]
+2025-12-05 19:19:06,352 INFO: ================================================== [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:383]
+2025-12-05 19:19:06,352 INFO: 监控系统初始化完成 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:402]
+2025-12-05 19:19:07,264 INFO: 简化LLM服务已初始化，模型: claude-3-5-sonnet-20241022 [in D:\ProjectPackage\MRC\backend\app\services\simple_llm.py:55]
+2025-12-05 19:19:07,265 INFO: 简化LLM管理器已初始化，模型: claude-3-sonnet-20240229 [in D:\ProjectPackage\MRC\backend\app\services\llm\manager.py:45]
+2025-12-05 19:19:07,330 ERROR: 获取角色列表失败: (sqlite3.OperationalError) no such table: roles
+[SQL: SELECT roles.id AS roles_id, roles.name AS roles_name, roles.prompt AS roles_prompt, roles.created_at AS roles_created_at, roles.updated_at AS roles_updated_at 
+FROM roles ORDER BY roles.created_at DESC
+ LIMIT ? OFFSET ?]
+[parameters: (20, 0)]
+(Background on this error at: https://sqlalche.me/e/14/e3q8) [in D:\ProjectPackage\MRC\backend\app\api\roles.py:53]
+2025-12-05 19:19:07,645 ERROR: 获取角色列表失败: (sqlite3.OperationalError) no such table: roles
+[SQL: SELECT roles.id AS roles_id, roles.name AS roles_name, roles.prompt AS roles_prompt, roles.created_at AS roles_created_at, roles.updated_at AS roles_updated_at 
+FROM roles ORDER BY roles.created_at DESC
+ LIMIT ? OFFSET ?]
+[parameters: (20, 0)]
+(Background on this error at: https://sqlalche.me/e/14/e3q8) [in D:\ProjectPackage\MRC\backend\app\api\roles.py:53]
+2025-12-05 19:27:52,463 INFO: MultiRoleChat startup - File logging enabled [in D:\ProjectPackage\MRC\backend\app\__init__.py:75]
+2025-12-05 19:27:52,463 INFO: MultiRoleChat startup - Debug mode enabled [in D:\ProjectPackage\MRC\backend\app\__init__.py:79]
+2025-12-05 19:27:52,477 INFO: 性能监控服务初始化完成 [in D:\ProjectPackage\MRC\backend\app\services\monitoring_service.py:100]
+2025-12-05 19:27:52,479 INFO: 性能监控已启动，监控间隔: 30秒 [in D:\ProjectPackage\MRC\backend\app\services\monitoring_service.py:115]
+2025-12-05 19:27:52,479 INFO: 监控中间件已初始化 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:204]
+2025-12-05 19:27:52,479 INFO: 监控告警配置已创建 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:301]
+2025-12-05 19:27:52,553 INFO: ================================================== [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:376]
+2025-12-05 19:27:52,554 INFO: MultiRoleChat 后端服务启动 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:377]
+2025-12-05 19:27:52,554 INFO: 启动时间: 2025-12-05T19:27:52.553561 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:378]
+2025-12-05 19:27:52,554 INFO: 系统平台: Windows-11-10.0.26100-SP0 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:379]
+2025-12-05 19:27:52,554 INFO: Python版本: 3.13.5 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:380]
+2025-12-05 19:27:52,554 INFO: CPU核心数: 32 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:381]
+2025-12-05 19:27:52,554 INFO: 总内存: 31.3 GB [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:382]
+2025-12-05 19:27:52,555 INFO: ================================================== [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:383]
+2025-12-05 19:27:52,555 INFO: 监控系统初始化完成 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:402]
+2025-12-05 19:27:53,563 INFO: 简化LLM服务已初始化，模型: claude-3-5-sonnet-20241022 [in D:\ProjectPackage\MRC\backend\app\services\simple_llm.py:55]
+2025-12-05 19:27:53,564 INFO: 简化LLM管理器已初始化，模型: claude-3-sonnet-20240229 [in D:\ProjectPackage\MRC\backend\app\services\llm\manager.py:45]
+2025-12-05 19:32:10,583 INFO: MultiRoleChat startup - File logging enabled [in D:\ProjectPackage\MRC\backend\app\__init__.py:75]
+2025-12-05 19:32:10,583 INFO: MultiRoleChat startup - Debug mode enabled [in D:\ProjectPackage\MRC\backend\app\__init__.py:79]
+2025-12-05 19:32:10,595 INFO: 性能监控服务初始化完成 [in D:\ProjectPackage\MRC\backend\app\services\monitoring_service.py:100]
+2025-12-05 19:32:10,596 INFO: 性能监控已启动，监控间隔: 30秒 [in D:\ProjectPackage\MRC\backend\app\services\monitoring_service.py:115]
+2025-12-05 19:32:10,597 INFO: 监控中间件已初始化 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:204]
+2025-12-05 19:32:10,597 INFO: 监控告警配置已创建 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:301]
+2025-12-05 19:32:10,651 INFO: ================================================== [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:376]
+2025-12-05 19:32:10,651 INFO: MultiRoleChat 后端服务启动 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:377]
+2025-12-05 19:32:10,651 INFO: 启动时间: 2025-12-05T19:32:10.651058 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:378]
+2025-12-05 19:32:10,651 INFO: 系统平台: Windows-11-10.0.26100-SP0 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:379]
+2025-12-05 19:32:10,652 INFO: Python版本: 3.13.5 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:380]
+2025-12-05 19:32:10,652 INFO: CPU核心数: 32 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:381]
+2025-12-05 19:32:10,652 INFO: 总内存: 31.3 GB [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:382]
+2025-12-05 19:32:10,652 INFO: ================================================== [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:383]
+2025-12-05 19:32:10,652 INFO: 监控系统初始化完成 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:402]
+2025-12-05 19:32:11,557 INFO: 简化LLM服务已初始化，模型: claude-3-5-sonnet-20241022 [in D:\ProjectPackage\MRC\backend\app\services\simple_llm.py:55]
+2025-12-05 19:32:11,558 INFO: 简化LLM管理器已初始化，模型: claude-3-sonnet-20240229 [in D:\ProjectPackage\MRC\backend\app\services\llm\manager.py:45]
+2025-12-05 19:32:17,324 INFO: MultiRoleChat startup - File logging enabled [in D:\ProjectPackage\MRC\backend\app\__init__.py:75]
+2025-12-05 19:32:17,324 INFO: MultiRoleChat startup - Debug mode enabled [in D:\ProjectPackage\MRC\backend\app\__init__.py:79]
+2025-12-05 19:32:17,335 INFO: 性能监控服务初始化完成 [in D:\ProjectPackage\MRC\backend\app\services\monitoring_service.py:100]
+2025-12-05 19:32:17,337 INFO: 性能监控已启动，监控间隔: 30秒 [in D:\ProjectPackage\MRC\backend\app\services\monitoring_service.py:115]
+2025-12-05 19:32:17,337 INFO: 监控中间件已初始化 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:204]
+2025-12-05 19:32:17,337 INFO: 监控告警配置已创建 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:301]
+2025-12-05 19:32:17,386 ERROR: 获取角色列表失败: (sqlite3.OperationalError) no such table: roles
+[SQL: SELECT roles.id AS roles_id, roles.name AS roles_name, roles.prompt AS roles_prompt, roles.created_at AS roles_created_at, roles.updated_at AS roles_updated_at 
+FROM roles ORDER BY roles.created_at DESC
+ LIMIT ? OFFSET ?]
+[parameters: (20, 0)]
+(Background on this error at: https://sqlalche.me/e/14/e3q8) [in D:\ProjectPackage\MRC\backend\app\api\roles.py:53]
+2025-12-05 19:32:17,392 INFO: ================================================== [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:376]
+2025-12-05 19:32:17,392 INFO: MultiRoleChat 后端服务启动 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:377]
+2025-12-05 19:32:17,393 INFO: 启动时间: 2025-12-05T19:32:17.392639 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:378]
+2025-12-05 19:32:17,393 INFO: 系统平台: Windows-11-10.0.26100-SP0 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:379]
+2025-12-05 19:32:17,393 INFO: Python版本: 3.13.5 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:380]
+2025-12-05 19:32:17,393 INFO: CPU核心数: 32 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:381]
+2025-12-05 19:32:17,394 INFO: 总内存: 31.3 GB [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:382]
+2025-12-05 19:32:17,394 INFO: ================================================== [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:383]
+2025-12-05 19:32:17,394 INFO: 监控系统初始化完成 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:402]
+2025-12-05 19:32:17,435 ERROR: 获取角色列表失败: (sqlite3.OperationalError) no such table: roles
+[SQL: SELECT roles.id AS roles_id, roles.name AS roles_name, roles.prompt AS roles_prompt, roles.created_at AS roles_created_at, roles.updated_at AS roles_updated_at 
+FROM roles ORDER BY roles.created_at DESC
+ LIMIT ? OFFSET ?]
+[parameters: (20, 0)]
+(Background on this error at: https://sqlalche.me/e/14/e3q8) [in D:\ProjectPackage\MRC\backend\app\api\roles.py:53]
+2025-12-05 19:32:18,281 INFO: 简化LLM服务已初始化，模型: claude-3-5-sonnet-20241022 [in D:\ProjectPackage\MRC\backend\app\services\simple_llm.py:55]
+2025-12-05 19:32:18,282 INFO: 简化LLM管理器已初始化，模型: claude-3-sonnet-20240229 [in D:\ProjectPackage\MRC\backend\app\services\llm\manager.py:45]
+2025-12-05 19:32:21,048 ERROR: 获取角色列表失败: (sqlite3.OperationalError) no such table: roles
+[SQL: SELECT roles.id AS roles_id, roles.name AS roles_name, roles.prompt AS roles_prompt, roles.created_at AS roles_created_at, roles.updated_at AS roles_updated_at 
+FROM roles ORDER BY roles.created_at DESC
+ LIMIT ? OFFSET ?]
+[parameters: (20, 0)]
+(Background on this error at: https://sqlalche.me/e/14/e3q8) [in D:\ProjectPackage\MRC\backend\app\api\roles.py:53]
+2025-12-05 19:32:21,358 ERROR: 获取角色列表失败: (sqlite3.OperationalError) no such table: roles
+[SQL: SELECT roles.id AS roles_id, roles.name AS roles_name, roles.prompt AS roles_prompt, roles.created_at AS roles_created_at, roles.updated_at AS roles_updated_at 
+FROM roles ORDER BY roles.created_at DESC
+ LIMIT ? OFFSET ?]
+[parameters: (20, 0)]
+(Background on this error at: https://sqlalche.me/e/14/e3q8) [in D:\ProjectPackage\MRC\backend\app\api\roles.py:53]
+2025-12-05 19:38:02,633 INFO: MultiRoleChat startup - File logging enabled [in D:\ProjectPackage\MRC\backend\app\__init__.py:75]
+2025-12-05 19:38:02,634 INFO: MultiRoleChat startup - Debug mode enabled [in D:\ProjectPackage\MRC\backend\app\__init__.py:79]
+2025-12-05 19:38:02,643 INFO: 性能监控服务初始化完成 [in D:\ProjectPackage\MRC\backend\app\services\monitoring_service.py:100]
+2025-12-05 19:38:02,645 INFO: 性能监控已启动，监控间隔: 30秒 [in D:\ProjectPackage\MRC\backend\app\services\monitoring_service.py:115]
+2025-12-05 19:38:02,645 INFO: 监控中间件已初始化 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:204]
+2025-12-05 19:38:02,645 INFO: 监控告警配置已创建 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:301]
+2025-12-05 19:38:02,696 INFO: ================================================== [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:376]
+2025-12-05 19:38:02,696 INFO: MultiRoleChat 后端服务启动 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:377]
+2025-12-05 19:38:02,696 INFO: 启动时间: 2025-12-05T19:38:02.695976 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:378]
+2025-12-05 19:38:02,696 INFO: 系统平台: Windows-11-10.0.26100-SP0 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:379]
+2025-12-05 19:38:02,697 INFO: Python版本: 3.13.5 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:380]
+2025-12-05 19:38:02,697 INFO: CPU核心数: 32 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:381]
+2025-12-05 19:38:02,697 INFO: 总内存: 31.3 GB [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:382]
+2025-12-05 19:38:02,697 INFO: ================================================== [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:383]
+2025-12-05 19:38:02,698 INFO: 监控系统初始化完成 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:402]
+2025-12-05 19:38:03,529 INFO: 简化LLM服务已初始化，模型: claude-3-5-sonnet-20241022 [in D:\ProjectPackage\MRC\backend\app\services\simple_llm.py:55]
+2025-12-05 19:38:03,530 INFO: 简化LLM管理器已初始化，模型: claude-3-sonnet-20240229 [in D:\ProjectPackage\MRC\backend\app\services\llm\manager.py:45]
+2025-12-05 19:38:03,543 ERROR: 请求清理处理失败: Working outside of request context.
+
+This typically means that you attempted to use functionality that needed
+an active HTTP request. Consult the documentation on testing for
+information about how to avoid this problem. [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:274]
+2025-12-05 19:38:31,349 INFO: MultiRoleChat startup - File logging enabled [in D:\ProjectPackage\MRC\backend\app\__init__.py:75]
+2025-12-05 19:38:31,349 INFO: MultiRoleChat startup - Debug mode enabled [in D:\ProjectPackage\MRC\backend\app\__init__.py:79]
+2025-12-05 19:38:31,359 INFO: 性能监控服务初始化完成 [in D:\ProjectPackage\MRC\backend\app\services\monitoring_service.py:100]
+2025-12-05 19:38:31,361 INFO: 性能监控已启动，监控间隔: 30秒 [in D:\ProjectPackage\MRC\backend\app\services\monitoring_service.py:115]
+2025-12-05 19:38:31,361 INFO: 监控中间件已初始化 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:204]
+2025-12-05 19:38:31,361 INFO: 监控告警配置已创建 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:301]
+2025-12-05 19:38:31,418 INFO: ================================================== [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:376]
+2025-12-05 19:38:31,418 INFO: MultiRoleChat 后端服务启动 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:377]
+2025-12-05 19:38:31,419 INFO: 启动时间: 2025-12-05T19:38:31.418511 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:378]
+2025-12-05 19:38:31,419 INFO: 系统平台: Windows-11-10.0.26100-SP0 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:379]
+2025-12-05 19:38:31,419 INFO: Python版本: 3.13.5 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:380]
+2025-12-05 19:38:31,419 INFO: CPU核心数: 32 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:381]
+2025-12-05 19:38:31,419 INFO: 总内存: 31.3 GB [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:382]
+2025-12-05 19:38:31,419 INFO: ================================================== [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:383]
+2025-12-05 19:38:31,419 INFO: 监控系统初始化完成 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:402]
+2025-12-05 19:38:32,286 INFO: 简化LLM服务已初始化，模型: claude-3-5-sonnet-20241022 [in D:\ProjectPackage\MRC\backend\app\services\simple_llm.py:55]
+2025-12-05 19:38:32,287 INFO: 简化LLM管理器已初始化，模型: claude-3-sonnet-20240229 [in D:\ProjectPackage\MRC\backend\app\services\llm\manager.py:45]
+2025-12-05 19:38:32,300 ERROR: 请求清理处理失败: Working outside of request context.
+
+This typically means that you attempted to use functionality that needed
+an active HTTP request. Consult the documentation on testing for
+information about how to avoid this problem. [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:274]
+2025-12-05 19:42:43,088 INFO: MultiRoleChat startup - File logging enabled [in D:\ProjectPackage\MRC\backend\app\__init__.py:75]
+2025-12-05 19:42:43,089 INFO: MultiRoleChat startup - Debug mode enabled [in D:\ProjectPackage\MRC\backend\app\__init__.py:79]
+2025-12-05 19:42:43,100 INFO: 性能监控服务初始化完成 [in D:\ProjectPackage\MRC\backend\app\services\monitoring_service.py:100]
+2025-12-05 19:42:43,102 INFO: 性能监控已启动，监控间隔: 30秒 [in D:\ProjectPackage\MRC\backend\app\services\monitoring_service.py:115]
+2025-12-05 19:42:43,102 INFO: 监控中间件已初始化 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:204]
+2025-12-05 19:42:43,102 INFO: 监控告警配置已创建 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:301]
+2025-12-05 19:42:43,157 INFO: ================================================== [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:376]
+2025-12-05 19:42:43,157 INFO: MultiRoleChat 后端服务启动 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:377]
+2025-12-05 19:42:43,157 INFO: 启动时间: 2025-12-05T19:42:43.157137 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:378]
+2025-12-05 19:42:43,157 INFO: 系统平台: Windows-11-10.0.26100-SP0 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:379]
+2025-12-05 19:42:43,157 INFO: Python版本: 3.13.5 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:380]
+2025-12-05 19:42:43,158 INFO: CPU核心数: 32 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:381]
+2025-12-05 19:42:43,158 INFO: 总内存: 31.3 GB [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:382]
+2025-12-05 19:42:43,158 INFO: ================================================== [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:383]
+2025-12-05 19:42:43,158 INFO: 监控系统初始化完成 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:402]
+2025-12-05 19:42:44,058 INFO: 简化LLM服务已初始化，模型: claude-3-5-sonnet-20241022 [in D:\ProjectPackage\MRC\backend\app\services\simple_llm.py:55]
+2025-12-05 19:42:44,059 INFO: 简化LLM管理器已初始化，模型: claude-3-sonnet-20240229 [in D:\ProjectPackage\MRC\backend\app\services\llm\manager.py:45]
+2025-12-05 19:42:52,578 INFO: MultiRoleChat startup - File logging enabled [in D:\ProjectPackage\MRC\backend\app\__init__.py:75]
+2025-12-05 19:42:52,578 INFO: MultiRoleChat startup - Debug mode enabled [in D:\ProjectPackage\MRC\backend\app\__init__.py:79]
+2025-12-05 19:42:52,590 INFO: 性能监控服务初始化完成 [in D:\ProjectPackage\MRC\backend\app\services\monitoring_service.py:100]
+2025-12-05 19:42:52,592 INFO: 性能监控已启动，监控间隔: 30秒 [in D:\ProjectPackage\MRC\backend\app\services\monitoring_service.py:115]
+2025-12-05 19:42:52,592 INFO: 监控中间件已初始化 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:204]
+2025-12-05 19:42:52,592 INFO: 监控告警配置已创建 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:301]
+2025-12-05 19:42:52,666 INFO: ================================================== [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:376]
+2025-12-05 19:42:52,666 INFO: MultiRoleChat 后端服务启动 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:377]
+2025-12-05 19:42:52,666 INFO: 启动时间: 2025-12-05T19:42:52.666021 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:378]
+2025-12-05 19:42:52,666 INFO: 系统平台: Windows-11-10.0.26100-SP0 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:379]
+2025-12-05 19:42:52,666 INFO: Python版本: 3.13.5 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:380]
+2025-12-05 19:42:52,666 INFO: CPU核心数: 32 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:381]
+2025-12-05 19:42:52,667 INFO: 总内存: 31.3 GB [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:382]
+2025-12-05 19:42:52,667 INFO: ================================================== [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:383]
+2025-12-05 19:42:52,667 INFO: 监控系统初始化完成 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:402]
+2025-12-05 19:42:53,554 INFO: 简化LLM服务已初始化，模型: claude-3-5-sonnet-20241022 [in D:\ProjectPackage\MRC\backend\app\services\simple_llm.py:55]
+2025-12-05 19:42:53,555 INFO: 简化LLM管理器已初始化，模型: claude-3-sonnet-20240229 [in D:\ProjectPackage\MRC\backend\app\services\llm\manager.py:45]
+2025-12-05 19:42:59,249 INFO: MultiRoleChat startup - File logging enabled [in D:\ProjectPackage\MRC\backend\app\__init__.py:75]
+2025-12-05 19:42:59,249 INFO: MultiRoleChat startup - Debug mode enabled [in D:\ProjectPackage\MRC\backend\app\__init__.py:79]
+2025-12-05 19:42:59,260 INFO: 性能监控服务初始化完成 [in D:\ProjectPackage\MRC\backend\app\services\monitoring_service.py:100]
+2025-12-05 19:42:59,262 INFO: 性能监控已启动，监控间隔: 30秒 [in D:\ProjectPackage\MRC\backend\app\services\monitoring_service.py:115]
+2025-12-05 19:42:59,262 INFO: 监控中间件已初始化 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:204]
+2025-12-05 19:42:59,262 INFO: 监控告警配置已创建 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:301]
+2025-12-05 19:42:59,315 INFO: ================================================== [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:376]
+2025-12-05 19:42:59,315 INFO: MultiRoleChat 后端服务启动 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:377]
+2025-12-05 19:42:59,316 INFO: 启动时间: 2025-12-05T19:42:59.315586 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:378]
+2025-12-05 19:42:59,316 INFO: 系统平台: Windows-11-10.0.26100-SP0 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:379]
+2025-12-05 19:42:59,316 INFO: Python版本: 3.13.5 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:380]
+2025-12-05 19:42:59,316 INFO: CPU核心数: 32 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:381]
+2025-12-05 19:42:59,316 INFO: 总内存: 31.3 GB [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:382]
+2025-12-05 19:42:59,316 INFO: ================================================== [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:383]
+2025-12-05 19:42:59,316 INFO: 监控系统初始化完成 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:402]
+2025-12-05 19:43:00,167 INFO: 简化LLM服务已初始化，模型: claude-3-5-sonnet-20241022 [in D:\ProjectPackage\MRC\backend\app\services\simple_llm.py:55]
+2025-12-05 19:43:00,168 INFO: 简化LLM管理器已初始化，模型: claude-3-sonnet-20240229 [in D:\ProjectPackage\MRC\backend\app\services\llm\manager.py:45]
+2025-12-05 19:43:45,100 INFO: 已删除 4 个模板和 14 个步骤 [in D:\ProjectPackage\MRC\backend\app\services\flow_service.py:505]
+2025-12-05 19:43:45,100 INFO: 已删除 4 个模板和 14 个步骤 [in D:\ProjectPackage\MRC\backend\app\api\flows.py:352]
+2025-12-05 19:45:53,564 INFO: === 创建流程模板开始 === [in D:\ProjectPackage\MRC\backend\app\api\flows.py:67]
+2025-12-05 19:45:53,565 INFO: 原始请求数据: {
+  "name": "测试流程1",
+  "topic": "根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段\n相关工作及文件输出。可选择公司已有产品升级迭代或全新产品，但不可与已有\n产品等同。\n针对所选产品，完成以下立项任务：\n1）可行性分析报告\n2）临床需求与设计转化对照表\n3）法规标准分析表\n4）危害分析（只考虑 uFMEA）\n 其中，可行性分析报告可考虑根据以下方向展开：\na. 市场分析：产品相关适应症、术式发展情况（可参考相关指南、专家共识）、\n推算产品市场容量及发展趋势\nb. 竞争格局：主要进口、国产竞品市场占有情况、产品性能差别\nc. 技术调研：查找中英文文献，确定产品适应症质量方案发展趋势，竞品临\n床评价注册路径\nd. 专利检索分析\ne. 项目进度计划及投入分析",
+  "type": "teaching",
+  "is_active": true,
+  "steps": [
+    {
+      "order": 1,
+      "speaker_role_ref": "打工人（产品）",
+      "task_type": "answer_question",
+      "context_scope": "__TOPIC__",
+      "target_role_ref": ""
+    },
+    {
+      "order": 2,
+      "speaker_role_ref": "Marketing Manager",
+      "task_type": "ask_question",
+      "context_scope": "[\"打工人（产品）\"]",
+      "target_role_ref": ""
+    },
+    {
+      "order": 3,
+      "speaker_role_ref": "Quality Manager",
+      "task_type": "ask_question",
+      "context_scope": "[\"打工人（产品）\"]",
+      "target_role_ref": ""
+    },
+    {
+      "order": 4,
+      "speaker_role_ref": "打工人（产品）",
+      "task_type": "answer_question",
+      "context_scope": "[\"Marketing Manager\",\"Quality Manager\"]",
+      "logic_config": {
+        "next_step_order": 2,
+        "max_loops": 3,
+        "exit_condition": "无"
+      }
+    }
+  ]
+} [in D:\ProjectPackage\MRC\backend\app\api\flows.py:70]
+2025-12-05 19:45:53,573 ERROR: 数据验证失败: {'topic': ['Longer than maximum length 200.']} [in D:\ProjectPackage\MRC\backend\app\api\flows.py:86]
+2025-12-05 19:46:27,026 INFO: === 创建流程模板开始 === [in D:\ProjectPackage\MRC\backend\app\api\flows.py:67]
+2025-12-05 19:46:27,026 INFO: 原始请求数据: {
+  "name": "测试流程1",
+  "topic": "根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段",
+  "type": "teaching",
+  "is_active": true,
+  "steps": [
+    {
+      "order": 1,
+      "speaker_role_ref": "打工人（产品）",
+      "task_type": "answer_question",
+      "context_scope": "__TOPIC__",
+      "target_role_ref": ""
+    },
+    {
+      "order": 2,
+      "speaker_role_ref": "Marketing Manager",
+      "task_type": "ask_question",
+      "context_scope": "[\"打工人（产品）\"]",
+      "target_role_ref": ""
+    },
+    {
+      "order": 3,
+      "speaker_role_ref": "Quality Manager",
+      "task_type": "ask_question",
+      "context_scope": "[\"打工人（产品）\"]",
+      "target_role_ref": ""
+    },
+    {
+      "order": 4,
+      "speaker_role_ref": "打工人（产品）",
+      "task_type": "answer_question",
+      "context_scope": "[\"Marketing Manager\",\"Quality Manager\"]",
+      "logic_config": {
+        "next_step_order": 2,
+        "max_loops": 3,
+        "exit_condition": "无"
+      }
+    }
+  ]
+} [in D:\ProjectPackage\MRC\backend\app\api\flows.py:70]
+2025-12-05 19:46:27,029 INFO: Schema验证后数据: {
+  "name": "测试流程1",
+  "topic": "根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段",
+  "type": "teaching",
+  "is_active": true,
+  "steps": [
+    {
+      "order": 1,
+      "speaker_role_ref": "打工人（产品）",
+      "target_role_ref": "",
+      "task_type": "answer_question",
+      "context_scope": "__TOPIC__"
+    },
+    {
+      "order": 2,
+      "speaker_role_ref": "Marketing Manager",
+      "target_role_ref": "",
+      "task_type": "ask_question",
+      "context_scope": "[\"打工人（产品）\"]"
+    },
+    {
+      "order": 3,
+      "speaker_role_ref": "Quality Manager",
+      "target_role_ref": "",
+      "task_type": "ask_question",
+      "context_scope": "[\"打工人（产品）\"]"
+    },
+    {
+      "order": 4,
+      "speaker_role_ref": "打工人（产品）",
+      "task_type": "answer_question",
+      "context_scope": "[\"Marketing Manager\",\"Quality Manager\"]",
+      "logic_config": {
+        "next_step_order": 2,
+        "max_loops": 3,
+        "exit_condition": "无"
+      }
+    }
+  ]
+} [in D:\ProjectPackage\MRC\backend\app\api\flows.py:84]
+2025-12-05 19:46:27,029 INFO: 调用服务层创建模板: FlowTemplateService.create_template() [in D:\ProjectPackage\MRC\backend\app\api\flows.py:95]
+2025-12-05 19:46:27,030 INFO: create_template() - 开始处理模板: 测试流程1 [in D:\ProjectPackage\MRC\backend\app\services\flow_service.py:52]
+2025-12-05 19:46:27,030 INFO: 模板基本信息: {
+  "name": "测试流程1",
+  "type": "teaching",
+  "topic": "根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段",
+  "is_active": true
+} [in D:\ProjectPackage\MRC\backend\app\services\flow_service.py:77]
+2025-12-05 19:46:27,033 INFO: 数据库插入成功 - 模板ID: 1 [in D:\ProjectPackage\MRC\backend\app\services\flow_service.py:89]
+2025-12-05 19:46:27,033 INFO: 步骤数据: [
+  {
+    "order": 1,
+    "speaker_role_ref": "打工人（产品）",
+    "target_role_ref": "",
+    "task_type": "answer_question",
+    "context_scope": "__TOPIC__"
+  },
+  {
+    "order": 2,
+    "speaker_role_ref": "Marketing Manager",
+    "target_role_ref": "",
+    "task_type": "ask_question",
+    "context_scope": "[\"打工人（产品）\"]"
+  },
+  {
+    "order": 3,
+    "speaker_role_ref": "Quality Manager",
+    "target_role_ref": "",
+    "task_type": "ask_question",
+    "context_scope": "[\"打工人（产品）\"]"
+  },
+  {
+    "order": 4,
+    "speaker_role_ref": "打工人（产品）",
+    "task_type": "answer_question",
+    "context_scope": "[\"Marketing Manager\",\"Quality Manager\"]",
+    "logic_config": {
+      "next_step_order": 2,
+      "max_loops": 3,
+      "exit_condition": "无"
+    }
+  }
+] [in D:\ProjectPackage\MRC\backend\app\services\flow_service.py:94]
+2025-12-05 19:46:27,034 INFO: _create_template_steps() - 开始创建步骤，模板ID: 1 [in D:\ProjectPackage\MRC\backend\app\services\flow_service.py:122]
+2025-12-05 19:46:27,034 INFO: 创建 4 个步骤对象 [in D:\ProjectPackage\MRC\backend\app\services\flow_service.py:144]
+2025-12-05 19:46:27,045 INFO: 模板创建完成 [in D:\ProjectPackage\MRC\backend\app\services\flow_service.py:98]
+2025-12-05 19:46:27,052 INFO: 服务层返回结果: {
+  "id": 1,
+  "name": "测试流程1",
+  "topic": "根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段",
+  "type": "teaching",
+  "description": null,
+  "version": null,
+  "is_active": true,
+  "termination_config": {},
+  "created_at": "2025-12-05T11:46:27.032101",
+  "updated_at": "2025-12-05T11:46:27.032107",
+  "steps": [
+    {
+      "id": 1,
+      "flow_template_id": 1,
+      "order": 1,
+      "speaker_role_ref": "打工人（产品）",
+      "target_role_ref": "",
+      "task_type": "answer_question",
+      "context_scope": "__TOPIC__",
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "id": 2,
+      "flow_template_id": 1,
+      "order": 2,
+      "speaker_role_ref": "Marketing Manager",
+      "target_role_ref": "",
+      "task_type": "ask_question",
+      "context_scope": [
+        "打工人（产品）"
+      ],
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "id": 3,
+      "flow_template_id": 1,
+      "order": 3,
+      "speaker_role_ref": "Quality Manager",
+      "target_role_ref": "",
+      "task_type": "ask_question",
+      "context_scope": [
+        "打工人（产品）"
+      ],
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "id": 4,
+      "flow_template_id": 1,
+      "order": 4,
+      "speaker_role_ref": "打工人（产品）",
+      "target_role_ref": null,
+      "task_type": "answer_question",
+      "context_scope": [
+        "Marketing Manager",
+        "Quality Manager"
+      ],
+      "context_param": {},
+      "logic_config": {
+        "next_step_order": 2,
+        "max_loops": 3,
+        "exit_condition": "无"
+      },
+      "next_step_id": null,
+      "description": null
+    }
+  ]
+} [in D:\ProjectPackage\MRC\backend\app\api\flows.py:101]
+2025-12-05 19:46:27,053 INFO: === 创建流程模板完成 === [in D:\ProjectPackage\MRC\backend\app\api\flows.py:103]
+2025-12-05 19:46:29,555 INFO: FlowDetail response data: {"id": 1, "name": "测试流程1", "topic": "根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段", "type": "teaching", "description": null, "version": null, "is_active": true, "termination_config": {}, "created_at": "2025-12-05T11:46:27.032101", "updated_at": "2025-12-05T11:46:27.032107", "steps": [{"id": 1, "flow_template_id": 1, "order": 1, "speaker_role_ref": "打工人（产品）", "target_role_ref": "", "task_type": "answer_question", "context_scope": "__TOPIC__", "context_param": {}, "logic_config": {}, "next_step_id": null, "description": null}, {"id": 2, "flow_template_id": 1, "order": 2, "speaker_role_ref": "Marketing Manager", "target_role_ref": "", "task_type": "ask_question", "context_scope": ["打工人（产品）"], "context_param": {}, "logic_config": {}, "next_step_id": null, "description": null}, {"id": 3, "flow_template_id": 1, "order": 3, "speaker_role_ref": "Quality Manager", "target_role_ref": "", "task_type": "ask_question", "context_scope": ["打工人（产品）"], "context_param": {}, "logic_config": {}, "next_step_id": null, "description": null}, {"id": 4, "flow_template_id": 1, "order": 4, "speaker_role_ref": "打工人（产品）", "target_role_ref": null, "task_type": "answer_question", "context_scope": ["Marketing Manager", "Quality Manager"], "context_param": {}, "logic_config": {"next_step_order": 2, "max_loops": 3, "exit_condition": "无"}, "next_step_id": null, "description": null}]} [in D:\ProjectPackage\MRC\backend\app\api\flows.py:140]
+2025-12-05 19:46:38,798 INFO: === 更新流程模板开始 (ID: 1) === [in D:\ProjectPackage\MRC\backend\app\api\flows.py:158]
+2025-12-05 19:46:38,798 INFO: 原始请求数据: {
+  "name": "测试流程1",
+  "topic": "根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段。要查专利。",
+  "type": "teaching",
+  "description": null,
+  "version": null,
+  "is_active": true,
+  "termination_config": {},
+  "steps": [
+    {
+      "order": 1,
+      "speaker_role_ref": "打工人（产品）",
+      "target_role_ref": "",
+      "task_type": "answer_question",
+      "context_scope": "__TOPIC__",
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "order": 2,
+      "speaker_role_ref": "Marketing Manager",
+      "target_role_ref": "",
+      "task_type": "ask_question",
+      "context_scope": [
+        "打工人（产品）"
+      ],
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "order": 3,
+      "speaker_role_ref": "Quality Manager",
+      "target_role_ref": "",
+      "task_type": "ask_question",
+      "context_scope": [
+        "打工人（产品）"
+      ],
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "order": 4,
+      "speaker_role_ref": "打工人（产品）",
+      "target_role_ref": null,
+      "task_type": "answer_question",
+      "context_scope": [
+        "Marketing Manager",
+        "Quality Manager"
+      ],
+      "context_param": {},
+      "logic_config": {
+        "next_step_order": 2,
+        "max_loops": 3,
+        "exit_condition": "无"
+      },
+      "next_step_id": null,
+      "description": null
+    }
+  ]
+} [in D:\ProjectPackage\MRC\backend\app\api\flows.py:161]
+2025-12-05 19:46:38,802 INFO: Schema验证后数据: {
+  "name": "测试流程1",
+  "topic": "根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段。要查专利。",
+  "type": "teaching",
+  "description": null,
+  "version": null,
+  "is_active": true,
+  "termination_config": {},
+  "steps": [
+    {
+      "order": 1,
+      "speaker_role_ref": "打工人（产品）",
+      "target_role_ref": "",
+      "task_type": "answer_question",
+      "context_scope": "__TOPIC__",
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "order": 2,
+      "speaker_role_ref": "Marketing Manager",
+      "target_role_ref": "",
+      "task_type": "ask_question",
+      "context_scope": "[\"打工人（产品）\"]",
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "order": 3,
+      "speaker_role_ref": "Quality Manager",
+      "target_role_ref": "",
+      "task_type": "ask_question",
+      "context_scope": "[\"打工人（产品）\"]",
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "order": 4,
+      "speaker_role_ref": "打工人（产品）",
+      "target_role_ref": null,
+      "task_type": "answer_question",
+      "context_scope": "[\"Marketing Manager\", \"Quality Manager\"]",
+      "context_param": {},
+      "logic_config": {
+        "next_step_order": 2,
+        "max_loops": 3,
+        "exit_condition": "无"
+      },
+      "next_step_id": null,
+      "description": null
+    }
+  ]
+} [in D:\ProjectPackage\MRC\backend\app\api\flows.py:175]
+2025-12-05 19:46:38,802 INFO: 调用服务层更新模板: FlowTemplateService.update_template() [in D:\ProjectPackage\MRC\backend\app\api\flows.py:186]
+2025-12-05 19:46:38,811 INFO: _create_template_steps() - 开始创建步骤，模板ID: 1 [in D:\ProjectPackage\MRC\backend\app\services\flow_service.py:122]
+2025-12-05 19:46:38,811 INFO: 创建 4 个步骤对象 [in D:\ProjectPackage\MRC\backend\app\services\flow_service.py:144]
+2025-12-05 19:46:38,827 INFO: 服务层返回结果: {
+  "id": 1,
+  "name": "测试流程1",
+  "topic": "根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段",
+  "type": "teaching",
+  "description": null,
+  "version": null,
+  "is_active": true,
+  "termination_config": {},
+  "created_at": "2025-12-05T11:46:27.032101",
+  "updated_at": "2025-12-05T11:46:38.812025",
+  "steps": [
+    {
+      "id": 1,
+      "flow_template_id": 1,
+      "order": 1,
+      "speaker_role_ref": "打工人（产品）",
+      "target_role_ref": "",
+      "task_type": "answer_question",
+      "context_scope": "__TOPIC__",
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "id": 2,
+      "flow_template_id": 1,
+      "order": 2,
+      "speaker_role_ref": "Marketing Manager",
+      "target_role_ref": "",
+      "task_type": "ask_question",
+      "context_scope": [
+        "打工人（产品）"
+      ],
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "id": 3,
+      "flow_template_id": 1,
+      "order": 3,
+      "speaker_role_ref": "Quality Manager",
+      "target_role_ref": "",
+      "task_type": "ask_question",
+      "context_scope": [
+        "打工人（产品）"
+      ],
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "id": 4,
+      "flow_template_id": 1,
+      "order": 4,
+      "speaker_role_ref": "打工人（产品）",
+      "target_role_ref": null,
+      "task_type": "answer_question",
+      "context_scope": [
+        "Marketing Manager",
+        "Quality Manager"
+      ],
+      "context_param": {},
+      "logic_config": {
+        "next_step_order": 2,
+        "max_loops": 3,
+        "exit_condition": "无"
+      },
+      "next_step_id": null,
+      "description": null
+    }
+  ]
+} [in D:\ProjectPackage\MRC\backend\app\api\flows.py:192]
+2025-12-05 19:46:38,828 INFO: === 更新流程模板完成 === [in D:\ProjectPackage\MRC\backend\app\api\flows.py:194]
+2025-12-05 19:46:40,720 INFO: FlowDetail response data: {"id": 1, "name": "测试流程1", "topic": "根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段", "type": "teaching", "description": null, "version": null, "is_active": true, "termination_config": {}, "created_at": "2025-12-05T11:46:27.032101", "updated_at": "2025-12-05T11:46:38.812025", "steps": [{"id": 1, "flow_template_id": 1, "order": 1, "speaker_role_ref": "打工人（产品）", "target_role_ref": "", "task_type": "answer_question", "context_scope": "__TOPIC__", "context_param": {}, "logic_config": {}, "next_step_id": null, "description": null}, {"id": 2, "flow_template_id": 1, "order": 2, "speaker_role_ref": "Marketing Manager", "target_role_ref": "", "task_type": "ask_question", "context_scope": ["打工人（产品）"], "context_param": {}, "logic_config": {}, "next_step_id": null, "description": null}, {"id": 3, "flow_template_id": 1, "order": 3, "speaker_role_ref": "Quality Manager", "target_role_ref": "", "task_type": "ask_question", "context_scope": ["打工人（产品）"], "context_param": {}, "logic_config": {}, "next_step_id": null, "description": null}, {"id": 4, "flow_template_id": 1, "order": 4, "speaker_role_ref": "打工人（产品）", "target_role_ref": null, "task_type": "answer_question", "context_scope": ["Marketing Manager", "Quality Manager"], "context_param": {}, "logic_config": {"next_step_order": 2, "max_loops": 3, "exit_condition": "无"}, "next_step_id": null, "description": null}]} [in D:\ProjectPackage\MRC\backend\app\api\flows.py:140]
+2025-12-05 19:46:48,464 INFO: === 更新流程模板开始 (ID: 1) === [in D:\ProjectPackage\MRC\backend\app\api\flows.py:158]
+2025-12-05 19:46:48,465 INFO: 原始请求数据: {
+  "name": "测试流程1",
+  "topic": "根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段",
+  "type": "teaching",
+  "description": null,
+  "version": null,
+  "is_active": true,
+  "termination_config": {},
+  "steps": [
+    {
+      "order": 1,
+      "speaker_role_ref": "打工人（产品）",
+      "target_role_ref": "",
+      "task_type": "answer_question",
+      "context_scope": "__TOPIC__",
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "order": 2,
+      "speaker_role_ref": "Marketing Manager",
+      "target_role_ref": "",
+      "task_type": "ask_question",
+      "context_scope": [
+        "打工人（产品）"
+      ],
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "order": 3,
+      "speaker_role_ref": "Quality Manager",
+      "target_role_ref": "",
+      "task_type": "ask_question",
+      "context_scope": [
+        "打工人（产品）"
+      ],
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "order": 4,
+      "speaker_role_ref": "打工人（产品）",
+      "target_role_ref": null,
+      "task_type": "answer_question",
+      "context_scope": [
+        "Marketing Manager",
+        "Quality Manager"
+      ],
+      "context_param": {},
+      "logic_config": {
+        "next_step_order": 2,
+        "max_loops": 3,
+        "exit_condition": "无"
+      },
+      "next_step_id": null,
+      "description": null
+    }
+  ]
+} [in D:\ProjectPackage\MRC\backend\app\api\flows.py:161]
+2025-12-05 19:46:48,467 INFO: Schema验证后数据: {
+  "name": "测试流程1",
+  "topic": "根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段",
+  "type": "teaching",
+  "description": null,
+  "version": null,
+  "is_active": true,
+  "termination_config": {},
+  "steps": [
+    {
+      "order": 1,
+      "speaker_role_ref": "打工人（产品）",
+      "target_role_ref": "",
+      "task_type": "answer_question",
+      "context_scope": "__TOPIC__",
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "order": 2,
+      "speaker_role_ref": "Marketing Manager",
+      "target_role_ref": "",
+      "task_type": "ask_question",
+      "context_scope": "[\"打工人（产品）\"]",
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "order": 3,
+      "speaker_role_ref": "Quality Manager",
+      "target_role_ref": "",
+      "task_type": "ask_question",
+      "context_scope": "[\"打工人（产品）\"]",
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "order": 4,
+      "speaker_role_ref": "打工人（产品）",
+      "target_role_ref": null,
+      "task_type": "answer_question",
+      "context_scope": "[\"Marketing Manager\", \"Quality Manager\"]",
+      "context_param": {},
+      "logic_config": {
+        "next_step_order": 2,
+        "max_loops": 3,
+        "exit_condition": "无"
+      },
+      "next_step_id": null,
+      "description": null
+    }
+  ]
+} [in D:\ProjectPackage\MRC\backend\app\api\flows.py:175]
+2025-12-05 19:46:48,468 INFO: 调用服务层更新模板: FlowTemplateService.update_template() [in D:\ProjectPackage\MRC\backend\app\api\flows.py:186]
+2025-12-05 19:46:48,474 INFO: _create_template_steps() - 开始创建步骤，模板ID: 1 [in D:\ProjectPackage\MRC\backend\app\services\flow_service.py:122]
+2025-12-05 19:46:48,475 INFO: 创建 4 个步骤对象 [in D:\ProjectPackage\MRC\backend\app\services\flow_service.py:144]
+2025-12-05 19:46:48,491 INFO: 服务层返回结果: {
+  "id": 1,
+  "name": "测试流程1",
+  "topic": "根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段",
+  "type": "teaching",
+  "description": null,
+  "version": null,
+  "is_active": true,
+  "termination_config": {},
+  "created_at": "2025-12-05T11:46:27.032101",
+  "updated_at": "2025-12-05T11:46:48.475946",
+  "steps": [
+    {
+      "id": 1,
+      "flow_template_id": 1,
+      "order": 1,
+      "speaker_role_ref": "打工人（产品）",
+      "target_role_ref": "",
+      "task_type": "answer_question",
+      "context_scope": "__TOPIC__",
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "id": 2,
+      "flow_template_id": 1,
+      "order": 2,
+      "speaker_role_ref": "Marketing Manager",
+      "target_role_ref": "",
+      "task_type": "ask_question",
+      "context_scope": [
+        "打工人（产品）"
+      ],
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "id": 3,
+      "flow_template_id": 1,
+      "order": 3,
+      "speaker_role_ref": "Quality Manager",
+      "target_role_ref": "",
+      "task_type": "ask_question",
+      "context_scope": [
+        "打工人（产品）"
+      ],
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "id": 4,
+      "flow_template_id": 1,
+      "order": 4,
+      "speaker_role_ref": "打工人（产品）",
+      "target_role_ref": null,
+      "task_type": "answer_question",
+      "context_scope": [
+        "Marketing Manager",
+        "Quality Manager"
+      ],
+      "context_param": {},
+      "logic_config": {
+        "next_step_order": 2,
+        "max_loops": 3,
+        "exit_condition": "无"
+      },
+      "next_step_id": null,
+      "description": null
+    }
+  ]
+} [in D:\ProjectPackage\MRC\backend\app\api\flows.py:192]
+2025-12-05 19:46:48,492 INFO: === 更新流程模板完成 === [in D:\ProjectPackage\MRC\backend\app\api\flows.py:194]
+2025-12-05 19:46:56,591 INFO: FlowDetail response data: {"id": 1, "name": "测试流程1", "topic": "根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段", "type": "teaching", "description": null, "version": null, "is_active": true, "termination_config": {}, "created_at": "2025-12-05T11:46:27.032101", "updated_at": "2025-12-05T11:46:48.475946", "steps": [{"id": 1, "flow_template_id": 1, "order": 1, "speaker_role_ref": "打工人（产品）", "target_role_ref": "", "task_type": "answer_question", "context_scope": "__TOPIC__", "context_param": {}, "logic_config": {}, "next_step_id": null, "description": null}, {"id": 2, "flow_template_id": 1, "order": 2, "speaker_role_ref": "Marketing Manager", "target_role_ref": "", "task_type": "ask_question", "context_scope": ["打工人（产品）"], "context_param": {}, "logic_config": {}, "next_step_id": null, "description": null}, {"id": 3, "flow_template_id": 1, "order": 3, "speaker_role_ref": "Quality Manager", "target_role_ref": "", "task_type": "ask_question", "context_scope": ["打工人（产品）"], "context_param": {}, "logic_config": {}, "next_step_id": null, "description": null}, {"id": 4, "flow_template_id": 1, "order": 4, "speaker_role_ref": "打工人（产品）", "target_role_ref": null, "task_type": "answer_question", "context_scope": ["Marketing Manager", "Quality Manager"], "context_param": {}, "logic_config": {"next_step_order": 2, "max_loops": 3, "exit_condition": "无"}, "next_step_id": null, "description": null}]} [in D:\ProjectPackage\MRC\backend\app\api\flows.py:140]
+2025-12-05 19:46:59,736 INFO: === 更新流程模板开始 (ID: 1) === [in D:\ProjectPackage\MRC\backend\app\api\flows.py:158]
+2025-12-05 19:46:59,737 INFO: 原始请求数据: {
+  "name": "测试流程2",
+  "topic": "根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段1",
+  "type": "teaching",
+  "description": null,
+  "version": null,
+  "is_active": true,
+  "termination_config": {},
+  "steps": [
+    {
+      "order": 1,
+      "speaker_role_ref": "打工人（产品）",
+      "target_role_ref": "",
+      "task_type": "answer_question",
+      "context_scope": "__TOPIC__",
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "order": 2,
+      "speaker_role_ref": "Marketing Manager",
+      "target_role_ref": "",
+      "task_type": "ask_question",
+      "context_scope": [
+        "打工人（产品）"
+      ],
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "order": 3,
+      "speaker_role_ref": "Quality Manager",
+      "target_role_ref": "",
+      "task_type": "ask_question",
+      "context_scope": [
+        "打工人（产品）"
+      ],
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "order": 4,
+      "speaker_role_ref": "打工人（产品）",
+      "target_role_ref": null,
+      "task_type": "answer_question",
+      "context_scope": [
+        "Marketing Manager",
+        "Quality Manager"
+      ],
+      "context_param": {},
+      "logic_config": {
+        "next_step_order": 2,
+        "max_loops": 3,
+        "exit_condition": "无"
+      },
+      "next_step_id": null,
+      "description": null
+    }
+  ]
+} [in D:\ProjectPackage\MRC\backend\app\api\flows.py:161]
+2025-12-05 19:46:59,739 INFO: Schema验证后数据: {
+  "name": "测试流程2",
+  "topic": "根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段1",
+  "type": "teaching",
+  "description": null,
+  "version": null,
+  "is_active": true,
+  "termination_config": {},
+  "steps": [
+    {
+      "order": 1,
+      "speaker_role_ref": "打工人（产品）",
+      "target_role_ref": "",
+      "task_type": "answer_question",
+      "context_scope": "__TOPIC__",
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "order": 2,
+      "speaker_role_ref": "Marketing Manager",
+      "target_role_ref": "",
+      "task_type": "ask_question",
+      "context_scope": "[\"打工人（产品）\"]",
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "order": 3,
+      "speaker_role_ref": "Quality Manager",
+      "target_role_ref": "",
+      "task_type": "ask_question",
+      "context_scope": "[\"打工人（产品）\"]",
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "order": 4,
+      "speaker_role_ref": "打工人（产品）",
+      "target_role_ref": null,
+      "task_type": "answer_question",
+      "context_scope": "[\"Marketing Manager\", \"Quality Manager\"]",
+      "context_param": {},
+      "logic_config": {
+        "next_step_order": 2,
+        "max_loops": 3,
+        "exit_condition": "无"
+      },
+      "next_step_id": null,
+      "description": null
+    }
+  ]
+} [in D:\ProjectPackage\MRC\backend\app\api\flows.py:175]
+2025-12-05 19:46:59,739 INFO: 调用服务层更新模板: FlowTemplateService.update_template() [in D:\ProjectPackage\MRC\backend\app\api\flows.py:186]
+2025-12-05 19:46:59,749 INFO: _create_template_steps() - 开始创建步骤，模板ID: 1 [in D:\ProjectPackage\MRC\backend\app\services\flow_service.py:122]
+2025-12-05 19:46:59,750 INFO: 创建 4 个步骤对象 [in D:\ProjectPackage\MRC\backend\app\services\flow_service.py:144]
+2025-12-05 19:46:59,765 INFO: 服务层返回结果: {
+  "id": 1,
+  "name": "测试流程2",
+  "topic": "根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段",
+  "type": "teaching",
+  "description": null,
+  "version": null,
+  "is_active": true,
+  "termination_config": {},
+  "created_at": "2025-12-05T11:46:27.032101",
+  "updated_at": "2025-12-05T11:46:59.750548",
+  "steps": [
+    {
+      "id": 1,
+      "flow_template_id": 1,
+      "order": 1,
+      "speaker_role_ref": "打工人（产品）",
+      "target_role_ref": "",
+      "task_type": "answer_question",
+      "context_scope": "__TOPIC__",
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "id": 2,
+      "flow_template_id": 1,
+      "order": 2,
+      "speaker_role_ref": "Marketing Manager",
+      "target_role_ref": "",
+      "task_type": "ask_question",
+      "context_scope": [
+        "打工人（产品）"
+      ],
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "id": 3,
+      "flow_template_id": 1,
+      "order": 3,
+      "speaker_role_ref": "Quality Manager",
+      "target_role_ref": "",
+      "task_type": "ask_question",
+      "context_scope": [
+        "打工人（产品）"
+      ],
+      "context_param": {},
+      "logic_config": {},
+      "next_step_id": null,
+      "description": null
+    },
+    {
+      "id": 4,
+      "flow_template_id": 1,
+      "order": 4,
+      "speaker_role_ref": "打工人（产品）",
+      "target_role_ref": null,
+      "task_type": "answer_question",
+      "context_scope": [
+        "Marketing Manager",
+        "Quality Manager"
+      ],
+      "context_param": {},
+      "logic_config": {
+        "next_step_order": 2,
+        "max_loops": 3,
+        "exit_condition": "无"
+      },
+      "next_step_id": null,
+      "description": null
+    }
+  ]
+} [in D:\ProjectPackage\MRC\backend\app\api\flows.py:192]
+2025-12-05 19:46:59,766 INFO: === 更新流程模板完成 === [in D:\ProjectPackage\MRC\backend\app\api\flows.py:194]
+2025-12-05 19:47:02,194 INFO: FlowDetail response data: {"id": 1, "name": "测试流程2", "topic": "根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段", "type": "teaching", "description": null, "version": null, "is_active": true, "termination_config": {}, "created_at": "2025-12-05T11:46:27.032101", "updated_at": "2025-12-05T11:46:59.750548", "steps": [{"id": 1, "flow_template_id": 1, "order": 1, "speaker_role_ref": "打工人（产品）", "target_role_ref": "", "task_type": "answer_question", "context_scope": "__TOPIC__", "context_param": {}, "logic_config": {}, "next_step_id": null, "description": null}, {"id": 2, "flow_template_id": 1, "order": 2, "speaker_role_ref": "Marketing Manager", "target_role_ref": "", "task_type": "ask_question", "context_scope": ["打工人（产品）"], "context_param": {}, "logic_config": {}, "next_step_id": null, "description": null}, {"id": 3, "flow_template_id": 1, "order": 3, "speaker_role_ref": "Quality Manager", "target_role_ref": "", "task_type": "ask_question", "context_scope": ["打工人（产品）"], "context_param": {}, "logic_config": {}, "next_step_id": null, "description": null}, {"id": 4, "flow_template_id": 1, "order": 4, "speaker_role_ref": "打工人（产品）", "target_role_ref": null, "task_type": "answer_question", "context_scope": ["Marketing Manager", "Quality Manager"], "context_param": {}, "logic_config": {"next_step_order": 2, "max_loops": 3, "exit_condition": "无"}, "next_step_id": null, "description": null}]} [in D:\ProjectPackage\MRC\backend\app\api\flows.py:140]
+2025-12-05 19:47:15,638 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] API_LAYER - 收到LLM对话请求 | message_length=130 | history_count=0 | user_id=None | session_id=None [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:15,639 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] API_LAYER - 用户输入消息内容 | content长度=130, 预览='你是打工人（产品）。你是一个产品专员，接受到任务的时候，将其详尽的转换成一份产品文旦g 会话主题：根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段 任务：answer_ques...' | message_length=130 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:15,639 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] API_LAYER - 当前消息添加完成，准备调用LLM管理器 | total_messages=1 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:15,639 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] API_LAYER - 完整提示词构建完成 | content长度=136, 预览='user: 你是打工人（产品）。你是一个产品专员，接受到任务的时候，将其详尽的转换成一份产品文旦g 会话主题：根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段 任务：answe...' | total_prompt_length=137 | message_count=1 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:15,639 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] API_LAYER - 开始调用LLM管理器 | start_time=2025-12-05T19:47:15.639928 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:15,640 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] MANAGER_LAYER - 开始生成LLM响应 | provider=None | message_count=1 | model=claude-3-sonnet-20240229 | max_tokens=4096 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:15,640 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] MANAGER_LAYER - 开始消息格式转换 | input_type=LLMMessage对象列表 | count=1 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:15,641 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] MANAGER_LAYER - 消息转换[0] - user | content_length=130 | content_preview=你是打工人（产品）。你是一个产品专员，接受到任务的时候，将其详尽的转换成一份产品文旦g 会话主题：根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段 任务：answer_ques... [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:15,641 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] MANAGER_LAYER - 消息格式转换完成 | output_type=字典列表 | output_count=1 | conversion_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:15,641 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] MANAGER_LAYER - 参数提取完成，准备调用简化服务 | model=claude-3-sonnet-20240229 | max_tokens=4096 | additional_params={} [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:15,641 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] MANAGER_LAYER - 完整提示词构建完成 | content长度=136, 预览='user: 你是打工人（产品）。你是一个产品专员，接受到任务的时候，将其详尽的转换成一份产品文旦g 会话主题：根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段 任务：answe...' | total_prompt_length=137 | message_count=1 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:15,641 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] MANAGER_LAYER - 开始调用简化LLM服务 | service_type=SimpleLLMService | api_call_start_time=1764935235.6406424 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:15,642 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] CORE_LAYER - 开始生成Anthropic LLM响应 | model=claude-3-sonnet-20240229 | max_tokens=4096 | message_count=1 | additional_params={} [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:15,642 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] CORE_LAYER - 开始转换消息格式为Anthropic API格式 | input_format=字典列表 | input_count=1 | target_format=Anthropic API消息格式 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:15,642 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] CORE_LAYER - 消息格式转换[0] - user | content_length=130 | content_preview=你是打工人（产品）。你是一个产品专员，接受到任务的时候，将其详尽的转换成一份产品文旦g 会话主题：根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段 任务：answer_ques... | conversion_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:15,642 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] CORE_LAYER - 消息格式转换完成 | output_format=Anthropic API消息列表 | output_count=1 | conversion_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:15,643 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] CORE_LAYER - 准备调用Anthropic Claude API | content长度=136, 预览='user: 你是打工人（产品）。你是一个产品专员，接受到任务的时候，将其详尽的转换成一份产品文旦g 会话主题：根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段 任务：answe...' | total_prompt_length=137 | api_start_time=1764935235.642084 | api_model=claude-3-sonnet-20240229 | api_max_tokens=4096 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:15,643 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] CORE_LAYER - 调用Anthropic Claude API | api_endpoint=anthropic.messages.create | model=claude-3-sonnet-20240229 | max_tokens=4096 | message_count=1 | api_call_start_time=1764935235.6435301 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:24,940 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] CORE_LAYER - Anthropic API调用成功 | api_response_id=2025120519471386b5f2b669164ddd | api_call_duration=9.297s | api_model=glm-4.6 | api_stop_reason=end_turn | response_content_preview=好的，收到！作为一名产品专员，我的工作就是将模糊的指令转化为清晰、可执行的产品文档。
+
+（键盘敲击声... 咖啡杯轻放声...）
+
+没问题，老板。根据您的要求，我对“根据瑛泰医疗的产品和市场分析，选择... [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:24,941 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] CORE_LAYER - Anthropic LLM响应生成成功 | response_length=1843 | response_time=9.298s | api_call_time=9.297s | model=glm-4.6 | provider=anthropic | usage={'prompt_tokens': 32, 'completion_tokens': 460, 'total_tokens': 493} | is_success=True | response_quality=正常 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:24,941 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] CORE_LAYER - Anthropic LLM返回内容详情 | content长度=1843, 预览='好的，收到！作为一名产品专员，我的工作就是将模糊的指令转化为清晰、可执行的产品文档。
+
+（键盘敲击声... 咖啡杯轻放声...）
+
+没问题，老板。根据您的要求，我对“根据瑛泰医疗的产品和市场分析，选择...' | content_length=1843 | is_success=True | response_source=anthropic_api [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:24,941 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] CORE_LAYER - LLMResponse对象构建完成 | response_object_id=2440873996176 | response_content_length=1843 | response_model=claude-3-sonnet-20240229 | response_provider=anthropic | response_time=9.298486948013306 | total_processing_time=9.298s [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:24,941 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] MANAGER_LAYER - LLM响应生成成功 | response_length=1843 | response_time=9.301s | model=claude-3-sonnet-20240229 | provider=anthropic | usage={'prompt_tokens': 32, 'completion_tokens': 460, 'total_tokens': 493} | service_response_time=9.298s [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:24,941 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] MANAGER_LAYER - LLM返回内容详情 | content长度=1843, 预览='好的，收到！作为一名产品专员，我的工作就是将模糊的指令转化为清晰、可执行的产品文档。
+
+（键盘敲击声... 咖啡杯轻放声...）
+
+没问题，老板。根据您的要求，我对“根据瑛泰医疗的产品和市场分析，选择...' | content_length=1843 | is_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:24,942 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] API_LAYER - LLM回复成功 | response_length=1843 | response_time=9.30s | model=claude-3-sonnet-20240229 | provider=anthropic | usage={'prompt_tokens': 32, 'completion_tokens': 460, 'total_tokens': 493} [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:24,942 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] API_LAYER - LLM返回内容详情 | content长度=1843, 预览='好的，收到！作为一名产品专员，我的工作就是将模糊的指令转化为清晰、可执行的产品文档。
+
+（键盘敲击声... 咖啡杯轻放声...）
+
+没问题，老板。根据您的要求，我对“根据瑛泰医疗的产品和市场分析，选择...' | content_length=1843 | is_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:24,942 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] API_LAYER - 监控指标记录完成 | tokens_used=493 | monitoring_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:24,942 INFO: [LLM-REQ-ID: LLM-1764935235638-56ddd670] API_LAYER - 请求处理完成，返回响应 | total_time=9.30s | success=True | response_size=2178 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:47:24,943 WARNING: 慢请求警告: POST /api/llm/chat 耗时 9.30s，状态码: 200 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:238]
+2025-12-05 19:47:24,963 WARNING: 慢请求警告: POST /api/sessions/42/run-next-step 耗时 11.51s，状态码: 200 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:238]
+2025-12-05 19:50:43,632 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] API_LAYER - 收到LLM对话请求 | message_length=433 | history_count=1 | user_id=None | session_id=None [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:43,632 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] API_LAYER - 用户输入消息内容 | content长度=433, 预览='你是Marketing Manager。You are an experienced Marketing Manager with expertise in marketing, brand buil...' | message_length=433 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:43,632 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] API_LAYER - 历史消息[0] - assistant | content长度=1852, 预览='打工人（产品）: 好的，收到！作为一名产品专员，我的工作就是将模糊的指令转化为清晰、可执行的产品文档。
+
+（键盘敲击声... 咖啡杯轻放声...）
+
+没问题，老板。根据您的要求，我对“根据瑛泰医疗的产...' | content_length=1852 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:43,632 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] API_LAYER - 当前消息添加完成，准备调用LLM管理器 | total_messages=2 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:43,633 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] API_LAYER - 完整提示词构建完成 | content长度=2303, 预览='assistant: 打工人（产品）: 好的，收到！作为一名产品专员，我的工作就是将模糊的指令转化为清晰、可执行的产品文档。
+
+（键盘敲击声... 咖啡杯轻放声...）
+
+没问题，老板。根据您的要求，...' | total_prompt_length=2304 | message_count=2 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:43,633 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] API_LAYER - 开始调用LLM管理器 | start_time=2025-12-05T19:50:43.633255 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:43,633 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] MANAGER_LAYER - 开始生成LLM响应 | provider=None | message_count=2 | model=claude-3-sonnet-20240229 | max_tokens=4096 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:43,634 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] MANAGER_LAYER - 开始消息格式转换 | input_type=LLMMessage对象列表 | count=2 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:43,634 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] MANAGER_LAYER - 消息转换[0] - assistant | content_length=1852 | content_preview=打工人（产品）: 好的，收到！作为一名产品专员，我的工作就是将模糊的指令转化为清晰、可执行的产品文档。
+
+（键盘敲击声... 咖啡杯轻放声...）
+
+没问题，老板。根据您的要求，我对“根据瑛泰医疗的产... [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:43,634 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] MANAGER_LAYER - 消息转换[1] - user | content_length=433 | content_preview=你是Marketing Manager。You are an experienced Marketing Manager with expertise in marketing, brand buil... [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:43,634 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] MANAGER_LAYER - 消息格式转换完成 | output_type=字典列表 | output_count=2 | conversion_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:43,634 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] MANAGER_LAYER - 参数提取完成，准备调用简化服务 | model=claude-3-sonnet-20240229 | max_tokens=4096 | additional_params={} [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:43,634 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] MANAGER_LAYER - 完整提示词构建完成 | content长度=2303, 预览='assistant: 打工人（产品）: 好的，收到！作为一名产品专员，我的工作就是将模糊的指令转化为清晰、可执行的产品文档。
+
+（键盘敲击声... 咖啡杯轻放声...）
+
+没问题，老板。根据您的要求，...' | total_prompt_length=2304 | message_count=2 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:43,634 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] MANAGER_LAYER - 开始调用简化LLM服务 | service_type=SimpleLLMService | api_call_start_time=1764935443.633803 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:43,634 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] CORE_LAYER - 开始生成Anthropic LLM响应 | model=claude-3-sonnet-20240229 | max_tokens=4096 | message_count=2 | additional_params={} [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:43,634 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] CORE_LAYER - 开始转换消息格式为Anthropic API格式 | input_format=字典列表 | input_count=2 | target_format=Anthropic API消息格式 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:43,635 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] CORE_LAYER - 消息格式转换[0] - assistant | content_length=1852 | content_preview=打工人（产品）: 好的，收到！作为一名产品专员，我的工作就是将模糊的指令转化为清晰、可执行的产品文档。
+
+（键盘敲击声... 咖啡杯轻放声...）
+
+没问题，老板。根据您的要求，我对“根据瑛泰医疗的产... | conversion_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:43,635 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] CORE_LAYER - 消息格式转换[1] - user | content_length=433 | content_preview=你是Marketing Manager。You are an experienced Marketing Manager with expertise in marketing, brand buil... | conversion_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:43,635 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] CORE_LAYER - 消息格式转换完成 | output_format=Anthropic API消息列表 | output_count=2 | conversion_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:43,635 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] CORE_LAYER - 准备调用Anthropic Claude API | content长度=2303, 预览='assistant: 打工人（产品）: 好的，收到！作为一名产品专员，我的工作就是将模糊的指令转化为清晰、可执行的产品文档。
+
+（键盘敲击声... 咖啡杯轻放声...）
+
+没问题，老板。根据您的要求，...' | total_prompt_length=2304 | api_start_time=1764935443.6348417 | api_model=claude-3-sonnet-20240229 | api_max_tokens=4096 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:43,635 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] CORE_LAYER - 调用Anthropic Claude API | api_endpoint=anthropic.messages.create | model=claude-3-sonnet-20240229 | max_tokens=4096 | message_count=2 | api_call_start_time=1764935443.635832 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:54,456 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] CORE_LAYER - Anthropic API调用成功 | api_response_id=20251205195041c476d567be1e4baa | api_call_duration=10.821s | api_model=glm-4.6 | api_stop_reason=end_turn | response_content_preview=好的，各位。
+
+作为瑛泰医疗的市场营销经理，我非常荣幸能参与到这次新项目的立项讨论中。基于我们前一轮对泛血管介入市场的宏观分析，我看到了一个巨大且未被满足的临床需求。为了精准切入，我建议将我们的焦点放... [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:54,457 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] CORE_LAYER - Anthropic LLM响应生成成功 | response_length=1382 | response_time=10.822s | api_call_time=10.821s | model=glm-4.6 | provider=anthropic | usage={'prompt_tokens': 571, 'completion_tokens': 345, 'total_tokens': 917} | is_success=True | response_quality=正常 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:54,457 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] CORE_LAYER - Anthropic LLM返回内容详情 | content长度=1382, 预览='好的，各位。
+
+作为瑛泰医疗的市场营销经理，我非常荣幸能参与到这次新项目的立项讨论中。基于我们前一轮对泛血管介入市场的宏观分析，我看到了一个巨大且未被满足的临床需求。为了精准切入，我建议将我们的焦点放...' | content_length=1382 | is_success=True | response_source=anthropic_api [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:54,458 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] CORE_LAYER - LLMResponse对象构建完成 | response_object_id=2440875050960 | response_content_length=1382 | response_model=claude-3-sonnet-20240229 | response_provider=anthropic | response_time=10.822028160095215 | total_processing_time=10.822s [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:54,458 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] MANAGER_LAYER - LLM响应生成成功 | response_length=1382 | response_time=10.824s | model=claude-3-sonnet-20240229 | provider=anthropic | usage={'prompt_tokens': 571, 'completion_tokens': 345, 'total_tokens': 917} | service_response_time=10.822s [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:54,458 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] MANAGER_LAYER - LLM返回内容详情 | content长度=1382, 预览='好的，各位。
+
+作为瑛泰医疗的市场营销经理，我非常荣幸能参与到这次新项目的立项讨论中。基于我们前一轮对泛血管介入市场的宏观分析，我看到了一个巨大且未被满足的临床需求。为了精准切入，我建议将我们的焦点放...' | content_length=1382 | is_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:54,459 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] API_LAYER - LLM回复成功 | response_length=1382 | response_time=10.83s | model=claude-3-sonnet-20240229 | provider=anthropic | usage={'prompt_tokens': 571, 'completion_tokens': 345, 'total_tokens': 917} [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:54,459 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] API_LAYER - LLM返回内容详情 | content长度=1382, 预览='好的，各位。
+
+作为瑛泰医疗的市场营销经理，我非常荣幸能参与到这次新项目的立项讨论中。基于我们前一轮对泛血管介入市场的宏观分析，我看到了一个巨大且未被满足的临床需求。为了精准切入，我建议将我们的焦点放...' | content_length=1382 | is_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:54,459 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] API_LAYER - 监控指标记录完成 | tokens_used=917 | monitoring_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:54,459 INFO: [LLM-REQ-ID: LLM-1764935443631-ae19de22] API_LAYER - 请求处理完成，返回响应 | total_time=10.83s | success=True | response_size=1681 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:50:54,460 WARNING: 慢请求警告: POST /api/llm/chat 耗时 10.83s，状态码: 200 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:238]
+2025-12-05 19:50:54,479 WARNING: 慢请求警告: POST /api/sessions/42/run-next-step 耗时 12.92s，状态码: 200 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:238]
+2025-12-05 19:51:21,369 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] API_LAYER - 收到LLM对话请求 | message_length=457 | history_count=1 | user_id=None | session_id=None [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:21,369 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] API_LAYER - 用户输入消息内容 | content长度=457, 预览='你是Quality Manager。You are a professional Quality Manager with expertise in quality management system...' | message_length=457 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:21,369 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] API_LAYER - 历史消息[0] - assistant | content长度=1852, 预览='打工人（产品）: 好的，收到！作为一名产品专员，我的工作就是将模糊的指令转化为清晰、可执行的产品文档。
+
+（键盘敲击声... 咖啡杯轻放声...）
+
+没问题，老板。根据您的要求，我对“根据瑛泰医疗的产...' | content_length=1852 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:21,369 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] API_LAYER - 当前消息添加完成，准备调用LLM管理器 | total_messages=2 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:21,370 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] API_LAYER - 完整提示词构建完成 | content长度=2327, 预览='assistant: 打工人（产品）: 好的，收到！作为一名产品专员，我的工作就是将模糊的指令转化为清晰、可执行的产品文档。
+
+（键盘敲击声... 咖啡杯轻放声...）
+
+没问题，老板。根据您的要求，...' | total_prompt_length=2328 | message_count=2 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:21,370 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] API_LAYER - 开始调用LLM管理器 | start_time=2025-12-05T19:51:21.370353 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:21,370 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] MANAGER_LAYER - 开始生成LLM响应 | provider=None | message_count=2 | model=claude-3-sonnet-20240229 | max_tokens=4096 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:21,370 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] MANAGER_LAYER - 开始消息格式转换 | input_type=LLMMessage对象列表 | count=2 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:21,371 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] MANAGER_LAYER - 消息转换[0] - assistant | content_length=1852 | content_preview=打工人（产品）: 好的，收到！作为一名产品专员，我的工作就是将模糊的指令转化为清晰、可执行的产品文档。
+
+（键盘敲击声... 咖啡杯轻放声...）
+
+没问题，老板。根据您的要求，我对“根据瑛泰医疗的产... [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:21,371 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] MANAGER_LAYER - 消息转换[1] - user | content_length=457 | content_preview=你是Quality Manager。You are a professional Quality Manager with expertise in quality management system... [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:21,371 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] MANAGER_LAYER - 消息格式转换完成 | output_type=字典列表 | output_count=2 | conversion_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:21,371 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] MANAGER_LAYER - 参数提取完成，准备调用简化服务 | model=claude-3-sonnet-20240229 | max_tokens=4096 | additional_params={} [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:21,371 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] MANAGER_LAYER - 完整提示词构建完成 | content长度=2327, 预览='assistant: 打工人（产品）: 好的，收到！作为一名产品专员，我的工作就是将模糊的指令转化为清晰、可执行的产品文档。
+
+（键盘敲击声... 咖啡杯轻放声...）
+
+没问题，老板。根据您的要求，...' | total_prompt_length=2328 | message_count=2 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:21,372 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] MANAGER_LAYER - 开始调用简化LLM服务 | service_type=SimpleLLMService | api_call_start_time=1764935481.370855 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:21,372 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] CORE_LAYER - 开始生成Anthropic LLM响应 | model=claude-3-sonnet-20240229 | max_tokens=4096 | message_count=2 | additional_params={} [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:21,372 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] CORE_LAYER - 开始转换消息格式为Anthropic API格式 | input_format=字典列表 | input_count=2 | target_format=Anthropic API消息格式 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:21,372 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] CORE_LAYER - 消息格式转换[0] - assistant | content_length=1852 | content_preview=打工人（产品）: 好的，收到！作为一名产品专员，我的工作就是将模糊的指令转化为清晰、可执行的产品文档。
+
+（键盘敲击声... 咖啡杯轻放声...）
+
+没问题，老板。根据您的要求，我对“根据瑛泰医疗的产... | conversion_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:21,372 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] CORE_LAYER - 消息格式转换[1] - user | content_length=457 | content_preview=你是Quality Manager。You are a professional Quality Manager with expertise in quality management system... | conversion_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:21,372 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] CORE_LAYER - 消息格式转换完成 | output_format=Anthropic API消息列表 | output_count=2 | conversion_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:21,373 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] CORE_LAYER - 准备调用Anthropic Claude API | content长度=2327, 预览='assistant: 打工人（产品）: 好的，收到！作为一名产品专员，我的工作就是将模糊的指令转化为清晰、可执行的产品文档。
+
+（键盘敲击声... 咖啡杯轻放声...）
+
+没问题，老板。根据您的要求，...' | total_prompt_length=2328 | api_start_time=1764935481.3722422 | api_model=claude-3-sonnet-20240229 | api_max_tokens=4096 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:21,373 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] CORE_LAYER - 调用Anthropic Claude API | api_endpoint=anthropic.messages.create | model=claude-3-sonnet-20240229 | max_tokens=4096 | message_count=2 | api_call_start_time=1764935481.3732045 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:31,947 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] CORE_LAYER - Anthropic API调用成功 | api_response_id=2025120519511886bbb611b8014e45 | api_call_duration=10.575s | api_model=glm-4.6 | api_stop_reason=end_turn | response_content_preview=好的。
+
+我们正处在瑛泰医疗新项目立项的关键决策点。在前两个步骤，我们已经对公司的市场定位、技术储备以及泛血管介入领域的竞争格局与临床需求有了初步的分析。
+
+现在，为了让我们的项目立论更加扎实，并从众... [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:31,948 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] CORE_LAYER - Anthropic LLM响应生成成功 | response_length=1726 | response_time=10.576s | api_call_time=10.575s | model=glm-4.6 | provider=anthropic | usage={'prompt_tokens': 577, 'completion_tokens': 431, 'total_tokens': 1009} | is_success=True | response_quality=正常 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:31,948 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] CORE_LAYER - Anthropic LLM返回内容详情 | content长度=1726, 预览='好的。
+
+我们正处在瑛泰医疗新项目立项的关键决策点。在前两个步骤，我们已经对公司的市场定位、技术储备以及泛血管介入领域的竞争格局与临床需求有了初步的分析。
+
+现在，为了让我们的项目立论更加扎实，并从众...' | content_length=1726 | is_success=True | response_source=anthropic_api [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:31,948 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] CORE_LAYER - LLMResponse对象构建完成 | response_object_id=2440875049360 | response_content_length=1726 | response_model=claude-3-sonnet-20240229 | response_provider=anthropic | response_time=10.575532913208008 | total_processing_time=10.576s [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:31,948 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] MANAGER_LAYER - LLM响应生成成功 | response_length=1726 | response_time=10.578s | model=claude-3-sonnet-20240229 | provider=anthropic | usage={'prompt_tokens': 577, 'completion_tokens': 431, 'total_tokens': 1009} | service_response_time=10.576s [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:31,949 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] MANAGER_LAYER - LLM返回内容详情 | content长度=1726, 预览='好的。
+
+我们正处在瑛泰医疗新项目立项的关键决策点。在前两个步骤，我们已经对公司的市场定位、技术储备以及泛血管介入领域的竞争格局与临床需求有了初步的分析。
+
+现在，为了让我们的项目立论更加扎实，并从众...' | content_length=1726 | is_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:31,949 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] API_LAYER - LLM回复成功 | response_length=1726 | response_time=10.58s | model=claude-3-sonnet-20240229 | provider=anthropic | usage={'prompt_tokens': 577, 'completion_tokens': 431, 'total_tokens': 1009} [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:31,950 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] API_LAYER - LLM返回内容详情 | content长度=1726, 预览='好的。
+
+我们正处在瑛泰医疗新项目立项的关键决策点。在前两个步骤，我们已经对公司的市场定位、技术储备以及泛血管介入领域的竞争格局与临床需求有了初步的分析。
+
+现在，为了让我们的项目立论更加扎实，并从众...' | content_length=1726 | is_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:31,950 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] API_LAYER - 监控指标记录完成 | tokens_used=1009 | monitoring_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:31,950 INFO: [LLM-REQ-ID: LLM-1764935481368-e69ed16b] API_LAYER - 请求处理完成，返回响应 | total_time=10.58s | success=True | response_size=2016 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:31,951 WARNING: 慢请求警告: POST /api/llm/chat 耗时 10.58s，状态码: 200 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:238]
+2025-12-05 19:51:31,983 WARNING: 慢请求警告: POST /api/sessions/42/run-next-step 耗时 12.67s，状态码: 200 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:238]
+2025-12-05 19:51:46,486 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] API_LAYER - 收到LLM对话请求 | message_length=130 | history_count=2 | user_id=None | session_id=None [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,486 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] API_LAYER - 用户输入消息内容 | content长度=130, 预览='你是打工人（产品）。你是一个产品专员，接受到任务的时候，将其详尽的转换成一份产品文旦g 会话主题：根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段 任务：answer_ques...' | message_length=130 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,486 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] API_LAYER - 历史消息[0] - assistant | content长度=1401, 预览='Marketing Manager: 好的，各位。
+
+作为瑛泰医疗的市场营销经理，我非常荣幸能参与到这次新项目的立项讨论中。基于我们前一轮对泛血管介入市场的宏观分析，我看到了一个巨大且未被满足的临床需...' | content_length=1401 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,486 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] API_LAYER - 历史消息[1] - assistant | content长度=1743, 预览='Quality Manager: 好的。
+
+我们正处在瑛泰医疗新项目立项的关键决策点。在前两个步骤，我们已经对公司的市场定位、技术储备以及泛血管介入领域的竞争格局与临床需求有了初步的分析。
+
+现在，为...' | content_length=1743 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,486 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] API_LAYER - 当前消息添加完成，准备调用LLM管理器 | total_messages=3 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,487 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] API_LAYER - 完整提示词构建完成 | content长度=3304, 预览='assistant: Marketing Manager: 好的，各位。
+
+作为瑛泰医疗的市场营销经理，我非常荣幸能参与到这次新项目的立项讨论中。基于我们前一轮对泛血管介入市场的宏观分析，我看到了一个...' | total_prompt_length=3305 | message_count=3 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,487 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] API_LAYER - 开始调用LLM管理器 | start_time=2025-12-05T19:51:46.487300 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,487 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] MANAGER_LAYER - 开始生成LLM响应 | provider=None | message_count=3 | model=claude-3-sonnet-20240229 | max_tokens=4096 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,488 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] MANAGER_LAYER - 开始消息格式转换 | input_type=LLMMessage对象列表 | count=3 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,488 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] MANAGER_LAYER - 消息转换[0] - assistant | content_length=1401 | content_preview=Marketing Manager: 好的，各位。
+
+作为瑛泰医疗的市场营销经理，我非常荣幸能参与到这次新项目的立项讨论中。基于我们前一轮对泛血管介入市场的宏观分析，我看到了一个巨大且未被满足的临床需... [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,488 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] MANAGER_LAYER - 消息转换[1] - assistant | content_length=1743 | content_preview=Quality Manager: 好的。
+
+我们正处在瑛泰医疗新项目立项的关键决策点。在前两个步骤，我们已经对公司的市场定位、技术储备以及泛血管介入领域的竞争格局与临床需求有了初步的分析。
+
+现在，为... [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,489 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] MANAGER_LAYER - 消息转换[2] - user | content_length=130 | content_preview=你是打工人（产品）。你是一个产品专员，接受到任务的时候，将其详尽的转换成一份产品文旦g 会话主题：根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段 任务：answer_ques... [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,489 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] MANAGER_LAYER - 消息格式转换完成 | output_type=字典列表 | output_count=3 | conversion_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,489 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] MANAGER_LAYER - 参数提取完成，准备调用简化服务 | model=claude-3-sonnet-20240229 | max_tokens=4096 | additional_params={} [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,489 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] MANAGER_LAYER - 完整提示词构建完成 | content长度=3304, 预览='assistant: Marketing Manager: 好的，各位。
+
+作为瑛泰医疗的市场营销经理，我非常荣幸能参与到这次新项目的立项讨论中。基于我们前一轮对泛血管介入市场的宏观分析，我看到了一个...' | total_prompt_length=3305 | message_count=3 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,489 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] MANAGER_LAYER - 开始调用简化LLM服务 | service_type=SimpleLLMService | api_call_start_time=1764935506.4879498 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,490 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] CORE_LAYER - 开始生成Anthropic LLM响应 | model=claude-3-sonnet-20240229 | max_tokens=4096 | message_count=3 | additional_params={} [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,490 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] CORE_LAYER - 开始转换消息格式为Anthropic API格式 | input_format=字典列表 | input_count=3 | target_format=Anthropic API消息格式 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,490 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] CORE_LAYER - 消息格式转换[0] - assistant | content_length=1401 | content_preview=Marketing Manager: 好的，各位。
+
+作为瑛泰医疗的市场营销经理，我非常荣幸能参与到这次新项目的立项讨论中。基于我们前一轮对泛血管介入市场的宏观分析，我看到了一个巨大且未被满足的临床需... | conversion_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,490 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] CORE_LAYER - 消息格式转换[1] - assistant | content_length=1743 | content_preview=Quality Manager: 好的。
+
+我们正处在瑛泰医疗新项目立项的关键决策点。在前两个步骤，我们已经对公司的市场定位、技术储备以及泛血管介入领域的竞争格局与临床需求有了初步的分析。
+
+现在，为... | conversion_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,490 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] CORE_LAYER - 消息格式转换[2] - user | content_length=130 | content_preview=你是打工人（产品）。你是一个产品专员，接受到任务的时候，将其详尽的转换成一份产品文旦g 会话主题：根据瑛泰医疗的产品和市场分析，选择一款泛血管介入产品，完成新项目立项阶段 任务：answer_ques... | conversion_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,490 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] CORE_LAYER - 消息格式转换完成 | output_format=Anthropic API消息列表 | output_count=3 | conversion_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,491 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] CORE_LAYER - 准备调用Anthropic Claude API | content长度=3304, 预览='assistant: Marketing Manager: 好的，各位。
+
+作为瑛泰医疗的市场营销经理，我非常荣幸能参与到这次新项目的立项讨论中。基于我们前一轮对泛血管介入市场的宏观分析，我看到了一个...' | total_prompt_length=3305 | api_start_time=1764935506.490034 | api_model=claude-3-sonnet-20240229 | api_max_tokens=4096 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:51:46,491 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] CORE_LAYER - 调用Anthropic Claude API | api_endpoint=anthropic.messages.create | model=claude-3-sonnet-20240229 | max_tokens=4096 | message_count=3 | api_call_start_time=1764935506.4914005 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:52:16,488 WARNING: LLM API请求失败，使用模拟响应: HTTPConnectionPool(host='localhost', port=5010): Read timed out. (read timeout=30) [in D:\ProjectPackage\MRC\backend\app\services\flow_engine_service.py:839]
+2025-12-05 19:52:16,506 WARNING: 慢请求警告: POST /api/sessions/42/run-next-step 耗时 32.06s，状态码: 200 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:238]
+2025-12-05 19:52:21,749 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] CORE_LAYER - Anthropic API调用成功 | api_response_id=20251205195144943e74caf6504820 | api_call_duration=35.259s | api_model=glm-4.6 | api_stop_reason=end_turn | response_content_preview=好的，收到。
+
+瑛泰医疗的各位领导和同事，大家下午好。
+
+我是产品专员小王。根据我们第1轮第4个任务的指令，我已经基于前期对瑛泰医疗的战略布局、技术储备和市场格局的初步分析，完成了**新项目立项阶段*... [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:52:21,750 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] CORE_LAYER - Anthropic LLM响应生成成功 | response_length=2786 | response_time=35.260s | api_call_time=35.259s | model=glm-4.6 | provider=anthropic | usage={'prompt_tokens': 819, 'completion_tokens': 696, 'total_tokens': 1515} | is_success=True | response_quality=正常 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:52:21,750 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] CORE_LAYER - Anthropic LLM返回内容详情 | content长度=2786, 预览='好的，收到。
+
+瑛泰医疗的各位领导和同事，大家下午好。
+
+我是产品专员小王。根据我们第1轮第4个任务的指令，我已经基于前期对瑛泰医疗的战略布局、技术储备和市场格局的初步分析，完成了**新项目立项阶段*...' | content_length=2786 | is_success=True | response_source=anthropic_api [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:52:21,750 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] CORE_LAYER - LLMResponse对象构建完成 | response_object_id=2440879669632 | response_content_length=2786 | response_model=claude-3-sonnet-20240229 | response_provider=anthropic | response_time=35.25988006591797 | total_processing_time=35.260s [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:52:21,751 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] MANAGER_LAYER - LLM响应生成成功 | response_length=2786 | response_time=35.263s | model=claude-3-sonnet-20240229 | provider=anthropic | usage={'prompt_tokens': 819, 'completion_tokens': 696, 'total_tokens': 1515} | service_response_time=35.260s [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:52:21,751 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] MANAGER_LAYER - LLM返回内容详情 | content长度=2786, 预览='好的，收到。
+
+瑛泰医疗的各位领导和同事，大家下午好。
+
+我是产品专员小王。根据我们第1轮第4个任务的指令，我已经基于前期对瑛泰医疗的战略布局、技术储备和市场格局的初步分析，完成了**新项目立项阶段*...' | content_length=2786 | is_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:52:21,752 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] API_LAYER - LLM回复成功 | response_length=2786 | response_time=35.26s | model=claude-3-sonnet-20240229 | provider=anthropic | usage={'prompt_tokens': 819, 'completion_tokens': 696, 'total_tokens': 1515} [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:52:21,752 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] API_LAYER - LLM返回内容详情 | content长度=2786, 预览='好的，收到。
+
+瑛泰医疗的各位领导和同事，大家下午好。
+
+我是产品专员小王。根据我们第1轮第4个任务的指令，我已经基于前期对瑛泰医疗的战略布局、技术储备和市场格局的初步分析，完成了**新项目立项阶段*...' | content_length=2786 | is_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:52:21,752 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] API_LAYER - 监控指标记录完成 | tokens_used=1515 | monitoring_success=True [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:52:21,752 INFO: [LLM-REQ-ID: LLM-1764935506485-92b81227] API_LAYER - 请求处理完成，返回响应 | total_time=35.26s | success=True | response_size=3132 [in D:\ProjectPackage\MRC\backend\app\utils\request_tracker.py:141]
+2025-12-05 19:52:21,752 WARNING: 慢请求警告: POST /api/llm/chat 耗时 35.27s，状态码: 200 [in D:\ProjectPackage\MRC\backend\app\utils\monitoring.py:238]

@@ -5,7 +5,8 @@
       "Bash(findstr:*)",
       "Bash(python:*)",
       "Bash(python.exe:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(sqlite3:*)"
     ],
     "deny": [],
     "ask": []
