@@ -32,12 +32,9 @@ import {
   RotateCcw,
   Globe,
   Key,
-  Bot,
   FileCheck
 } from 'lucide-react';
 
-// --- LLM测试页面组件 ---
-import LLMTestPage from './LLMTestPage';
 
 // --- API和类型导入 ---
 import { roleApi } from './api/roleApi';
@@ -1722,7 +1719,6 @@ const App = () => {
       case 'roles': return <RoleManagement />;
       case 'flows': return <FlowManagement />;
       case 'sessions': return <SessionManagement onPlayback={playbackSessionId} />;
-      case 'llm-test': return <LLMTestPage theme={themeKey} />;
       case 'history': return <HistoryPage onPlayback={handlePlayback} />;
       case 'settings': return <SettingsPage />;
       default: return <RoleManagement />;
@@ -1747,7 +1743,6 @@ const App = () => {
             <NavItem icon={Users} label="角色管理" active={activeTab === 'roles'} onClick={() => setActiveTab('roles')} />
             <NavItem icon={GitBranch} label="流程模板" active={activeTab === 'flows'} onClick={() => setActiveTab('flows')} />
             <NavItem icon={Play} label="会话剧场" active={activeTab === 'sessions'} onClick={() => setActiveTab('sessions')} />
-            <NavItem icon={Bot} label="LLM测试" active={activeTab === 'llm-test'} onClick={() => setActiveTab('llm-test')} />
             <div className="pt-4 mt-4 border-t border-slate-700">
               <NavItem icon={FileText} label="历史记录" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
               <NavItem icon={Settings} label="系统设置" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />

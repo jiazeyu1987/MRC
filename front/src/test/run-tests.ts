@@ -118,9 +118,7 @@ testRunner.test('StepProgressDisplay renders without crashing', () => {
 
 // LLMIODisplay test removed - component deleted
 
-testRunner.test('DebugPanel renders without crashing', () => {
-  expect(true).toBe(true);
-});
+// DebugPanel test removed - component deleted
 
 testRunner.test('StepVisualization renders without crashing', () => {
   expect(true).toBe(true);

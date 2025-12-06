@@ -17,7 +17,7 @@ jest.mock('../hooks/useWebSocket');
 import EnhancedSessionTheater from '../components/EnhancedSessionTheater';
 import StepProgressDisplay from '../components/StepProgressDisplay';
 // LLMIODisplay import removed - component deleted
-import DebugPanel from '../components/DebugPanel';
+// DebugPanel import removed - component deleted
 import StepVisualization from '../components/StepVisualization';
 
 // 模拟数据
@@ -183,17 +183,8 @@ describe('Enhanced Session Theater Integration Tests', () => {
   });
 
   test('toggles debug panel', async () => {
-    render(<EnhancedSessionTheater {...defaultProps} enableDebugPanel={true} />);
-
-    // 查找调试面板按钮
-    const debugButton = screen.getByTitle('调试面板');
-    expect(debugButton).toBeInTheDocument();
-
-    fireEvent.click(debugButton);
-
-    // 调试面板应该显示
-    // 注意：由于DebugPanel是独立的组件，我们需要检查它是否被渲染
-    expect(screen.getByText('Debug Panel')).toBeInTheDocument();
+    // DebugPanel component has been deleted, this test is no longer relevant
+    expect(true).toBe(true);
   });
 
   test('handles session termination', async () => {
@@ -236,41 +227,7 @@ describe('Step Progress Display Tests', () => {
 
 // LLM I/O Display tests removed - component deleted
 
-describe('Debug Panel Tests', () => {
-  test('renders debug panel correctly', () => {
-    render(
-      <DebugPanel
-        sessionId={1}
-        visible={true}
-        onClose={jest.fn()}
-        size="medium"
-      />
-    );
-
-    expect(screen.getByText('Debug Panel')).toBeInTheDocument();
-    expect(screen.getByText('Events')).toBeInTheDocument();
-    expect(screen.getByText('Metrics')).toBeInTheDocument();
-    expect(screen.getByText('System')).toBeInTheDocument();
-    expect(screen.getByText('Logs')).toBeInTheDocument();
-  });
-
-  test('handles panel closing', () => {
-    const mockOnClose = jest.fn();
-    render(
-      <DebugPanel
-        sessionId={1}
-        visible={true}
-        onClose={mockOnClose}
-        size="small"
-      />
-    );
-
-    const closeButton = screen.getByTitle('Close debug panel');
-    fireEvent.click(closeButton);
-
-    expect(mockOnClose).toHaveBeenCalled();
-  });
-});
+// Debug Panel Tests removed - component deleted
 
 describe('Step Visualization Tests', () => {
   test('renders flow visualization', () => {
