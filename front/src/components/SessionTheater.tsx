@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ArrowRight, Download, Play, CheckCircle, LogOut, GitBranch } from 'lucide-react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
+import { ArrowRight, Download, Play, CheckCircle, LogOut, GitBranch, Pause } from 'lucide-react';
 import { sessionApi } from '../api/sessionApi';
 import { Session, Message } from '../api/sessionApi';
 import { useTheme } from '../theme';
 import SimpleLLMDebugPanel from './SimpleLLMDebugPanel';
+import { LLMDebugContext } from '../MultiRoleDialogSystem';
+import { handleError } from '../utils/errorHandler';
 
 interface SessionTheaterProps {
   sessionId: number;
@@ -11,21 +13,30 @@ interface SessionTheaterProps {
 }
 
 const SessionTheater: React.FC<SessionTheaterProps> = ({ sessionId, onExit }) => {
+  const { updateLLMDebugInfo } = useContext(LLMDebugContext);
   const { theme } = useTheme();
   const [session, setSession] = useState<Session | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [generating, setGenerating] = useState(false);
-  const [llmDebugInfo, setLlmDebugInfo] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto execution states
+  const [autoMode, setAutoMode] = useState<boolean>(false);           // 自动/手动模式
+  const [autoExecution, setAutoExecution] = useState<boolean>(false);  // 是否正在自动执行
+  const executionInterval = 3000;  // 自动执行间隔(毫秒)
+  const autoExecutionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 用于清理定时器的引用
 
   const loadData = async () => {
     try {
-      const s = await sessionApi.getSession(sessionId);
-      setSession(s || null);
-      const m = await sessionApi.getMessages(sessionId);
-      setMessages(m.items);
+      // 加载会话详情
+      const sessionData = await sessionApi.getSession(sessionId);
+      setSession(sessionData);
+
+      // 加载会话消息
+      const messagesData = await sessionApi.getMessages(sessionId, { page_size: 100 });
+      setMessages(messagesData.items);
     } catch (error) {
-      console.error('Failed to load session data:', error);
+      handleError(error);
     }
   };
 
@@ -39,35 +50,143 @@ const SessionTheater: React.FC<SessionTheaterProps> = ({ sessionId, onExit }) =>
     if (!session) return;
     setGenerating(true);
     try {
-      const res = await sessionApi.executeNextStep(session.id);
-      if (res.message) {
-        setMessages(prev => [...prev, res.message]);
+      // 调用真实的API执行下一步
+      const result = await sessionApi.executeNextStep(session.id);
+
+      // 添加新消息到消息列表
+      if (result.message) {
+        setMessages(prev => [...prev, result.message]);
       }
-      // 更新LLM调试信息
-      if (res.llm_debug) {
-        setLlmDebugInfo(res.llm_debug);
+
+      // 更新全局LLM调试信息
+      if (result.llm_debug && updateLLMDebugInfo) {
+        updateLLMDebugInfo(result.llm_debug);
       }
-      // Reload session data to get updated state
-      const updatedSession = await sessionApi.getSession(session.id);
-      setSession(updatedSession);
-    } catch (e) {
-      alert("执行失败");
+
+      // 更新会话状态（如果后端返回了更新的会话信息）
+      if (result.execution_info) {
+        // 检查会话是否已完成
+        if (result.execution_info.is_finished) {
+          setSession(prev => prev ? {
+            ...prev,
+            status: 'finished',
+            updated_at: new Date().toISOString()
+          } : null);
+        }
+      }
+
+    } catch (error) {
+      handleError(error);
     } finally {
       setGenerating(false);
     }
   };
 
   const handleFinish = async () => {
+    if (!session) return;
+
     if (confirm("确定要结束当前会话吗？")) {
-      await sessionApi.terminateSession(sessionId);
-      loadData();
+      try {
+        await sessionApi.terminateSession(session.id);
+        setSession(prev => prev ? {
+          ...prev,
+          status: 'finished',
+          updated_at: new Date().toISOString()
+        } : null);
+      } catch (error) {
+        handleError(error);
+      }
     }
   };
 
+  // Auto execution core functions
+  const executeNextStepWithAuto = async () => {
+    if (!session || generating) return;
+
+    const isFinished = session.status === 'finished';
+    if (isFinished) {
+      setAutoExecution(false);
+      return;
+    }
+
+    try {
+      await handleNextStep();
+
+      // 检查会话是否已结束
+      if (autoMode && session && session.status !== 'finished') {
+        const timer = setTimeout(() => {
+          executeNextStepWithAuto();
+        }, executionInterval);
+        autoExecutionTimerRef.current = timer;
+      } else {
+        setAutoExecution(false);
+      }
+    } catch (e) {
+      setAutoExecution(false);
+      console.error("自动执行失败:", e);
+      alert("自动执行失败");
+    }
+  };
+
+  // 开始自动执行
+  const startAutoExecution = () => {
+    if (!session || session.status === 'finished') return;
+
+    setAutoExecution(true);
+    executeNextStepWithAuto();
+  };
+
+  // 停止自动执行
+  const stopAutoExecution = () => {
+    if (autoExecutionTimerRef.current) {
+      clearTimeout(autoExecutionTimerRef.current);
+      autoExecutionTimerRef.current = null;
+    }
+    setAutoExecution(false);
+  };
+
+  // 切换自动/手动模式
+  const toggleAutoMode = () => {
+    if (autoMode) {
+      // 从自动模式切换到手动模式
+      stopAutoExecution();
+      setAutoMode(false);
+    } else {
+      // 从手动模式切换到自动模式
+      setAutoMode(true);
+      startAutoExecution();
+    }
+  };
+
+  // 暂停/继续自动执行
+  const toggleAutoExecution = () => {
+    if (autoExecution) {
+      stopAutoExecution();
+    } else {
+      startAutoExecution();
+    }
+  };
+
+  // Stop auto execution when session is finished
+  useEffect(() => {
+    if (session && session.status === 'finished') {
+      stopAutoExecution();
+    }
+  }, [session]);
+
+  // Cleanup auto execution timer on component unmount
+  useEffect(() => {
+    return () => {
+      if (autoExecutionTimerRef.current) {
+        clearTimeout(autoExecutionTimerRef.current);
+        autoExecutionTimerRef.current = null;
+      }
+    };
+  }, []);
+
   if (!session) return <div className="p-10 text-center">Loading Theater...</div>;
 
-  const isFinished = session.status === 'finished';
-  const templateName = session.flow_snapshot?.name || 'Unknown Template';
+  const isFinished = session.status === 'finished' || session.status === 'terminated';
   const participants = session.session_roles || [];
 
   // Badge component
@@ -139,14 +258,28 @@ const SessionTheater: React.FC<SessionTheaterProps> = ({ sessionId, onExit }) =>
               </Badge>
             </h2>
             <div className="text-xs text-gray-500 mt-0.5 flex gap-2">
-              <span>Template: {templateName}</span>
+              <span>Template ID: {session.flow_template_id}</span>
               <span>•</span>
-              <span>Steps: {session.executed_steps_count}</span>
+              <span>Round: {session.current_round + 1}</span>
             </div>
           </div>
         </div>
         <div className="flex gap-2">
           <Button variant="ghost" size="sm" icon={Download}>下载</Button>
+
+          {/* Auto/Manual Mode Toggle */}
+          <div className="bg-green-500 text-white px-3 py-1 rounded-lg">
+            <span className="text-xs font-bold">DEBUG: {autoMode ? '自动模式' : '手动模式'}</span>
+            <button
+              onClick={() => {
+                console.log('Toggle button clicked! Current mode:', autoMode);
+                toggleAutoMode();
+              }}
+              className="ml-2 bg-white text-green-500 px-2 py-1 rounded text-xs font-bold"
+            >
+              切换
+            </button>
+          </div>
         </div>
       </div>
 
@@ -241,26 +374,67 @@ const SessionTheater: React.FC<SessionTheaterProps> = ({ sessionId, onExit }) =>
             <div className="p-4 border-t bg-white flex items-center justify-between gap-4">
               <div className="text-sm text-gray-500">
                  {!isFinished ? (
-                    <>下一步: <span className="font-medium text-gray-900">执行预设步骤 (已执行 {session.executed_steps_count} 步)</span></>
+                   <>
+                     {autoMode ? (
+                       <>🤖 自动执行中 (步骤 #{session.current_round + 1})</>
+                     ) : (
+                       <>下一步: <span className="font-medium text-gray-900">执行步骤 #{session.current_round + 1}</span></>
+                     )}
+                   </>
                  ) : (
-                    <span className="flex items-center gap-1 text-green-600">
-                      <CheckCircle size={14}/> 对话流程已结束
-                    </span>
+                   <span className="flex items-center gap-1 text-green-600"><CheckCircle size={14}/> 对话流程已结束</span>
                  )}
                </div>
-               <Button
-                 onClick={handleNextStep}
-                 disabled={isFinished || generating}
-                 className="min-w-[140px]"
-                 icon={Play}
-               >
-                 {generating ? '生成中...' : '执行下一步'}
-               </Button>
+
+               {/* Dynamic Button Group */}
+               <div className="flex gap-2">
+                 {!isFinished ? (
+                   <>
+                     {autoMode ? (
+                       // Auto Mode Buttons
+                       <>
+                         {autoExecution ? (
+                           <Button
+                             onClick={toggleAutoExecution}
+                             className="min-w-[120px]"
+                             icon={Pause}
+                             variant="secondary"
+                           >
+                             暂停
+                           </Button>
+                         ) : (
+                           <Button
+                             onClick={toggleAutoExecution}
+                             className="min-w-[120px]"
+                             icon={Play}
+                             variant="primary"
+                           >
+                             继续
+                           </Button>
+                         )}
+                       </>
+                     ) : (
+                       // Manual Mode Button
+                       <Button
+                         onClick={handleNextStep}
+                         disabled={generating}
+                         className="min-w-[140px]"
+                         icon={Play}
+                       >
+                         {generating ? '生成中...' : '执行下一步'}
+                       </Button>
+                     )}
+                   </>
+                 ) : (
+                   // Finished State - already has end button in sidebar
+                   <div className="w-[120px]" />
+                 )}
+               </div>
              </div>
           </div>
 
-          {/* LLM Debug Panel */}
-          <SimpleLLMDebugPanel debugInfo={llmDebugInfo} />
+          {/* LLM Debug Panel - uses global context */}
+          <SimpleLLMDebugPanel />
         </div>
       </div>
     </div>
