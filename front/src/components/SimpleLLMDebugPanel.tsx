@@ -1,4 +1,5 @@
 import React from 'react';
+import { X } from 'lucide-react';
 
 interface LLMDebugEntry {
   role_name: string;
@@ -12,12 +13,31 @@ interface LLMDebugEntry {
 
 interface SimpleLLMDebugPanelProps {
   debugInfo?: LLMDebugEntry;
+  showDebugPanel?: boolean;
+  onClose?: () => void;
 }
 
-export const SimpleLLMDebugPanel: React.FC<SimpleLLMDebugPanelProps> = ({ debugInfo }) => {
+export const SimpleLLMDebugPanel: React.FC<SimpleLLMDebugPanelProps> = ({
+  debugInfo,
+  showDebugPanel = true,
+  onClose
+}) => {
   return (
-    <div className="w-80 bg-white border-l border-gray-200 p-4 h-screen overflow-y-auto fixed right-0 top-0 z-40">
-      <h3 className="text-lg font-semibold mb-4 text-gray-800">LLM调试面板</h3>
+    <div className={`w-80 bg-white border-l border-gray-200 p-4 h-screen overflow-y-auto fixed right-0 top-0 z-40 transition-all duration-300 ${
+      showDebugPanel ? 'translate-x-0' : 'translate-x-full'
+    }`}>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-gray-800">LLM调试面板</h3>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+            title="关闭调试面板"
+          >
+            <X size={18} className="text-gray-500" />
+          </button>
+        )}
+      </div>
 
       {!debugInfo ? (
         <div className="text-sm text-gray-500">

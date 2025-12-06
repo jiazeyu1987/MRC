@@ -4,8 +4,12 @@ import SimpleLLMDebugPanel from './components/SimpleLLMDebugPanel';
 // Create LLM Debug Context
 const LLMDebugContext = createContext<{
   updateLLMDebugInfo: (debugInfo: any) => void;
+  showDebugPanel: boolean;
+  setShowDebugPanel: (show: boolean) => void;
 }>({
-  updateLLMDebugInfo: () => {}
+  updateLLMDebugInfo: () => {},
+  showDebugPanel: true,
+  setShowDebugPanel: () => {}
 });
 import {
   Users,
@@ -1137,9 +1141,6 @@ const SessionManagement = ({ onPlayback }: any) => {
         </div>
         <div className="flex gap-2">
           <Button onClick={() => setView('create')} icon={Plus}>新建会话</Button>
-          <Button onClick={() => { setActiveSessionId(999); setView('theater'); }} variant="ghost" size="sm">
-            🔴 测试调试面板
-          </Button>
         </div>
       </div>
 
@@ -1343,7 +1344,7 @@ const SessionCreator = ({ onCancel, onSuccess }: any) => {
               </p>
               <div className="flex flex-wrap gap-2">
                 {requiredRoles.map(ref => (
-                  <span key={ref} className={`px-3 py-1 rounded-full text-xs font-medium ${theme.bgPrimary} ${theme.textPrimary}`}>
+                  <span key={ref} className={`px-3 py-1 rounded-full text-xs font-medium ${theme.primary} text-white`}>
                     {ref}
                   </span>
                 ))}
@@ -1620,6 +1621,7 @@ const HistoryPage = ({ onPlayback }: any) => {
 // 5. Settings Page (Updated with Theme Switcher)
 const SettingsPage = () => {
   const { themeKey, setThemeKey } = useTheme();
+  const { showDebugPanel, setShowDebugPanel } = useContext(LLMDebugContext);
 
   return (
     <div className="space-y-6">
@@ -1673,6 +1675,26 @@ const SettingsPage = () => {
               <input type="password" className="w-full border rounded-lg px-3 py-2" placeholder="sk-........................" />
               <p className="text-xs text-gray-500 mt-1">用于连接大模型服务的密钥</p>
             </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  LLM调试面板
+                </label>
+                <p className="text-xs text-gray-500">显示/隐藏右侧的LLM调试信息面板</p>
+              </div>
+              <button
+                onClick={() => setShowDebugPanel(!showDebugPanel)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  showDebugPanel ? 'bg-blue-600' : 'bg-gray-200'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    showDebugPanel ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
           </div>
         </Card>
 
@@ -1704,6 +1726,9 @@ const App = () => {
   // Global LLM Debug State
   const [globalLLMDebugInfo, setGlobalLLMDebugInfo] = useState<any>(null);
 
+  // Debug Panel Visibility State
+  const [showDebugPanel, setShowDebugPanel] = useState<boolean>(true);
+
   // Global function to update LLM debug info
   const updateGlobalLLMDebugInfo = (debugInfo: any) => {
     setGlobalLLMDebugInfo(debugInfo);
@@ -1727,7 +1752,11 @@ const App = () => {
 
   return (
     <ThemeContext.Provider value={{ themeKey, theme, setThemeKey }}>
-      <LLMDebugContext.Provider value={{ updateLLMDebugInfo: updateGlobalLLMDebugInfo }}>
+      <LLMDebugContext.Provider value={{
+        updateLLMDebugInfo: updateGlobalLLMDebugInfo,
+        showDebugPanel: showDebugPanel,
+        setShowDebugPanel: setShowDebugPanel
+      }}>
       <div className="flex h-screen w-full bg-gray-100 text-gray-900 font-sans">
         <div className="w-64 bg-slate-900 text-white flex flex-col shrink-0 transition-colors">
           <div className="p-6">
@@ -1756,15 +1785,19 @@ const App = () => {
             </div>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-6xl mx-auto p-8">
+        <div className={`flex-1 overflow-y-auto transition-all duration-300 ${showDebugPanel ? 'mr-80' : ''}`}>
+          <div className={`${showDebugPanel ? 'max-w-[calc(100vw-320px)]' : 'max-w-full'} mx-auto p-8 transition-all duration-300`}>
             {renderContent()}
           </div>
         </div>
       </div>
 
-        {/* 全局LLM调试面板 - 在所有页面都可见 */}
-        <SimpleLLMDebugPanel debugInfo={globalLLMDebugInfo} />
+        {/* 全局LLM调试面板 - 始终渲染但根据状态显示/隐藏 */}
+        <SimpleLLMDebugPanel
+          debugInfo={globalLLMDebugInfo}
+          showDebugPanel={showDebugPanel}
+          onClose={() => setShowDebugPanel(false)}
+        />
       </LLMDebugContext.Provider>
     </ThemeContext.Provider>
   );
