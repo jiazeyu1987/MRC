@@ -174,11 +174,35 @@ export const sessionApi = {
   async executeNextStep(sessionId: number, executionData?: SessionExecutionRequest): Promise<{
     message: Message;
     execution_info: ExecutionInfo;
+    llm_debug?: {
+      role_name: string;
+      step_description: string;
+      step_type: string;
+      prompt: string;
+      response: string;
+      timestamp: string;
+      context_summary: string;
+    };
   }> {
-    return apiClient.post<{
+    const response = await apiClient.post<{
       message: Message;
       execution_info: ExecutionInfo;
+      llm_debug?: {
+        role_name: string;
+        step_description: string;
+        step_type: string;
+        prompt: string;
+        response: string;
+        timestamp: string;
+        context_summary: string;
+      };
     }>(`/api/sessions/${sessionId}/run-next-step`, executionData || {});
+
+    // 提取调试信息
+    return {
+      ...response,
+      llm_debug: response.llm_debug
+    };
   },
 
   /**

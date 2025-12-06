@@ -13,6 +13,36 @@ from app.schemas.session_request import (
 import json
 
 
+class LLMDebugInfo(Resource):
+    """LLM调试信息资源"""
+
+    def get(self):
+        """获取最新的LLM调试信息"""
+        try:
+            llm_debug_info = FlowEngineService.get_latest_llm_debug_info()
+
+            if llm_debug_info is None:
+                return {
+                    'success': True,
+                    'data': None,
+                    'message': '当前没有LLM调试信息'
+                }
+
+            return {
+                'success': True,
+                'data': llm_debug_info,
+                'message': 'LLM调试信息获取成功'
+            }
+
+        except Exception as e:
+            current_app.logger.error(f"获取LLM调试信息失败: {str(e)}")
+            return {
+                'success': False,
+                'error_code': 'INTERNAL_ERROR',
+                'message': '获取LLM调试信息失败'
+            }, 500
+
+
 class SessionList(Resource):
     """会话列表资源"""
 
@@ -274,11 +304,23 @@ class SessionExecution(Resource):
             message_schema = MessageSchema()
             message_data = message_schema.dump(message)
 
+            # 添加LLM调试信息到响应中
+            llm_debug_info = execution_info.get('llm_debug', {})
+            if not llm_debug_info and hasattr(message, 'content'):
+                # 如果没有调试信息，使用消息内容作为基本调试信息
+                llm_debug_info = {
+                    'prompt': f"角色: {execution_info.get('role_name', '未知角色')} - 任务: {execution_info.get('task_type', '对话')}",
+                    'response': message.content,
+                    'timestamp': datetime.utcnow().isoformat(),
+                    'step_info': execution_info
+                }
+
             return {
                 'success': True,
                 'data': {
                     'message': message_data,
-                    'execution_info': execution_info
+                    'execution_info': execution_info,
+                    'llm_debug': llm_debug_info
                 },
                 'message': '步骤执行成功'
             }

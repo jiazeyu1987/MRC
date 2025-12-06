@@ -86,7 +86,7 @@ def register_api(app):
     # 导入并注册API资源
     from app.api.roles import RoleList, RoleDetail
     from app.api.flows import FlowList, FlowDetail, FlowCopy, FlowStatistics, FlowClearAll
-    from app.api.sessions import SessionList, SessionDetail, SessionExecution, SessionControl, SessionBranch, SessionStatistics
+    from app.api.sessions import SessionList, SessionDetail, SessionExecution, SessionControl, SessionBranch, SessionStatistics, LLMDebugInfo
     from app.api.messages import MessageList, MessageDetail, MessageExport, MessageReplies, MessageStatistics, MessageFlow, MessageSearch
     from app.api.monitoring import (SystemHealth, PerformanceMetrics, PerformanceHistory,
                                   PerformanceSummary, HealthHistory, ComponentHealthTrend,
@@ -110,6 +110,9 @@ def register_api(app):
     api.add_resource(SessionControl, '/api/sessions/<int:session_id>/control')
     api.add_resource(SessionBranch, '/api/sessions/<int:session_id>/branch')
     api.add_resource(SessionStatistics, '/api/sessions/statistics')
+
+    # LLM调试接口
+    api.add_resource(LLMDebugInfo, '/api/llm/debug')
 
     # 消息管理接口
     api.add_resource(MessageList, '/api/sessions/<int:session_id>/messages')

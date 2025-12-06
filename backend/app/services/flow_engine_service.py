@@ -8,6 +8,9 @@ from app.services.session_service import SessionService, SessionError, FlowExecu
 from app.services.llm.conversation_service import conversation_llm_service
 from app.services.llm.conversation_service import LLMError
 
+# 全局变量存储最新的LLM调试信息
+latest_llm_debug_info = None
+
 
 class FlowEngineService:
     """流程引擎服务类 - 负责执行对话流程"""
@@ -65,10 +68,25 @@ class FlowEngineService:
             # 构建上下文
             context = FlowEngineService._build_context(session, current_step)
 
-            # 使用LLM服务生成内容
-            prompt_content = FlowEngineService._generate_llm_response_sync(
+            # 使用LLM服务生成内容，同时获取提示词和响应
+            prompt_content, llm_response = FlowEngineService._generate_llm_response_sync(
                 role, current_step, context
             )
+
+            # 构建LLM调试信息
+            llm_debug_info = {
+                'role_name': role.name if role else '未知角色',
+                'step_description': current_step.description or '',
+                'step_type': current_step.task_type or '',
+                'prompt': prompt_content,
+                'response': llm_response,
+                'timestamp': datetime.utcnow().isoformat(),
+                'context_summary': f"历史消息: {len(context.get('history_messages', []))}条"
+            }
+
+            # 更新全局LLM调试信息变量
+            global latest_llm_debug_info
+            latest_llm_debug_info = llm_debug_info.copy()
 
             # 创建消息
             message = Message(
@@ -78,8 +96,8 @@ class FlowEngineService:
                     session_id, current_step.target_role_ref
                 ),
                 reply_to_message_id=FlowEngineService._get_reply_to_message_id(session, current_step),
-                content=prompt_content,
-                content_summary=FlowEngineService._generate_content_summary(prompt_content),
+                content=llm_response,
+                content_summary=FlowEngineService._generate_content_summary(llm_response),
                 round_index=session.current_round,
                 section=FlowEngineService._determine_message_section(current_step)
             )
@@ -99,7 +117,8 @@ class FlowEngineService:
                 'current_round': session.current_round,
                 'executed_steps_count': session.executed_steps_count,
                 'next_step_id': session.current_step_id,
-                'is_finished': session.status == 'finished'
+                'is_finished': session.status == 'finished',
+                'llm_debug': llm_debug_info  # 添加LLM调试信息
             }
 
             return message, execution_info
@@ -109,6 +128,17 @@ class FlowEngineService:
             if isinstance(e, (SessionError, FlowExecutionError)):
                 raise
             raise FlowExecutionError(f"执行步骤失败: {str(e)}")
+
+    @staticmethod
+    def get_latest_llm_debug_info() -> Optional[Dict[str, Any]]:
+        """
+        获取最新的LLM调试信息
+
+        Returns:
+            Optional[Dict[str, Any]]: 最新的LLM调试信息，如果没有则返回None
+        """
+        global latest_llm_debug_info
+        return latest_llm_debug_info
 
     @staticmethod
     def _build_context(session: Session, current_step: FlowStep) -> Dict[str, Any]:
@@ -764,7 +794,7 @@ class FlowEngineService:
         step: FlowStep,
         context: Dict[str, Any],
         llm_provider: str = None
-    ) -> str:
+    ) -> Tuple[str, str]:
         """
         使用LLM服务生成响应内容（同步版本）
         修改为使用简单的CLI-style /api/llm/chat端点
@@ -776,7 +806,7 @@ class FlowEngineService:
             llm_provider: LLM提供商
 
         Returns:
-            str: 生成的响应内容
+            Tuple[str, str]: (提示词, 生成的响应内容)
 
         Raises:
             FlowExecutionError: LLM生成失败
@@ -825,7 +855,8 @@ class FlowEngineService:
             if response.status_code == 200:
                 result = response.json()
                 if result.get('success') and 'data' in result:
-                    return result['data']['response']
+                    llm_response = result['data']['response']
+                    return prompt, llm_response
                 else:
                     error_msg = result.get('message', 'LLM调用失败')
                     raise FlowExecutionError(f"LLM API返回错误: {error_msg}")
@@ -837,14 +868,18 @@ class FlowEngineService:
             import logging
             logger = logging.getLogger(__name__)
             logger.warning(f"LLM API请求失败，使用模拟响应: {str(e)}")
-            return FlowEngineService._build_simple_prompt(role, step, context)
+            # 生成一个模拟的LLM响应，而不是重复提示词
+            fallback_response = f"[模拟响应] 作为{role.name if role else '角色'}，基于当前任务：{current_step.description or '对话'}，我会根据我的角色设定给出相应的回应。"
+            return prompt, fallback_response
 
         except Exception as e:
             # 其他错误，也回退到模拟模式
             import logging
             logger = logging.getLogger(__name__)
             logger.warning(f"LLM服务不可用，使用模拟响应: {str(e)}")
-            return FlowEngineService._build_simple_prompt(role, step, context)
+            # 生成一个模拟的LLM响应，而不是重复提示词
+            fallback_response = f"[模拟响应] 作为{role.name if role else '角色'}，基于当前任务：{current_step.description or '对话'}，我会根据我的角色设定给出相应的回应。"
+            return prompt, fallback_response
 
     @staticmethod
     def execute_next_step_sync(session_id: int) -> Tuple[Message, Dict[str, Any]]:

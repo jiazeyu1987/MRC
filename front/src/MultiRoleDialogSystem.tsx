@@ -1,4 +1,12 @@
 import { useState, useEffect, useContext, createContext, useRef, useMemo } from 'react';
+import SimpleLLMDebugPanel from './components/SimpleLLMDebugPanel';
+
+// Create LLM Debug Context
+const LLMDebugContext = createContext<{
+  updateLLMDebugInfo: (debugInfo: any) => void;
+}>({
+  updateLLMDebugInfo: () => {}
+});
 import {
   Users,
   GitBranch,
@@ -1130,7 +1138,12 @@ const SessionManagement = ({ onPlayback }: any) => {
           <h1 className="text-2xl font-bold text-gray-900">会话管理</h1>
           <p className="text-gray-500 text-sm mt-1">创建并执行多角色对话剧场</p>
         </div>
-        <Button onClick={() => setView('create')} icon={Plus}>新建会话</Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setView('create')} icon={Plus}>新建会话</Button>
+          <Button onClick={() => { setActiveSessionId(999); setView('theater'); }} variant="ghost" size="sm">
+            🔴 测试调试面板
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -1353,6 +1366,7 @@ const SessionCreator = ({ onCancel, onSuccess }: any) => {
 };
 
 const SessionTheater = ({ sessionId, onExit }: any) => {
+  const { updateLLMDebugInfo } = useContext(LLMDebugContext);
   const { theme } = useTheme();
   const [session, setSession] = useState<Session | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -1389,6 +1403,11 @@ const SessionTheater = ({ sessionId, onExit }: any) => {
       // 添加新消息到消息列表
       if (result.message) {
         setMessages(prev => [...prev, result.message]);
+      }
+
+      // 更新全局LLM调试信息
+      if (result.llm_debug && updateLLMDebugInfo) {
+        updateLLMDebugInfo(result.llm_debug);
       }
 
       // 更新会话状态（如果后端返回了更新的会话信息）
@@ -1465,10 +1484,10 @@ const SessionTheater = ({ sessionId, onExit }: any) => {
 
           <div className="pt-4 border-t mt-4 shrink-0">
              {!isFinished && (
-               <Button 
-                 variant="danger" 
-                 size="xs" 
-                 onClick={handleFinish} 
+               <Button
+                 variant="danger"
+                 size="xs"
+                 onClick={handleFinish}
                  icon={LogOut}
                  className="w-full justify-center"
                >
@@ -1478,7 +1497,8 @@ const SessionTheater = ({ sessionId, onExit }: any) => {
           </div>
         </div>
 
-        <div className="flex-1 bg-white flex flex-col relative">
+        <div className="flex-1 flex">
+          <div className="flex-1 bg-white flex flex-col relative">
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {messages.length === 0 && (
               <div className="text-center text-gray-400 py-20">
@@ -1540,10 +1560,12 @@ const SessionTheater = ({ sessionId, onExit }: any) => {
                icon={Play}
              >
                {generating ? '生成中...' : '执行下一步'}
-             </Button>
+                        </Button>
           </div>
         </div>
       </div>
+
+        </div>
     </div>
   );
 };
@@ -1677,10 +1699,18 @@ const SettingsPage = () => {
 const App = () => {
   const [activeTab, setActiveTab] = useState('roles');
   const [playbackSessionId, setPlaybackSessionId] = useState<number | null>(null);
-  
+
   // State for Theme
   const [themeKey, setThemeKey] = useState<ThemeKey>('blue');
   const theme = THEMES[themeKey];
+
+  // Global LLM Debug State
+  const [globalLLMDebugInfo, setGlobalLLMDebugInfo] = useState<any>(null);
+
+  // Global function to update LLM debug info
+  const updateGlobalLLMDebugInfo = (debugInfo: any) => {
+    setGlobalLLMDebugInfo(debugInfo);
+  };
 
   const handlePlayback = (id: number) => {
     setPlaybackSessionId(id);
@@ -1701,6 +1731,7 @@ const App = () => {
 
   return (
     <ThemeContext.Provider value={{ themeKey, theme, setThemeKey }}>
+      <LLMDebugContext.Provider value={{ updateLLMDebugInfo: updateGlobalLLMDebugInfo }}>
       <div className="flex h-screen w-full bg-gray-100 text-gray-900 font-sans">
         <div className="w-64 bg-slate-900 text-white flex flex-col shrink-0 transition-colors">
           <div className="p-6">
@@ -1736,6 +1767,10 @@ const App = () => {
           </div>
         </div>
       </div>
+
+        {/* 全局LLM调试面板 - 在所有页面都可见 */}
+        <SimpleLLMDebugPanel debugInfo={globalLLMDebugInfo} />
+      </LLMDebugContext.Provider>
     </ThemeContext.Provider>
   );
 };

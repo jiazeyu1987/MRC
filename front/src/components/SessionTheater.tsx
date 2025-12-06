@@ -3,6 +3,7 @@ import { ArrowRight, Download, Play, CheckCircle, LogOut, GitBranch } from 'luci
 import { sessionApi } from '../api/sessionApi';
 import { Session, Message } from '../api/sessionApi';
 import { useTheme } from '../theme';
+import SimpleLLMDebugPanel from './SimpleLLMDebugPanel';
 
 interface SessionTheaterProps {
   sessionId: number;
@@ -14,6 +15,7 @@ const SessionTheater: React.FC<SessionTheaterProps> = ({ sessionId, onExit }) =>
   const [session, setSession] = useState<Session | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [llmDebugInfo, setLlmDebugInfo] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const loadData = async () => {
@@ -40,6 +42,10 @@ const SessionTheater: React.FC<SessionTheaterProps> = ({ sessionId, onExit }) =>
       const res = await sessionApi.executeNextStep(session.id);
       if (res.message) {
         setMessages(prev => [...prev, res.message]);
+      }
+      // 更新LLM调试信息
+      if (res.llm_debug) {
+        setLlmDebugInfo(res.llm_debug);
       }
       // Reload session data to get updated state
       const updatedSession = await sessionApi.getSession(session.id);
@@ -119,6 +125,7 @@ const SessionTheater: React.FC<SessionTheaterProps> = ({ sessionId, onExit }) =>
 
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col bg-gray-100 rounded-xl overflow-hidden border border-gray-300 shadow-2xl">
+      {/* Header */}
       <div className="bg-white border-b px-6 py-3 flex justify-between items-center shrink-0 z-10">
         <div className="flex items-center gap-4">
           <button onClick={onExit} className="p-2 hover:bg-gray-100 rounded-full">
@@ -143,7 +150,9 @@ const SessionTheater: React.FC<SessionTheaterProps> = ({ sessionId, onExit }) =>
         </div>
       </div>
 
+      {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar */}
         <div className="w-64 bg-gray-50 border-r p-4 overflow-y-auto hidden md:flex md:flex-col justify-between">
           <div className="space-y-3 flex-1 overflow-y-auto">
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Cast Members</h3>
@@ -176,73 +185,82 @@ const SessionTheater: React.FC<SessionTheaterProps> = ({ sessionId, onExit }) =>
           </div>
         </div>
 
-        <div className="flex-1 bg-white flex flex-col relative">
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {messages.length === 0 && (
-              <div className="text-center text-gray-400 py-20">
-                <p>舞台已就绪，等待开场...</p>
-              </div>
-            )}
+        {/* Main Theater + Debug Panel */}
+        <div className="flex-1 flex">
+          {/* Theater Content */}
+          <div className="flex-1 bg-white flex flex-col relative">
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {messages.length === 0 && (
+                <div className="text-center text-gray-400 py-20">
+                  <p>舞台已就绪，等待开场...</p>
+                </div>
+              )}
 
-            {messages.map(msg => {
-               const isTeacher = msg.speaker_role_name?.includes('老师') || false;
-               // Dynamic bubble color for teacher
-               const roleColor = isTeacher ? `${theme.bgSoft} ${theme.text}` : 'bg-gray-100 text-gray-900';
-               return (
-                <div key={msg.id} className={`flex gap-4 max-w-3xl`}>
-                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center shrink-0 font-bold text-gray-600 text-sm">
-                    {msg.speaker_role_name?.[0]?.toUpperCase() || '?'}
+              {messages.map(msg => {
+                 const isTeacher = msg.speaker_role_name?.includes('老师') || false;
+                 // Dynamic bubble color for teacher
+                 const roleColor = isTeacher ? `${theme.bgSoft} ${theme.text}` : 'bg-gray-100 text-gray-900';
+                 return (
+                  <div key={msg.id} className={`flex gap-4 max-w-3xl`}>
+                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center shrink-0 font-bold text-gray-600 text-sm">
+                      {msg.speaker_role_name?.[0]?.toUpperCase() || '?'}
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-bold text-sm text-gray-900">{msg.speaker_role_name}</span>
+                        <span className="text-xs text-gray-400">{new Date(msg.created_at).toLocaleTimeString()}</span>
+                        {msg.target_role_name && <span className="text-xs text-gray-400">to {msg.target_role_name}</span>}
+                      </div>
+                      <div className={`px-4 py-3 rounded-2xl rounded-tl-none ${roleColor} text-sm leading-relaxed shadow-sm`}>
+                        {msg.content}
+                      </div>
+                      <div className="flex gap-2 opacity-0 hover:opacity-100 transition-opacity">
+                        <button className={`text-xs ${theme.text} hover:underline flex items-center gap-1`}>
+                          <GitBranch size={10} /> 创建分支
+                        </button>
+                      </div>
+                    </div>
                   </div>
+                 );
+              })}
+
+              {generating && (
+                <div className="flex gap-4 max-w-3xl">
+                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0 animate-pulse">...</div>
                   <div className="space-y-1">
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-bold text-sm text-gray-900">{msg.speaker_role_name}</span>
-                      <span className="text-xs text-gray-400">{new Date(msg.created_at).toLocaleTimeString()}</span>
-                      {msg.target_role_name && <span className="text-xs text-gray-400">to {msg.target_role_name}</span>}
-                    </div>
-                    <div className={`px-4 py-3 rounded-2xl rounded-tl-none ${roleColor} text-sm leading-relaxed shadow-sm`}>
-                      {msg.content}
-                    </div>
-                    <div className="flex gap-2 opacity-0 hover:opacity-100 transition-opacity">
-                      <button className={`text-xs ${theme.text} hover:underline flex items-center gap-1`}>
-                        <GitBranch size={10} /> 创建分支
-                      </button>
-                    </div>
+                    <div className="h-4 w-20 bg-gray-100 rounded animate-pulse"/>
+                    <div className="h-10 w-48 bg-gray-100 rounded-2xl rounded-tl-none animate-pulse"/>
                   </div>
                 </div>
-               );
-            })}
+              )}
+              <div ref={messagesEndRef} />
+            </div>
 
-            {generating && (
-              <div className="flex gap-4 max-w-3xl">
-                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0 animate-pulse">...</div>
-                <div className="space-y-1">
-                  <div className="h-4 w-20 bg-gray-100 rounded animate-pulse"/>
-                  <div className="h-10 w-48 bg-gray-100 rounded-2xl rounded-tl-none animate-pulse"/>
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-
-          <div className="p-4 border-t bg-white flex items-center justify-between gap-4">
-             <div className="text-sm text-gray-500">
-                {!isFinished ? (
-                   <>下一步: <span className="font-medium text-gray-900">执行预设步骤 (已执行 {session.executed_steps_count} 步)</span></>
-                ) : (
-                   <span className="flex items-center gap-1 text-green-600">
-                     <CheckCircle size={14}/> 对话流程已结束
-                   </span>
-                )}
+            {/* Controls */}
+            <div className="p-4 border-t bg-white flex items-center justify-between gap-4">
+              <div className="text-sm text-gray-500">
+                 {!isFinished ? (
+                    <>下一步: <span className="font-medium text-gray-900">执行预设步骤 (已执行 {session.executed_steps_count} 步)</span></>
+                 ) : (
+                    <span className="flex items-center gap-1 text-green-600">
+                      <CheckCircle size={14}/> 对话流程已结束
+                    </span>
+                 )}
+               </div>
+               <Button
+                 onClick={handleNextStep}
+                 disabled={isFinished || generating}
+                 className="min-w-[140px]"
+                 icon={Play}
+               >
+                 {generating ? '生成中...' : '执行下一步'}
+               </Button>
              </div>
-             <Button
-               onClick={handleNextStep}
-               disabled={isFinished || generating}
-               className="min-w-[140px]"
-               icon={Play}
-             >
-               {generating ? '生成中...' : '执行下一步'}
-             </Button>
           </div>
+
+          {/* LLM Debug Panel */}
+          <SimpleLLMDebugPanel debugInfo={llmDebugInfo} />
         </div>
       </div>
     </div>
