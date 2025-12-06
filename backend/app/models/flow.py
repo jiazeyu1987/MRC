@@ -155,6 +155,16 @@ class FlowStep(db.Model):
             self._logic_config = str(value)
 
     @property
+    def logic_config_dict(self) -> dict:
+        """获取逻辑配置字典 - 直接返回字典"""
+        return self.logic_config
+
+    @logic_config_dict.setter
+    def logic_config_dict(self, value):
+        """设置逻辑配置 - 支持字典直接赋值"""
+        self.logic_config = value
+
+    @property
     def loop_config_dict(self) -> dict:
         """获取循环配置字典 - logic_config的别名，保持向后兼容"""
         return self.logic_config

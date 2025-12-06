@@ -26,6 +26,36 @@ const SessionTheater: React.FC<SessionTheaterProps> = ({ sessionId, onExit }) =>
   const executionInterval = 3000;  // 自动执行间隔(毫秒)
   const autoExecutionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 用于清理定时器的引用
 
+  // Use refs to track current state values and avoid closure issues
+  const autoModeRef = useRef(autoMode);
+  const autoExecutionRef = useRef(autoExecution);
+
+  // Update refs when state changes
+  useEffect(() => {
+    autoModeRef.current = autoMode;
+    autoExecutionRef.current = autoExecution;
+    console.log('[Refs Update] autoModeRef:', autoModeRef.current, 'autoExecutionRef:', autoExecutionRef.current);
+  }, [autoMode, autoExecution]);
+
+  // Debug logging for state changes
+  useEffect(() => {
+    console.log('[State Change] autoMode:', autoMode, 'autoExecution:', autoExecution);
+  }, [autoMode, autoExecution]);
+
+  useEffect(() => {
+    console.log('[Session Change] session updated:', {
+      id: session?.id,
+      status: session?.status,
+      current_round: session?.current_round,
+      autoMode,
+      autoExecution
+    });
+  }, [session]);
+
+  useEffect(() => {
+    console.log('[Generating Change] generating:', generating);
+  }, [generating]);
+
   const loadData = async () => {
     try {
       // 加载会话详情
@@ -75,6 +105,10 @@ const SessionTheater: React.FC<SessionTheaterProps> = ({ sessionId, onExit }) =>
         }
       }
 
+      // 重新加载session数据以获取最新状态
+      const updatedSession = await sessionApi.getSession(session.id);
+      setSession(updatedSession);
+
     } catch (error) {
       handleError(error);
     } finally {
@@ -101,60 +135,140 @@ const SessionTheater: React.FC<SessionTheaterProps> = ({ sessionId, onExit }) =>
 
   // Auto execution core functions
   const executeNextStepWithAuto = async () => {
+    // 使用refs获取当前状态，避免闭包问题
+    const currentAutoMode = autoModeRef.current;
+    const currentAutoExecution = autoExecutionRef.current;
+
+    console.log('[executeNextStepWithAuto] 开始执行，当前状态:', {
+      hasSession: !!session,
+      generating,
+      autoMode: currentAutoMode,
+      autoExecution: currentAutoExecution,
+      autoModeState: autoMode,
+      autoExecutionState: autoExecution,
+      sessionStatus: session?.status
+    });
+
     if (!session || generating) return;
 
-    const isFinished = session.status === 'finished';
+    const isFinished = session.status === 'finished' || session.status === 'terminated';
     if (isFinished) {
+      console.log('[executeNextStepWithAuto] 会话已结束，停止自动执行');
       setAutoExecution(false);
       return;
     }
 
     try {
+      console.log('[Auto Mode] 开始执行步骤...');
       await handleNextStep();
+      console.log('[Auto Mode] 步骤执行完成');
 
-      // 检查会话是否已结束
-      if (autoMode && session && session.status !== 'finished') {
-        const timer = setTimeout(() => {
-          executeNextStepWithAuto();
-        }, executionInterval);
-        autoExecutionTimerRef.current = timer;
-      } else {
-        setAutoExecution(false);
-      }
+      // 等待一小段时间让状态更新，然后检查最新状态
+      setTimeout(async () => {
+        try {
+          // 重新获取最新的session状态
+          const currentSession = await sessionApi.getSession(session.id);
+          setSession(currentSession);
+
+          // 再次获取最新的refs值
+          const latestAutoMode = autoModeRef.current;
+          const latestAutoExecution = autoExecutionRef.current;
+
+          console.log('[Auto Mode] 最新会话状态:', {
+            status: currentSession.status,
+            current_round: currentSession.current_round,
+            refAutoMode: latestAutoMode,
+            refAutoExecution: latestAutoExecution,
+            stateAutoMode: autoMode,
+            stateAutoExecution: autoExecution
+          });
+
+          // 使用refs进行状态检查
+          if (latestAutoMode && latestAutoExecution &&
+              currentSession.status !== 'finished' &&
+              currentSession.status !== 'terminated') {
+            console.log('[Auto Mode] 准备执行下一步...');
+            const timer = setTimeout(() => {
+              executeNextStepWithAuto();
+            }, executionInterval);
+            autoExecutionTimerRef.current = timer;
+          } else {
+            console.log('[Auto Mode] 停止自动执行，原因:', {
+              refAutoMode: latestAutoMode,
+              refAutoExecution: latestAutoExecution,
+              sessionStatus: currentSession.status
+            });
+            setAutoExecution(false);
+          }
+        } catch (e) {
+          console.error("[Auto Mode] 检查会话状态失败:", e);
+          setAutoExecution(false);
+        }
+      }, 500); // 等待500ms让状态更新
+
     } catch (e) {
+      console.error("[Auto Mode] 自动执行失败:", e);
       setAutoExecution(false);
-      console.error("自动执行失败:", e);
       alert("自动执行失败");
     }
   };
 
   // 开始自动执行
   const startAutoExecution = () => {
-    if (!session || session.status === 'finished') return;
+    console.log('[startAutoExecution] 开始启动自动执行，当前状态:', {
+      hasSession: !!session,
+      sessionStatus: session?.status,
+      autoMode,
+      autoExecution
+    });
 
+    if (!session || session.status === 'finished' || session.status === 'terminated') return;
+
+    console.log('[startAutoExecution] 设置autoExecution=true');
     setAutoExecution(true);
+
+    // 立即开始第一次执行
+    console.log('[startAutoExecution] 开始第一次执行...');
     executeNextStepWithAuto();
   };
 
   // 停止自动执行
   const stopAutoExecution = () => {
+    console.log('[stopAutoExecution] 停止自动执行被调用，当前状态:', { autoExecution, hasTimer: !!autoExecutionTimerRef.current });
     if (autoExecutionTimerRef.current) {
+      console.log('[stopAutoExecution] 清理定时器');
       clearTimeout(autoExecutionTimerRef.current);
       autoExecutionTimerRef.current = null;
     }
+    console.log('[stopAutoExecution] 调用 setAutoExecution(false)');
     setAutoExecution(false);
   };
 
   // 切换自动/手动模式
   const toggleAutoMode = () => {
+    console.log('[ToggleAutoMode] 当前状态:', { autoMode, autoExecution, sessionStatus: session?.status });
+
     if (autoMode) {
       // 从自动模式切换到手动模式
+      console.log('[ToggleAutoMode] 切换到手动模式');
       stopAutoExecution();
+      console.log('[ToggleAutoMode] 调用 setAutoMode(false)');
       setAutoMode(false);
     } else {
       // 从手动模式切换到自动模式
+      console.log('[ToggleAutoMode] 切换到自动模式');
+
+      // 立即设置状态
+      console.log('[ToggleAutoMode] 调用 setAutoMode(true)');
       setAutoMode(true);
-      startAutoExecution();
+      console.log('[ToggleAutoMode] 调用 setAutoExecution(true)');
+      setAutoExecution(true);
+
+      // 使用setTimeout确保状态更新后再执行
+      setTimeout(() => {
+        console.log('[ToggleAutoMode] 延迟执行开始，当前状态:', { autoMode, autoExecution });
+        executeNextStepWithAuto();
+      }, 100);
     }
   };
 
@@ -169,10 +283,22 @@ const SessionTheater: React.FC<SessionTheaterProps> = ({ sessionId, onExit }) =>
 
   // Stop auto execution when session is finished
   useEffect(() => {
-    if (session && session.status === 'finished') {
+    console.log('[useEffect Session Status] 检查会话状态:', {
+      sessionStatus: session?.status,
+      autoExecution,
+      autoMode,
+      shouldStop: session && (session.status === 'finished' || session.status === 'terminated')
+    });
+
+    if (session && (session.status === 'finished' || session.status === 'terminated')) {
+      console.log('[useEffect Session Status] 检测到会话结束，停止自动执行。状态:', session.status);
+      // 停止自动执行
       stopAutoExecution();
+      // 重置autoMode
+      console.log('[useEffect Session Status] 调用 setAutoMode(false)');
+      setAutoMode(false);
     }
-  }, [session]);
+  }, [session?.status, autoExecution]); // 使用可选链和安全检查
 
   // Cleanup auto execution timer on component unmount
   useEffect(() => {

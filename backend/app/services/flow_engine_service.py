@@ -605,16 +605,23 @@ class FlowEngineService:
         Returns:
             Optional[int]: 下一步骤ID，如果没有则返回None
         """
+        print(f"[DEBUG] 确定下一步骤 - 当前步骤ID: {current_step.id}, 当前轮次: {session.current_round}")
+
         # 1. 优先检查退出条件：若满足则直接结束会话
-        if FlowEngineService._check_exit_condition(session, current_step):
+        exit_met = FlowEngineService._check_exit_condition(session, current_step)
+        print(f"[DEBUG] 退出条件检查结果: {exit_met}")
+        if exit_met:
+            print("[DEBUG] 满足退出条件，结束会话")
             return None
 
         # 2. 获取流程模板的所有步骤
         flow_template = FlowTemplate.query.get(session.flow_template_id)
         if not flow_template:
+            print("[DEBUG] 流程模板不存在")
             return None
 
         all_steps = flow_template.steps.order_by(FlowStep.order).all()
+        print(f"[DEBUG] 流程模板共有 {len(all_steps)} 个步骤")
 
         # 3. 查找当前步骤在列表中的位置
         current_index = None
@@ -624,25 +631,53 @@ class FlowEngineService:
                 break
 
         if current_index is None:
+            print(f"[DEBUG] 找不到当前步骤 {current_step.id}")
             return None
+
+        print(f"[DEBUG] 当前步骤在列表中的位置: {current_index}")
 
         # 4. 检查是否有下一步骤（线性推进）
         if current_index < len(all_steps) - 1:
-            return all_steps[current_index + 1].id
+            next_step_id = all_steps[current_index + 1].id
+            print(f"[DEBUG] 有下一步骤，返回步骤ID: {next_step_id}")
+            return next_step_id
+
+        print("[DEBUG] 当前是最后一步，检查循环配置")
 
         # 5. 检查循环配置（到达最后一步且未满足退出条件时，决定是否循环到前面）
         loop_config = current_step.loop_config_dict
-        if loop_config.get('enabled', False):
-            max_loops = loop_config.get('max_loops', 1)
-            if session.current_round < max_loops:
-                # 返回循环开始步骤
-                loop_start_step_ref = loop_config.get('loop_start_role_ref')
-                if loop_start_step_ref:
-                    for step in all_steps:
-                        if step.speaker_role_ref == loop_start_step_ref:
-                            return step.id
-                # 如果没有指定循环开始，返回第一个步骤
+        print(f"[DEBUG] 循环配置: {loop_config}")
+
+        # 检查logic_config中的循环配置
+        logic_config = current_step.logic_config_dict
+        print(f"[DEBUG] 逻辑配置: {logic_config}")
+
+        # 从logic_config中获取循环配置
+        next_step_order = logic_config.get('next_step_order')
+        max_loops = logic_config.get('max_loops', 1)
+        exit_condition = logic_config.get('exit_condition')
+
+        print(f"[DEBUG] 下一步顺序: {next_step_order}, 最大循环次数: {max_loops}, 退出条件: {exit_condition}")
+
+        # 检查是否应该循环
+        should_loop = (
+            next_step_order is not None and
+            session.current_round < max_loops and
+            exit_condition != "有"  # 如果退出条件不是"有"，则应该循环
+        )
+
+        if should_loop:
+            print(f"[DEBUG] 应该循环，当前轮次 {session.current_round} < {max_loops}")
+            # 返回指定顺序的步骤
+            if 1 <= next_step_order <= len(all_steps):
+                loop_step_id = all_steps[next_step_order - 1].id
+                print(f"[DEBUG] 循环到步骤顺序 {next_step_order}，ID: {loop_step_id}")
+                return loop_step_id
+            else:
+                print(f"[DEBUG] 循环步骤顺序 {next_step_order} 超出范围，循环到第一步")
                 return all_steps[0].id if all_steps else None
+        else:
+            print(f"[DEBUG] 不满足循环条件，结束会话")
 
         return None
 
