@@ -25,12 +25,18 @@ class Message(db.Model):
 
     def get_speaker_role_name(self):
         """获取发言角色名称，支持无角色映射模式"""
-        if self.speaker_role and self.speaker_role.role:
+        if self.speaker_role and hasattr(self.speaker_role, 'role') and self.speaker_role.role:
             return self.speaker_role.role.name
 
         # 如果没有session_role，尝试从消息内容中提取或使用默认值
         # 这里可以后续优化，比如从会话快照中获取角色信息
         return "未知角色"
+
+    def get_target_role_name(self):
+        """获取目标角色名称"""
+        if self.target_role and hasattr(self.target_role, 'role') and self.target_role.role:
+            return self.target_role.role.name
+        return None
 
     def to_dict(self):
         """转换为字典"""
@@ -40,7 +46,7 @@ class Message(db.Model):
             'speaker_session_role_id': self.speaker_session_role_id,
             'speaker_role_name': self.get_speaker_role_name(),
             'target_session_role_id': self.target_session_role_id,
-            'target_role_name': self.target_role.role.name if self.target_role and self.target_role.role else None,
+            'target_role_name': self.get_target_role_name(),
             'reply_to_message_id': self.reply_to_message_id,
             'content': self.content,
             'content_summary': self.content_summary,

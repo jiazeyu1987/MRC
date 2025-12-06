@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List, Dict, Optional, Any
 from sqlalchemy import or_, and_, desc
 from app import db
-from app.models import Message, Session, SessionRole
+from app.models import Message, Session, SessionRole, Role
 
 
 class MessageService:

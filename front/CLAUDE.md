@@ -11,7 +11,7 @@ This is the **frontend** component of a Multi-Role Dialogue System project desig
 ### Technology Stack
 - **Framework**: React 18.2.0 with TypeScript, built with Vite
 - **UI Library**: Tailwind CSS 3.3.0 with Lucide React icons
-- **Development**: Vite dev server with API proxy to backend on port 5000
+- **Development**: Vite dev server with API proxy to backend on port 5010
 - **Build**: TypeScript compilation followed by Vite build
 
 ### Key Components
@@ -45,7 +45,7 @@ This is the **frontend** component of a Multi-Role Dialogue System project desig
 - Theme system with multiple color schemes
 
 ### Development Configuration
-- `vite.config.ts` - Vite configuration with API proxy to backend:5000
+- `vite.config.ts` - Vite configuration with API proxy to backend:5010
 - `tsconfig.json` - TypeScript strict mode configuration with unused variable checking
 - `tailwind.config.js` - Tailwind CSS configuration for utility-first styling
 - ESLint is configured but requires proper initialization (`npm init @eslint/config`)
@@ -55,13 +55,13 @@ This is the **frontend** component of a Multi-Role Dialogue System project desig
 
 ### Frontend Development
 ```bash
-# Navigate to frontend directory (note: directory name is "fronted", not "frontend")
-cd fronted
+# Navigate to frontend directory (note: directory name is "front", not "frontend")
+cd front
 
 # Install dependencies
 npm install
 
-# Run development server (port 3000, proxies /api to backend:5000)
+# Run development server (port 3000, proxies /api to backend:5010)
 npm run dev
 
 # Build for production (runs TypeScript compiler first)
@@ -80,10 +80,10 @@ npm run lint
 cd ../backend && python run.py
 
 # Terminal 2: Start frontend (auto-reloads)
-cd fronted && npm run dev
+cd front && npm run dev
 
 # Access application at http://localhost:3000
-# API available at http://localhost:3000/api/* (proxied to backend:5000)
+# API available at http://localhost:3000/api/* (proxied to backend:5010)
 # Health check: http://localhost:3000/api/health
 ```
 
@@ -101,7 +101,7 @@ cd fronted && npm run dev
 
 ### API Integration
 - All API calls go through Vite proxy to backend Flask server
-- Base URL for API calls: `/api/*` (proxied to backend:5000)
+- Base URL for API calls: `/api/*` (proxied to backend:5010)
 - Error handling utilities in `src/utils/errorHandler.ts`
 - API client supports environment variable configuration (VITE_API_BASE_URL_ALT)
 - Centralized HTTP client with error handling and type safety
@@ -120,7 +120,7 @@ This frontend works with a Flask backend that provides:
 - Health monitoring and system status endpoints
 - Comprehensive error handling and JSON responses
 
-The backend runs on port 5000 and should be started before the frontend for full functionality.
+The backend runs on port 5010 and should be started before the frontend for full functionality.
 
 ## Environment Setup
 
@@ -155,9 +155,9 @@ npm run test:coverage
 
 ## Development Guidelines
 
-1. **Directory Name**: The frontend directory is intentionally named "fronted" (not "frontend") - preserve this naming.
+1. **Directory Name**: The frontend directory is named "front" (not "frontend") - preserve this naming.
 
-2. **API Proxy**: All `/api/*` requests are automatically proxied to the backend server during development via Vite proxy (port 3000 → backend:5000).
+2. **API Proxy**: All `/api/*` requests are automatically proxied to the backend server during development via Vite proxy (port 3000 → backend:5010).
 
 3. **TypeScript**: Strict mode is enabled with unused variable checking. Note: There are currently syntax errors in `components/` directory that prevent successful builds.
 

@@ -98,15 +98,33 @@ cd front && npm run dev
 # Health check: http://localhost:3000/api/health
 ```
 
+### Quick Start Script
+```bash
+# Backend quick start (auto-initializes database and creates built-ins)
+cd backend && python quick_start.py
+
+# Frontend quick start (installs deps and starts dev server)
+cd front && npm run quick-start
+```
+
 ## Core System Components
 
 ### Backend Models
-- **Role** - Defines virtual participants with style, constraints, and focus points
-- **FlowTemplate** - Defines conversation structures with steps and conditions
-- **FlowStep** - Individual steps in a conversation flow (speaker, task type, context scope)
-- **Session** - Active conversation instances with role assignments
-- **Message** - Individual messages with LLM interaction tracking
-- **LLMInteraction** - Detailed LLM API call logging and performance metrics
+- **Role** - Defines virtual participants with style, constraints, and focus points (unique names, unified prompt field)
+- **FlowTemplate** - Defines conversation structures with steps, conditions, and termination configuration
+- **FlowStep** - Individual steps with speaker/target references, task types, and conditional logic
+- **Session** - Active conversation instances with status tracking, current step, and flow/role snapshots
+- **SessionRole** - Junction table mapping template roles to actual roles in sessions
+- **Message** - Individual messages with speaker/target roles, threading support, and round tracking
+- **LLMInteraction** - Detailed LLM API logging with token usage, performance metrics, and provider tracking
+- **StepExecutionLog** - Step execution tracking with performance metrics, loop iteration, and debugging snapshots
+
+### Database Architecture
+- **Session Isolation**: Sessions use snapshots to preserve template versions at creation time
+- **JSON Configuration**: Complex configurations stored as JSON (termination, logic, context scopes)
+- **Performance Optimization**: Comprehensive indexing for common query patterns
+- **Multi-level Tracking**: Support for nested loops, rounds, and step execution sequences
+- **Error Handling**: Built-in error tracking and debugging capabilities throughout the schema
 
 ### Frontend Components
 - **MultiRoleDialogSystem.tsx** - Main application interface (63KB)
@@ -123,6 +141,21 @@ cd front && npm run dev
 - `/api/llm` - LLM integration and interaction tracking
 - `/api/monitoring` - System health and performance metrics
 - `/api/health` - Health check endpoint
+
+#### Health Monitoring Endpoints
+- `GET /api/health` - Comprehensive system health check with component status
+- `GET /api/monitoring/metrics` - Current performance metrics (CPU, memory, request rates)
+- `GET /api/monitoring/history` - Historical performance data (query: `hours=1-168`)
+- `GET /api/monitoring/dashboard` - Combined dashboard data with overview and system info
+- `GET /api/monitoring/system-info` - Detailed system information (OS, Python version, dependencies)
+- `PUT /api/monitoring/alerts` - Update monitoring alert thresholds
+- `POST /api/monitoring/control` - Control monitoring service (start/stop/clear)
+
+#### LLM Monitoring Endpoints
+- `GET /api/sessions/{id}/llm-statistics` - LLM interaction statistics for a session
+- `GET /api/llm-interactions/active` - Currently active LLM interactions
+- `GET /api/llm-interactions/errors` - LLM interaction error logs
+- `GET /api/llm-interactions/metrics` - LLM-specific system metrics
 
 ## Key Features
 
