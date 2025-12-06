@@ -424,7 +424,41 @@ class FlowEngineService:
         # 简单的指令
         prompt_parts.append("请以该角色的身份进行回应。")
 
+        # 添加上下文历史消息（如果有的话）
+        history_messages = context.get('history_messages', [])
+        if history_messages:
+            context_section = FlowEngineService._format_context_for_prompt(history_messages)
+            if context_section:
+                prompt_parts.append(context_section)
+
         return " ".join(prompt_parts)
+
+    @staticmethod
+    def _format_context_for_prompt(history_messages: List[Dict[str, Any]]) -> str:
+        """
+        将历史消息格式化为适合LLM提示词的上下文字符串
+
+        Args:
+            history_messages: 历史消息列表，每个消息包含 speaker_role, content, round_index 等
+
+        Returns:
+            str: 格式化后的上下文字符串
+        """
+        if not history_messages:
+            return ""
+
+        context_parts = []
+        context_parts.append("相关对话背景：")
+
+        for msg in history_messages:
+            speaker = msg.get('speaker_role', '未知角色')
+            content = msg.get('content', '')
+            round_idx = msg.get('round_index', 1)
+
+            if content:
+                context_parts.append(f"第{round_idx}轮 {speaker}说：{content}")
+
+        return " ".join(context_parts)
 
     @staticmethod
     def _get_target_session_role_id(session_id: int, target_role_ref: Optional[str]) -> Optional[int]:
