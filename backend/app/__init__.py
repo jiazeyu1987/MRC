@@ -143,6 +143,10 @@ def register_api(app):
     from app.api.llm import register_llm_routes
     register_llm_routes(api)
 
+    # LLM文件记录接口
+    from app.api.llm_file_records import llm_file_records_bp
+    app.register_blueprint(llm_file_records_bp)
+
 
 def register_error_handlers(app):
     """注册错误处理器"""

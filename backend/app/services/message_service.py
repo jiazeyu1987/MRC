@@ -345,28 +345,94 @@ class MessageService:
     @staticmethod
     def _export_to_json(session: Session, messages: List[Message]) -> Dict[str, Any]:
         """导出为JSON格式"""
+        # 获取会话的LLM交互记录
+        try:
+            from app.services.llm_file_record_service import get_session_llm_interactions
+            llm_interactions = get_session_llm_interactions(session.id)
+
+            # 创建消息ID到LLM交互的映射
+            message_llm_map = {}
+            for interaction in llm_interactions:
+                msg_id = interaction.get('message_id')
+                # 处理数字类型的message_id，确保匹配
+                if msg_id is not None:  # 使用任何有message_id的记录（不再强制要求finalized标记）
+                    # 尝试将message_id转换为整数以确保匹配
+                    try:
+                        msg_id_int = int(msg_id)
+                        message_llm_map[msg_id_int] = interaction
+                    except (ValueError, TypeError):
+                        # 如果转换失败，使用原始值
+                        message_llm_map[msg_id] = interaction
+        except Exception:
+            # 如果获取LLM记录失败，使用空映射
+            message_llm_map = {}
+
+        # 构建消息列表，包含LLM提示词信息
+        message_data = []
+        for msg in messages:
+            message_item = {
+                'id': msg.id,
+                'speaker_role': msg.speaker_role.role.name if msg.speaker_role and msg.speaker_role.role else None,
+                'target_role': msg.target_role.role.name if msg.target_role and msg.target_role.role else None,
+                'content': msg.content,
+                'content_summary': msg.content_summary,
+                'round_index': msg.round_index,
+                'section': msg.section,
+                'created_at': msg.created_at.isoformat() if msg.created_at else None
+            }
+
+            # 添加LLM提示词信息（如果存在）
+            if msg.id in message_llm_map:
+                llm_interaction = message_llm_map[msg.id]
+                message_item['llm_interaction'] = {
+                    'original_prompt': llm_interaction.get('prompt', ''),
+                    'provider': llm_interaction.get('provider', ''),
+                    'model': llm_interaction.get('metadata', {}).get('model_used', ''),
+                    'success': llm_interaction.get('success', True),
+                    'error_message': llm_interaction.get('error_message'),
+                    'performance_metrics': llm_interaction.get('performance_metrics', {}),
+                    'timestamp': llm_interaction.get('timestamp', ''),
+                    'metadata': llm_interaction.get('metadata', {})
+                }
+
+                # 添加提示词重构信息
+                message_item['prompt_info'] = {
+                    'reconstructed': False,
+                    'prompt_type': 'original_llm_prompt',
+                    'prompt': llm_interaction.get('prompt', ''),
+                    'note': '对话执行时实际发送给LLM的原始提示词'
+                }
+            else:
+                # 如果没有原始提示词，进行重构（保持向后兼容）
+                reconstructed_prompt = MessageService._reconstruct_prompt_for_message(msg, session)
+                message_item['prompt_info'] = {
+                    'reconstructed': True,
+                    'prompt_type': 'reconstructed_prompt',
+                    'prompt': reconstructed_prompt,
+                    'note': '基于上下文重构的提示词（原始记录不可用）'
+                }
+
+            message_data.append(message_item)
+
         return {
             'session': {
                 'id': session.id,
                 'topic': session.topic,
                 'flow_template_id': session.flow_template_id,
                 'status': session.status,
+                'current_step_id': session.current_step_id,
+                'current_round': session.current_round,
+                'executed_steps_count': session.executed_steps_count,
                 'created_at': session.created_at.isoformat() if session.created_at else None,
                 'ended_at': session.ended_at.isoformat() if session.ended_at else None
             },
-            'messages': [
-                {
-                    'id': msg.id,
-                    'speaker_role': msg.speaker_role.role_detail.name if msg.speaker_role else None,
-                    'target_role': msg.target_role.role_detail.name if msg.target_role else None,
-                    'content': msg.content,
-                    'content_summary': msg.content_summary,
-                    'round_index': msg.round_index,
-                    'section': msg.section,
-                    'created_at': msg.created_at.isoformat() if msg.created_at else None
-                }
-                for msg in messages
-            ]
+            'messages': message_data,
+            'llm_interactions_summary': {
+                'total_interactions': len(llm_interactions),
+                'with_message_id': len([i for i in llm_interactions if i.get('message_id') and i.get('finalized')]),
+                'successful_interactions': len([i for i in llm_interactions if i.get('success', True)]),
+                'failed_interactions': len([i for i in llm_interactions if not i.get('success', True)])
+            }
         }
 
     @staticmethod
@@ -474,6 +540,37 @@ class MessageService:
         except Exception:
             db.session.rollback()
             return None
+
+    @staticmethod
+    def _reconstruct_prompt_for_message(msg: Message, session: Session) -> str:
+        """重构消息的提示词（向后兼容）"""
+        try:
+            # 获取角色信息
+            role_name = msg.speaker_role.role.name if msg.speaker_role and msg.speaker_role.role else '未知角色'
+            role_prompt = msg.speaker_role.role.prompt if msg.speaker_role and msg.speaker_role.role else ''
+
+            # 基础提示词
+            prompt_parts = [
+                f"角色：{role_name}",
+                f"角色设定：{role_prompt}",
+                f"会话主题：{session.topic}",
+                f"当前轮次：{msg.round_index}"
+            ]
+
+            # 如果有步骤信息，添加步骤描述
+            if hasattr(session, 'current_step_id') and session.current_step_id:
+                from app.models import FlowStep
+                step = FlowStep.query.get(session.current_step_id)
+                if step:
+                    prompt_parts.append(f"任务：{step.description or step.task_type}")
+
+            prompt_parts.append("请根据你的角色设定和当前任务进行回应。")
+
+            return "\n\n".join(filter(None, prompt_parts))
+
+        except Exception:
+            # 如果重构失败，返回简单的提示词
+            return f"作为{msg.speaker_role.role.name if msg.speaker_role and msg.speaker_role.role else '角色'}，请根据当前会话主题进行回应。"
 
     @staticmethod
     def _generate_content_summary(content: str) -> str:

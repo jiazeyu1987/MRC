@@ -7,6 +7,7 @@ from app.models import Session, SessionRole, Message, FlowTemplate, FlowStep, Ro
 from app.services.session_service import SessionService, SessionError, FlowExecutionError
 from app.services.llm.conversation_service import conversation_llm_service
 from app.services.llm.conversation_service import LLMError
+from app.services.llm_file_record_service import record_llm_interaction
 
 # 全局变量存储最新的LLM调试信息
 latest_llm_debug_info = None
@@ -70,7 +71,7 @@ class FlowEngineService:
 
             # 使用LLM服务生成内容，同时获取提示词和响应
             prompt_content, llm_response = FlowEngineService._generate_llm_response_sync(
-                role, current_step, context
+                role, current_step, context, session=session
             )
 
             # 构建LLM调试信息
@@ -107,6 +108,30 @@ class FlowEngineService:
 
             # 更新会话状态
             FlowEngineService._update_session_after_step_execution(session, current_step)
+
+            # 记录带有消息ID的LLM交互（补充信息）
+            if hasattr(FlowEngineService, '_last_llm_interaction_data'):
+                interaction_data = FlowEngineService._last_llm_interaction_data
+                record_llm_interaction(
+                    session_id=session.id,
+                    message_id=message.id,
+                    role_name=interaction_data.get('role_name'),
+                    step_id=interaction_data.get('step_id'),
+                    round_index=session.current_round,
+                    prompt=interaction_data.get('prompt'),
+                    response=interaction_data.get('response'),
+                    provider=interaction_data.get('provider'),
+                    success=interaction_data.get('success', True),
+                    error_message=interaction_data.get('error_message'),
+                    performance_metrics=interaction_data.get('performance_metrics'),
+                    metadata={
+                        **interaction_data.get('metadata', {}),
+                        'message_id': message.id,
+                        'finalized': True
+                    }
+                )
+                # 清理临时数据
+                delattr(FlowEngineService, '_last_llm_interaction_data')
 
             db.session.commit()
 
@@ -873,6 +898,7 @@ class FlowEngineService:
         role: Role,
         step: FlowStep,
         context: Dict[str, Any],
+        session: Optional[Session] = None,
         llm_provider: str = None
     ) -> Tuple[str, str]:
         """
@@ -883,6 +909,7 @@ class FlowEngineService:
             role: 发言角色
             step: 当前步骤
             context: 上下文信息
+            session: 会话对象（用于文件记录）
             llm_provider: LLM提供商
 
         Returns:
@@ -891,6 +918,12 @@ class FlowEngineService:
         Raises:
             FlowExecutionError: LLM生成失败
         """
+        # 记录开始时间
+        start_time = datetime.utcnow()
+        llm_response = None
+        error_message = None
+        success = False
+
         try:
             import requests
             import json
@@ -898,6 +931,24 @@ class FlowEngineService:
 
             # 构建简单的提示词，类似LLM测试页面
             prompt = FlowEngineService._build_simple_prompt(role, step, context)
+
+            # 记录LLM交互开始
+            if session:
+                record_llm_interaction(
+                    session_id=session.id,
+                    role_name=role.name if role else '未知角色',
+                    step_id=step.id if step else None,
+                    round_index=session.current_round if session else None,
+                    prompt=prompt,
+                    response="",  # 初始为空，成功后更新
+                    provider=llm_provider or 'claude-3-5-sonnet-20241022',
+                    success=False,  # 初始为False，成功后更新
+                    metadata={
+                        'stage': 'started',
+                        'task_type': step.task_type if step else None,
+                        'session_topic': session.topic if session else None
+                    }
+                )
 
             # 构建历史消息
             history_messages = []
@@ -936,30 +987,139 @@ class FlowEngineService:
                 result = response.json()
                 if result.get('success') and 'data' in result:
                     llm_response = result['data']['response']
+                    success = True
+
+                    # 记录成功的LLM交互
+                    if session:
+                        end_time = datetime.utcnow()
+                        performance_metrics = {
+                            'response_time_ms': int((end_time - start_time).total_seconds() * 1000),
+                            'history_messages_count': len(history_messages),
+                            'prompt_length': len(prompt),
+                            'response_length': len(llm_response)
+                        }
+
+                        # 保存交互数据供后续补充message_id使用
+                        FlowEngineService._last_llm_interaction_data = {
+                            'role_name': role.name if role else '未知角色',
+                            'step_id': step.id if step else None,
+                            'prompt': prompt,
+                            'response': llm_response,
+                            'provider': llm_provider or 'claude-3-5-sonnet-20241022',
+                            'success': True,
+                            'performance_metrics': performance_metrics,
+                            'metadata': {
+                                'stage': 'completed',
+                                'task_type': step.task_type if step else None,
+                                'session_topic': session.topic if session else None,
+                                'api_response_time': result.get('response_time'),
+                                'model_used': result.get('model', llm_provider or 'claude-3-5-sonnet-20241022')
+                            }
+                        }
+
+                        # 先记录一次没有message_id的交互
+                        record_llm_interaction(
+                            session_id=session.id,
+                            role_name=role.name if role else '未知角色',
+                            step_id=step.id if step else None,
+                            round_index=session.current_round if session else None,
+                            prompt=prompt,
+                            response=llm_response,
+                            provider=llm_provider or 'claude-3-5-sonnet-20241022',
+                            success=True,
+                            performance_metrics=performance_metrics,
+                            metadata={
+                                'stage': 'completed',
+                                'task_type': step.task_type if step else None,
+                                'session_topic': session.topic if session else None,
+                                'api_response_time': result.get('response_time'),
+                                'model_used': result.get('model', llm_provider or 'claude-3-5-sonnet-20241022'),
+                                'message_id_pending': True
+                            }
+                        )
+
                     return prompt, llm_response
                 else:
                     error_msg = result.get('message', 'LLM调用失败')
-                    raise FlowExecutionError(f"LLM API返回错误: {error_msg}")
+                    error_message = f"LLM API返回错误: {error_msg}"
+                    raise FlowExecutionError(error_message)
             else:
-                raise FlowExecutionError(f"LLM API请求失败，状态码: {response.status_code}")
+                error_message = f"LLM API请求失败，状态码: {response.status_code}"
+                raise FlowExecutionError(error_message)
 
         except requests.exceptions.RequestException as e:
-            # 网络请求失败，回退到模拟模式
+            # 网络请求失败，记录错误并抛出异常
+            error_message = f"LLM API请求失败: {str(e)}"
+
+            # 记录失败的LLM交互
+            if session:
+                end_time = datetime.utcnow()
+                performance_metrics = {
+                    'response_time_ms': int((end_time - start_time).total_seconds() * 1000),
+                    'error_type': 'RequestException',
+                    'prompt_length': len(prompt) if 'prompt' in locals() else 0
+                }
+
+                record_llm_interaction(
+                    session_id=session.id,
+                    role_name=role.name if role else '未知角色',
+                    step_id=step.id if step else None,
+                    round_index=session.current_round if session else None,
+                    prompt=prompt if 'prompt' in locals() else "",
+                    response="",
+                    provider=llm_provider or 'claude-3-5-sonnet-20241022',
+                    success=False,
+                    error_message=error_message,
+                    performance_metrics=performance_metrics,
+                    metadata={
+                        'stage': 'failed',
+                        'task_type': step.task_type if step else None,
+                        'session_topic': session.topic if session else None,
+                        'exception_type': 'RequestException'
+                    }
+                )
+
             import logging
             logger = logging.getLogger(__name__)
-            logger.warning(f"LLM API请求失败，使用模拟响应: {str(e)}")
-            # 生成一个模拟的LLM响应，而不是重复提示词
-            fallback_response = f"[模拟响应] 作为{role.name if role else '角色'}，基于当前任务：{current_step.description or '对话'}，我会根据我的角色设定给出相应的回应。"
-            return prompt, fallback_response
+            logger.error(error_message)
+            raise FlowExecutionError(error_message)
 
         except Exception as e:
-            # 其他错误，也回退到模拟模式
+            # 其他错误，记录错误并抛出异常
+            error_message = f"LLM服务异常: {str(e)}"
+
+            # 记录失败的LLM交互
+            if session:
+                end_time = datetime.utcnow()
+                performance_metrics = {
+                    'response_time_ms': int((end_time - start_time).total_seconds() * 1000),
+                    'error_type': type(e).__name__,
+                    'prompt_length': len(prompt) if 'prompt' in locals() else 0
+                }
+
+                record_llm_interaction(
+                    session_id=session.id,
+                    role_name=role.name if role else '未知角色',
+                    step_id=step.id if step else None,
+                    round_index=session.current_round if session else None,
+                    prompt=prompt if 'prompt' in locals() else "",
+                    response="",
+                    provider=llm_provider or 'claude-3-5-sonnet-20241022',
+                    success=False,
+                    error_message=error_message,
+                    performance_metrics=performance_metrics,
+                    metadata={
+                        'stage': 'failed',
+                        'task_type': step.task_type if step else None,
+                        'session_topic': session.topic if session else None,
+                        'exception_type': type(e).__name__
+                    }
+                )
+
             import logging
             logger = logging.getLogger(__name__)
-            logger.warning(f"LLM服务不可用，使用模拟响应: {str(e)}")
-            # 生成一个模拟的LLM响应，而不是重复提示词
-            fallback_response = f"[模拟响应] 作为{role.name if role else '角色'}，基于当前任务：{current_step.description or '对话'}，我会根据我的角色设定给出相应的回应。"
-            return prompt, fallback_response
+            logger.error(error_message)
+            raise FlowExecutionError(error_message)
 
     @staticmethod
     def execute_next_step_sync(session_id: int) -> Tuple[Message, Dict[str, Any]]:
