@@ -404,24 +404,12 @@ class FlowEngineService:
                 role_desc += f"。描述：{role.description}"
             prompt_parts.append(role_desc)
 
-        # 会话主题
-        session_topic = context.get('session_topic', '')
-        if session_topic:
+        # 条件性会话主题：只有选择了__TOPIC__策略时才包含
+        session_topic = context.get('session_topic', '').strip()
+        if session_topic and FlowEngineService._has_topic_context(step):
             prompt_parts.append(f"会话主题：{session_topic}")
 
-        # 当前任务
-        if step:
-            task_desc = step.description if step.description else step.task_type
-            prompt_parts.append(f"任务：{task_desc}")
-
-        # 当前轮次信息
-        current_round = context.get('current_round', 1)
-        step_count = context.get('step_count', 0)
-        prompt_parts.append(f"第{current_round}轮对话，第{step_count + 1}个步骤")
-
-        # 简单的指令
-        prompt_parts.append("请以该角色的身份进行回应。")
-
+        
         # 添加上下文历史消息（如果有的话）
         history_messages = context.get('history_messages', [])
         if history_messages:
@@ -457,6 +445,31 @@ class FlowEngineService:
                 context_parts.append(f"第{round_idx}轮 {speaker}说：{content}")
 
         return " ".join(context_parts)
+
+    @staticmethod
+    def _has_topic_context(step: FlowStep) -> bool:
+        """检查步骤是否选择了预设议题上下文策略"""
+        if not step or not step.context_scope:
+            return False
+
+        context_scope = step.context_scope
+
+        # 处理JSON数组格式
+        if isinstance(context_scope, str):
+            try:
+                import json
+                parsed = json.loads(context_scope)
+                if isinstance(parsed, list):
+                    context_scope = parsed
+            except:
+                # 如果不是JSON，保持原字符串
+                pass
+
+        # 检查是否包含__TOPIC__
+        if isinstance(context_scope, list):
+            return '__TOPIC__' in context_scope
+        else:
+            return context_scope == '__TOPIC__'
 
     @staticmethod
     def _get_target_session_role_id(session_id: int, target_role_ref: Optional[str]) -> Optional[int]:
