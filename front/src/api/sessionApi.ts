@@ -276,6 +276,41 @@ export const sessionApi = {
   },
 
   /**
+   * 批量删除会话
+   */
+  async deleteAllSessions(statusFilter?: string, confirm: boolean = false): Promise<{
+    total_sessions: number;
+    deletable_sessions: number;
+    running_sessions: number;
+    deleted_sessions?: number;
+    skipped_sessions?: number;
+    errors?: string[];
+  }> {
+    // Use a dedicated endpoint path for bulk deletion to avoid conflicts with GET
+    const params = new URLSearchParams();
+    if (statusFilter) params.append('status', statusFilter);
+    params.append('confirm', confirm.toString());
+    params.append('action', 'bulk_delete');
+
+    return apiClient.delete<any>(`/api/sessions?${params}`);
+  },
+
+  /**
+   * 获取删除统计信息
+   */
+  async getDeletionStatistics(statusFilter?: string): Promise<{
+    total_sessions: number;
+    deletable_sessions: number;
+    running_sessions: number;
+  }> {
+    // Use POST with action parameter for statistics
+    return apiClient.post<any>('/api/sessions', {
+      action: 'get_deletion_statistics',
+      status_filter: statusFilter
+    });
+  },
+
+  /**
    * 导出会话记录
    */
   async exportSession(sessionId: number, format: 'json' | 'csv' | 'txt' = 'json'): Promise<any> {

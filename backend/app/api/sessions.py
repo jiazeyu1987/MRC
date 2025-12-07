@@ -90,9 +90,21 @@ class SessionList(Resource):
             }, 500
 
     def post(self):
-        """创建新会话"""
+        """创建新会话或获取删除统计信息"""
         try:
             json_data = request.get_json()
+
+            # 检查是否是获取删除统计信息的请求
+            if json_data and json_data.get('action') == 'get_deletion_statistics':
+                status_filter = json_data.get('status_filter', '')
+                stats = SessionService.get_deletion_statistics(status_filter)
+                return {
+                    'success': True,
+                    'data': stats,
+                    'message': f'找到 {stats["total_sessions"]} 个会话，其中 {stats["deletable_sessions"]} 个可以删除'
+                }
+
+            # 原有的创建会话逻辑
             if not json_data:
                 return {
                     'success': False,
@@ -138,6 +150,60 @@ class SessionList(Resource):
                 'success': False,
                 'error_code': 'INTERNAL_ERROR',
                 'message': '创建会话失败'
+            }, 500
+
+    def delete(self):
+        """批量删除会话"""
+        try:
+            # 检查action参数
+            action = request.args.get('action', '')
+
+            # 如果不是批量删除操作，返回方法不允许
+            if action != 'bulk_delete':
+                return {
+                    'success': False,
+                    'error_code': 'METHOD_NOT_ALLOWED',
+                    'message': 'DELETE方法仅支持批量删除操作'
+                }, 405
+
+            # 获取查询参数
+            status_filter = request.args.get('status', '', type=str)
+            confirm = request.args.get('confirm', 'false', type=str).lower() == 'true'
+
+            # 如果没有确认参数，返回需要确认的统计信息
+            if not confirm:
+                stats = SessionService.get_deletion_statistics(status_filter)
+                return {
+                    'success': True,
+                    'data': {
+                        'total_sessions': stats['total_sessions'],
+                        'deletable_sessions': stats['deletable_sessions'],
+                        'running_sessions': stats['running_sessions'],
+                        'status_filter': status_filter
+                    },
+                    'message': f'找到 {stats["total_sessions"]} 个会话，其中 {stats["deletable_sessions"]} 个可以删除，{stats["running_sessions"]} 个正在运行'
+                }
+
+            # 确认删除，执行批量删除
+            result = SessionService.bulk_delete_sessions(status_filter)
+
+            return {
+                'success': True,
+                'data': {
+                    'deleted_sessions': result['deleted_sessions'],
+                    'skipped_sessions': result['skipped_sessions'],
+                    'errors': result.get('errors', [])
+                },
+                'message': f'批量删除完成：成功删除 {result["deleted_sessions"]} 个会话，跳过 {result["skipped_sessions"]} 个正在运行的会话'
+            }
+
+        except Exception as e:
+            current_app.logger.error(f"批量删除会话失败: {str(e)}")
+            db.session.rollback()
+            return {
+                'success': False,
+                'error_code': 'INTERNAL_ERROR',
+                'message': '批量删除会话失败'
             }, 500
 
 

@@ -1135,6 +1135,89 @@ const SessionManagement = ({ onPlayback }: any) => {
     }
   }, [view]);
 
+  // Delete single session
+  const handleDeleteSession = async (sessionId: number, topic: string) => {
+    // 显示确认对话框
+    const confirmed = window.confirm(`确定要删除会话 "${topic}" 吗？\n\n此操作不可恢复，将删除会话及其所有消息数据。`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await sessionApi.deleteSession(sessionId);
+
+      // 显示成功消息
+      alert('会话删除成功！');
+
+      // 重新加载会话列表
+      const sessionsData = await sessionApi.getSessions({ page_size: 50 });
+      setSessions(sessionsData.items);
+
+    } catch (error) {
+      console.error('删除会话失败:', error);
+      alert(`删除失败: ${(error as Error).message || '删除会话时发生错误'}`);
+    }
+  };
+
+  // Delete all sessions
+  const handleDeleteAllSessions = async () => {
+    if (sessions.length === 0) {
+      alert('当前没有会话可以删除。');
+      return;
+    }
+
+    // 显示确认对话框
+    const confirmed = window.confirm(
+      `确定要删除所有会话吗？\n\n当前共有 ${sessions.length} 个会话。此操作不可恢复，将删除所有会话及其消息数据。`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    // 二次确认
+    const finalConfirmation = window.confirm(
+      '请再次确认：真的要删除所有会话吗？\n\n正在运行的会话不会被删除。输入"确定"继续，输入"取消"停止操作。'
+    );
+
+    if (!finalConfirmation) {
+      return;
+    }
+
+    try {
+      // 先获取删除统计信息
+      const stats = await sessionApi.getDeletionStatistics();
+
+      // 显示详细确认信息
+      const detailedConfirm = window.confirm(
+        `删除确认：\n` +
+        `• 总会话数: ${stats.total_sessions}\n` +
+        `• 可删除会话: ${stats.deletable_sessions}\n` +
+        `• 运行中会话（不会被删除）: ${stats.running_sessions}\n\n` +
+        `确认继续删除操作吗？`
+      );
+
+      if (!detailedConfirm) {
+        return;
+      }
+
+      // 执行批量删除
+      const result = await sessionApi.deleteAllSessions('', true);
+
+      // 显示成功消息
+      alert(`批量删除成功！\n已删除 ${result.deleted_sessions} 个会话，跳过 ${result.skipped_sessions} 个运行中的会话。`);
+
+      // 重新加载会话列表
+      const sessionsData = await sessionApi.getSessions({ page_size: 50 });
+      setSessions(sessionsData.items);
+
+    } catch (error) {
+      console.error('批量删除会话失败:', error);
+      alert(`批量删除失败: ${(error as Error).message || '批量删除会话时发生错误'}`);
+    }
+  };
+
   if (view === 'create') {
     return <SessionCreator
       onCancel={() => setView('list')}
@@ -1183,6 +1266,14 @@ const SessionManagement = ({ onPlayback }: any) => {
           <p className="text-gray-500 text-sm mt-1">创建并执行多角色对话剧场</p>
         </div>
         <div className="flex gap-2">
+          <Button
+            onClick={handleDeleteAllSessions}
+            variant="danger"
+            icon={Trash2}
+            disabled={sessions.length === 0}
+          >
+            删除所有
+          </Button>
           <Button onClick={() => setView('create')} icon={Plus}>新建会话</Button>
         </div>
       </div>
@@ -1210,9 +1301,20 @@ const SessionManagement = ({ onPlayback }: any) => {
                 </td>
                 <td className="px-6 py-4 text-gray-500 text-sm">{new Date(s.created_at).toLocaleDateString()}</td>
                 <td className="px-6 py-4 text-right">
-                  <button onClick={() => { setActiveSessionId(s.id); setView('theater'); }} className={`${theme.text} ${theme.textHover} font-medium text-sm flex items-center gap-1 justify-end ml-auto`}>
-                    {s.status === 'finished' ? '回放' : '进入剧场'} <ChevronRight size={14} />
-                  </button>
+                  <div className="flex items-center gap-2 justify-end">
+                    {s.status !== 'running' && (
+                      <button
+                        onClick={() => handleDeleteSession(s.id, s.topic)}
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                        title="删除会话"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                    <button onClick={() => { setActiveSessionId(s.id); setView('theater'); }} className={`${theme.text} ${theme.textHover} font-medium text-sm flex items-center gap-1`}>
+                      {s.status === 'finished' ? '回放' : '进入剧场'} <ChevronRight size={14} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

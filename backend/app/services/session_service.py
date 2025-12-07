@@ -615,3 +615,98 @@ class SessionService:
         except Exception:
             # 如果查询失败，返回空列表
             return []
+
+    @staticmethod
+    def get_deletion_statistics(status_filter: str = '') -> Dict[str, Any]:
+        """
+        获取删除统计信息
+
+        Args:
+            status_filter: 状态过滤条件，空字符串表示不过滤
+
+        Returns:
+            Dict: 包含统计信息的字典
+        """
+        try:
+            query = Session.query
+
+            # 应用状态过滤
+            if status_filter:
+                status_list = status_filter.split(',')
+                query = query.filter(Session.status.in_(status_list))
+
+            total_sessions = query.count()
+            running_sessions = query.filter_by(status='running').count()
+            deletable_sessions = total_sessions - running_sessions
+
+            return {
+                'total_sessions': total_sessions,
+                'running_sessions': running_sessions,
+                'deletable_sessions': deletable_sessions,
+                'status_filter': status_filter
+            }
+
+        except Exception as e:
+            raise SessionError(f"获取删除统计信息失败: {str(e)}")
+
+    @staticmethod
+    def bulk_delete_sessions(status_filter: str = '') -> Dict[str, Any]:
+        """
+        批量删除会话
+
+        Args:
+            status_filter: 状态过滤条件，空字符串表示删除所有非运行中的会话
+
+        Returns:
+            Dict: 包含删除结果的字典
+        """
+        try:
+            query = Session.query
+
+            # 应用状态过滤
+            if status_filter:
+                status_list = status_filter.split(',')
+                query = query.filter(Session.status.in_(status_list))
+
+            # 获取所有要删除的会话
+            sessions_to_delete = query.filter(Session.status != 'running').all()
+
+            deleted_sessions = 0
+            skipped_sessions = 0
+            errors = []
+
+            # 逐个删除会话以确保完整性
+            for session in sessions_to_delete:
+                try:
+                    # 检查会话状态
+                    if session.status == 'running':
+                        skipped_sessions += 1
+                        continue
+
+                    # 删除相关的消息
+                    Message.query.filter_by(session_id=session.id).delete()
+
+                    # 删除相关的会话角色
+                    SessionRole.query.filter_by(session_id=session.id).delete()
+
+                    # 删除会话
+                    db.session.delete(session)
+                    deleted_sessions += 1
+
+                except Exception as e:
+                    errors.append(f"删除会话 {session.id} 失败: {str(e)}")
+                    db.session.rollback()
+
+            # 提交所有删除操作
+            if deleted_sessions > 0:
+                db.session.commit()
+
+            return {
+                'deleted_sessions': deleted_sessions,
+                'skipped_sessions': skipped_sessions,
+                'errors': errors
+            }
+
+        except Exception as e:
+            db.session.rollback()
+            raise SessionError(f"批量删除会话失败: {str(e)}")
