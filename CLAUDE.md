@@ -47,7 +47,7 @@ pip install -r requirements.txt
 # Initialize database
 python run.py init-db
 
-# Create built-in roles and flows
+# Create built-in roles and flows (中文注释的命令)
 python run.py create_builtin-roles
 python run.py create-builtin-flows
 
@@ -72,13 +72,13 @@ npm install
 # Run development server (port 3000, proxies /api to backend:5010)
 npm run dev
 
-# Build for production
+# Build for production (runs TypeScript compiler first, will fail due to syntax errors)
 npm run build
 
 # Preview production build
 npm run preview
 
-# Lint code
+# Lint code (requires ESLint configuration)
 npm run lint
 
 # Quick check (lint + build)
@@ -98,13 +98,13 @@ cd front && npm run dev
 # Health check: http://localhost:3000/api/health
 ```
 
-### Quick Start Script
+### Quick Start Scripts
 ```bash
-# Backend quick start (auto-initializes database and creates built-ins)
-cd backend && python quick_start.py
-
-# Frontend quick start (installs deps and starts dev server)
+# Frontend quick start (environment check + auto-install deps + start dev server)
 cd front && npm run quick-start
+
+# Alternative: Use the Node.js script directly
+cd front && node quick-start.js
 ```
 
 ## Core System Components

@@ -1121,17 +1121,58 @@ const SessionManagement = ({ onPlayback }: any) => {
 
   useEffect(() => {
     if (view === 'list') {
-      // TODO: Replace with real API when available
-      setSessions([]); // Temporary empty sessions
+      // Load sessions from API
+      const loadSessions = async () => {
+        try {
+          const sessionsData = await sessionApi.getSessions({ page_size: 50 });
+          setSessions(sessionsData.items);
+        } catch (error) {
+          handleError(error);
+          setSessions([]); // Fallback to empty list on error
+        }
+      };
+      loadSessions();
     }
   }, [view]);
 
   if (view === 'create') {
-    return <SessionCreator onCancel={() => setView('list')} onSuccess={(id: number) => { setActiveSessionId(id); setView('theater'); }} />;
+    return <SessionCreator
+      onCancel={() => setView('list')}
+      onSuccess={(id: number) => {
+        setActiveSessionId(id);
+        setView('theater');
+        // Refresh sessions list when returning to list view
+        const refreshSessions = async () => {
+          try {
+            const sessionsData = await sessionApi.getSessions({ page_size: 50 });
+            setSessions(sessionsData.items);
+          } catch (error) {
+            handleError(error);
+          }
+        };
+        refreshSessions();
+      }}
+    />;
   }
 
   if (view === 'theater' && activeSessionId) {
-    return <SessionTheater sessionId={activeSessionId} onExit={() => { setView('list'); setActiveSessionId(null); }} />;
+    return <SessionTheater
+      sessionId={activeSessionId}
+      onExit={() => {
+        setView('list');
+        setActiveSessionId(null);
+        // Refresh sessions list when exiting theater
+        const refreshSessions = async () => {
+          try {
+            const sessionsData = await sessionApi.getSessions({ page_size: 50 });
+            setSessions(sessionsData.items);
+          } catch (error) {
+            handleError(error);
+          }
+        };
+        refreshSessions();
+      }}
+    />;
   }
 
   return (
@@ -1372,8 +1413,20 @@ const HistoryPage = ({ onPlayback }: any) => {
   const [sessions, setSessions] = useState<Session[]>([]);
 
   useEffect(() => {
-    // TODO: Replace with real API when available
-    setSessions([]); // Temporary empty sessions
+    // Load finished sessions from API for history
+    const loadHistorySessions = async () => {
+      try {
+        const sessionsData = await sessionApi.getSessions({
+          status: 'finished,terminated',
+          page_size: 50
+        });
+        setSessions(sessionsData.items);
+      } catch (error) {
+        handleError(error);
+        setSessions([]); // Fallback to empty list on error
+      }
+    };
+    loadHistorySessions();
   }, []);
 
   return (
