@@ -397,11 +397,11 @@ class FlowEngineService:
 
         # 基本角色信息
         if role and hasattr(role, 'name'):
-            role_desc = f"你是{role.name}"
+            role_desc = f""
             if hasattr(role, 'prompt') and role.prompt:
-                role_desc += f"。{role.prompt}"
+                role_desc += f"{role.prompt}"
             elif hasattr(role, 'description') and role.description:
-                role_desc += f"。描述：{role.description}"
+                role_desc += f"描述：{role.description}"
             prompt_parts.append(role_desc)
 
         # 条件性会话主题：只有选择了__TOPIC__策略时才包含
@@ -442,7 +442,7 @@ class FlowEngineService:
             round_idx = msg.get('round_index', 1)
 
             if content:
-                context_parts.append(f"第{round_idx}轮 {speaker}说：{content}")
+                context_parts.append(f"{speaker}说：{content}")
 
         return " ".join(context_parts)
 
