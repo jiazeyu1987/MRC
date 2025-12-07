@@ -48,7 +48,7 @@ class SimpleLLMService:
         """
         self.api_key = api_key
         self.default_model = "claude-3-5-sonnet-20241022"
-        self.default_max_tokens = 4096
+        self.default_max_tokens = 4096 * 3
 
         # 创建客户端
         self.client = anthropic.Anthropic(api_key=api_key)
@@ -283,28 +283,50 @@ class SimpleLLMService:
                 api_call_start_time=api_call_start
             )
 
+            # 过滤掉max_tokens参数，避免重复传递
+            filtered_kwargs = {k: v for k, v in kwargs.items() if k != 'max_tokens'}
+
+            # 使用流式响应以支持长tokens请求
             response = self.client.messages.create(
                 model=model,
-                max_tokens=max_tokens,
+                max_tokens=40960,  # 使用传入的参数而不是硬编码
                 messages=anthropic_messages,
-                **kwargs
+                stream=True,  # 启用流式响应以避免10分钟超时限制
+                **filtered_kwargs
             )
+
+            # 处理流式响应
+            full_response = ""
+            first_content_time = None
+
+            for event in response:
+                if event.type == "content_block_delta":
+                    if event.delta.type == "text_delta":
+                        full_response += event.delta.text
+                        # 记录第一个内容块的时间（用于性能分析）
+                        if first_content_time is None:
+                            first_content_time = time.time()
+
+                elif event.type == "message_stop":
+                    # 流式响应结束
+                    break
 
             api_call_end = time.time()
             api_call_duration = api_call_end - api_call_start
-
             response_time = time.time() - start_time
-            response_content = response.content[0].text if response.content else ""
+            response_content = full_response
 
             log_llm_info(
                 "CORE",
-                "Anthropic API调用成功",
+                "Anthropic API调用成功（流式响应）",
                 request_id,
-                api_response_id=getattr(response, 'id', 'N/A'),
+                api_response_id="STREAMING_RESPONSE",
                 api_call_duration=f"{api_call_duration:.3f}s",
-                api_model=response.model,
-                api_stop_reason=getattr(response, 'stop_reason', 'N/A'),
-                response_content_preview=response_content[:100] + "..." if len(response_content) > 100 else response_content
+                api_model=model,
+                api_stop_reason="STREAMING_COMPLETE",
+                response_content_preview=response_content[:100] + "..." if len(response_content) > 100 else response_content,
+                streaming_enabled=True,
+                response_length=len(response_content)
             )
 
             # 估算token使用量
@@ -325,7 +347,7 @@ class SimpleLLMService:
                     response_length=len(response_content),
                     response_time=f"{response_time:.3f}s",
                     api_call_time=f"{api_call_duration:.3f}s",
-                    model=response.model,
+                    model=model,  # 使用传入的model参数
                     provider="anthropic",
                     usage=usage,
                     is_success=True,
@@ -350,7 +372,7 @@ class SimpleLLMService:
                     response_content=response_content,
                     response_time=f"{response_time:.3f}s",
                     api_call_time=f"{api_call_duration:.3f}s",
-                    model=response.model,
+                    model=model,  # 使用传入的model参数
                     provider="anthropic",
                     usage=usage,
                     is_success=False,

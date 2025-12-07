@@ -177,12 +177,15 @@ class SimpleLLMManager:
                 api_call_start_time=start_time
             )
 
+            # 过滤掉重复的参数，避免传递到simple_llm时出现冲突
+            filtered_kwargs = {k: v for k, v in kwargs.items() if k not in ['model', 'max_tokens', 'request_id']}
+
             response = self.simple_llm_service.generate_response(
                 messages=message_dicts,
                 model=model,
                 max_tokens=max_tokens,
                 request_id=request_id,  # 传递request_id
-                **kwargs
+                **filtered_kwargs
             )
 
             end_time = time.time()

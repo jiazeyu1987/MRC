@@ -980,7 +980,7 @@ class FlowEngineService:
                 api_url,
                 json=payload,
                 headers={'Content-Type': 'application/json'},
-                timeout=30
+                timeout=600
             )
 
             if response.status_code == 200:
