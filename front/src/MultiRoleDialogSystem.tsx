@@ -176,7 +176,6 @@ const MultiSelectContextDropdown: React.FC<{
 
   // Options available
   const systemOptions = [
-    { value: 'all', label: '全部历史', type: 'system' },
     { value: '__TOPIC__', label: '预设议题', type: 'system' }
   ];
 
@@ -191,29 +190,22 @@ const MultiSelectContextDropdown: React.FC<{
   const handleToggle = (optionValue: string) => {
     let newSelectedValues: string[];
 
-    if (optionValue === 'all' || optionValue === '__TOPIC__') {
-      // System options are single-select
-      newSelectedValues = [optionValue];
+    // All options are now multi-select
+    if (selectedValues.includes(optionValue)) {
+      newSelectedValues = selectedValues.filter(v => v !== optionValue);
     } else {
-      // Role options are multi-select
-      if (selectedValues.includes(optionValue)) {
-        newSelectedValues = selectedValues.filter(v => v !== optionValue);
-      } else {
-        // Remove system options when selecting roles
-        newSelectedValues = selectedValues.filter(v => !['all', '__TOPIC__'].includes(v));
-        newSelectedValues.push(optionValue);
-      }
+      newSelectedValues = [...selectedValues, optionValue];
     }
 
     // Convert to appropriate format for backend
     let result: string | string[];
     if (newSelectedValues.length === 0) {
       result = '';
-    } else if (newSelectedValues.length === 1 && ['all', '__TOPIC__'].includes(newSelectedValues[0])) {
-      // System options remain as single strings
+    } else if (newSelectedValues.length === 1) {
+      // Single option remains as single string
       result = newSelectedValues[0];
     } else {
-      // Multiple roles get serialized as JSON array for backend
+      // Multiple options get serialized as JSON array for backend
       result = JSON.stringify(newSelectedValues);
     }
 

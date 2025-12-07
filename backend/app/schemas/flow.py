@@ -41,7 +41,7 @@ class FlowStepSchema(Schema):
                         data['context_scope'] = json.dumps(context_scope, ensure_ascii=False)
                     else:
                         # 字符串直接存储
-                        data['context_scope'] = str(context_scope) if context_scope is not None else 'all'
+                        data['context_scope'] = str(context_scope) if context_scope is not None else 'last_round'
 
             return super().load(data, **kwargs)
         except Exception as e:

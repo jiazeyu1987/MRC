@@ -177,7 +177,7 @@ class FlowTemplateService:
             'comment',
         ]
         # 引擎直接识别的基础上下文范围
-        base_context_scopes = ['none', 'last_message', 'last_round', 'last_n_messages', 'all']
+        base_context_scopes = ['none', 'last_message', 'last_round', 'last_n_messages']
         # 系统级特殊上下文（例如只使用预设议题）
         system_context_scopes = ['__TOPIC__']
 

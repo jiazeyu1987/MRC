@@ -59,6 +59,10 @@ python check_db.py              # Check database status
 python clean_db.py              # Clean database
 python clear_templates.py       # Clear flow templates
 python reset_templates.py       # Reset to built-in templates
+python check_database.py        # Alternative database status check
+python init_database.py         # Initialize database with schema
+python apply_migration.py       # Apply database migrations
+python update_topic_length.py   # Update topic field length migration
 ```
 
 ### Frontend Development
@@ -98,6 +102,14 @@ cd front && npm run dev
 # Health check: http://localhost:3000/api/health
 ```
 
+### Frontend Quick Start Script
+The `front/quick-start.js` script provides automated environment validation:
+- Checks Node.js version (requires 16+)
+- Validates project structure and required files
+- Verifies dependencies (auto-installs if missing)
+- Validates backend proxy configuration
+- Starts development server with comprehensive error handling
+
 ### Quick Start Scripts
 ```bash
 # Frontend quick start (environment check + auto-install deps + start dev server)
@@ -105,6 +117,9 @@ cd front && npm run quick-start
 
 # Alternative: Use the Node.js script directly
 cd front && node quick-start.js
+
+# Backend quick start (if available)
+cd backend && python quick_start.py
 ```
 
 ## Core System Components
@@ -199,9 +214,11 @@ cd front && node quick-start.js
 5. **Build Issues**: Components in `src/components/` currently have TypeScript errors
 
 ### Environment Configuration
-- Backend: Copy `.env.example` to `.env` and configure API keys
-- Frontend: Uses Vite proxy, no environment variables required
-- Database: SQLite file located at `backend/conversations.db`
+- **Backend**: Copy `.env.example` to `.env` and configure API keys (OpenAI API key required for LLM functionality)
+- **Frontend**: Uses Vite proxy, no environment variables required for development
+  - Optional: `VITE_API_BASE_URL_ALT` for alternative API base URL configuration
+- **Database**: SQLite file located at `backend/conversations.db` (auto-created on init)
+- **Logging**: File logging enabled by default, logs stored in `logs/` directory
 
 ## Known Issues
 
@@ -211,10 +228,34 @@ cd front && node quick-start.js
 
 ## Testing and Quality Assurance
 
-- Backend includes health monitoring and performance metrics
-- LLM testing interface available in frontend
-- Database utilities for maintenance and cleanup
+### Validation Commands
+```bash
+# Backend testing and validation
+cd backend
+python check_db.py              # Validate database integrity
+python check_syntax.py          # Check Python syntax
+python simple_syntax_test.py    # Basic syntax validation
+python verify_fix.py            # Verify applied fixes
+
+# Frontend build validation
+cd front
+npm run check                   # Run lint + build (will fail due to known issues)
+npm run build                   # TypeScript compilation only
+npm run lint                    # ESLint check (requires config initialization)
+
+# Integration testing
+python test_role_reference.py   # Test role reference system
+python test_multi_topics.py     # Test multi-topic functionality
+python simple_test.py           # Basic integration test
+```
+
+### Quality Assurance Features
+- Backend includes comprehensive health monitoring and performance metrics
+- LLM testing interface available in frontend (`LLMTestPage.tsx`)
+- Database utilities for maintenance, cleanup, and migration
 - Comprehensive error handling and logging throughout the system
+- Real-time debugging capabilities with `DebugPanel.tsx` and monitoring components
+- WebSocket support for real-time conversation updates
 
 ## Migration Notes
 

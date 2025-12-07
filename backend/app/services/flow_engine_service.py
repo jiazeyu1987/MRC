@@ -255,9 +255,7 @@ class FlowEngineService:
                 n = current_step.context_param.get('n', 5)
                 return base_query.order_by(Message.created_at.desc()).limit(n).all()
 
-            elif scope == 'all':
-                return base_query.order_by(Message.created_at.asc()).all()
-
+            
             # 角色筛选：单个角色名或 JSON 字符串数组
             role_names = []
 
