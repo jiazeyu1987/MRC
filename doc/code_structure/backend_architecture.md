@@ -298,12 +298,94 @@ def get_paginated_query(query, page=1, page_size=20):
 **核心功能:**
 - 消息的 CRUD 操作
 - 消息线程和回复管理
-- 多格式数据导出
+- **增强导出功能**: 包含原始LLM提示词的多格式导出
 - 消息搜索和过滤
+
+**导出功能增强:**
+- **JSON格式**: 包含完整LLM交互数据（原始提示词、性能指标等）
+- **Markdown格式**: 结构化文档输出
+- **文本格式**: 纯文本对话记录
+- **LLM数据集成**: 自动关联消息与对应的LLM录制记录
 
 ## 服务层架构
 
-### LLM 集成服务
+### LLM 文件录制系统
+
+#### LLM 文件录制服务 (`app/services/llm_file_record_service.py`)
+
+MRC 系统实现了完整的 LLM 交互录制系统，用于记录真实的提示词和响应数据。
+
+**核心设计原则:**
+- **文件系统存储**: 避免数据库 schema 变更，存储临时数据
+- **结构化组织**: 按会话、日期等多维度组织文件
+- **线程安全**: 支持并发写入和读取
+- **自动清理**: 定期清理过期文件，控制存储空间
+
+**服务架构:**
+```python
+class LLMFileRecordService:
+    """LLM交互文件录制服务"""
+
+    def __init__(self):
+        self.base_dir = Path("logs/llm_interactions")
+        self.max_file_size = 100 * 1024 * 1024  # 100MB
+        self.session_retention_days = 90
+        self.error_retention_days = 30
+```
+
+**文件组织结构:**
+```
+logs/llm_interactions/
+├── by_session/           # 按会话分组
+│   ├── session_1/
+│   │   └── 2025-12-07.json
+│   └── session_5/
+│       └── 2025-12-07.json
+├── by_date/             # 按日期汇总
+│   └── 2025-12-07_all_interactions.json
+├── errors/              # 错误记录
+│   └── 2025-12-07_errors.json
+├── real_time/           # 实时数据
+│   └── latest.json
+└── archive/             # 归档压缩文件
+    └── 2025-12-07_interactions.json.gz
+```
+
+**录制数据格式:**
+```json
+{
+    "id": "uuid-v4",
+    "timestamp": "2025-12-07T12:28:14.718544",
+    "session_id": 5,
+    "message_id": 12,
+    "role_name": "产品专员",
+    "step_id": 1,
+    "round_index": 1,
+    "provider": "claude-3-5-sonnet-20241022",
+    "prompt": "完整的原始提示词内容...",
+    "response": "完整的LLM响应内容...",
+    "success": true,
+    "performance_metrics": {
+        "response_time_ms": 28909,
+        "prompt_length": 451,
+        "response_length": 2387
+    },
+    "metadata": {
+        "stage": "completed",
+        "task_type": "ask_question",
+        "finalized": true
+    }
+}
+```
+
+**核心功能:**
+- **实时录制**: LLM 调用前后的完整数据录制
+- **生命周期管理**: 记录开始、完成、最终确认三个阶段
+- **性能监控**: 录制响应时间、token使用等性能指标
+- **错误追踪**: 专门录制失败交互用于问题排查
+- **文件轮转**: 自动文件分割和压缩归档
+
+#### LLM 集成服务
 
 #### Claude API 集成 (`app/services/llm_service.py`)
 
@@ -359,6 +441,27 @@ class FlowEngine:
 - 条件分支处理
 - 上下文管理
 - 异常处理和恢复
+- **LLM录制集成**: 自动录制每个步骤的LLM交互过程
+
+**LLM录制集成:**
+- **录制时机**: LLM调用前、调用后、消息确认三个阶段
+- **数据关联**: 通过message_id关联LLM录制与数据库消息
+- **生命周期管理**: 完整的LLM交互生命周期跟踪
+- **错误处理**: LLM调用失败的完整错误信息录制
+
+**集成示例:**
+```python
+# FlowEngine中的LLM录制调用
+record_llm_interaction(
+    session_id=session.id,
+    role_name=role.name,
+    prompt=actual_prompt,  # 发送给LLM的原始提示词
+    response=llm_response,  # LLM的完整响应
+    step_id=step.id,
+    round_index=session.current_round,
+    performance_metrics=metrics
+)
+```
 
 ## 系统监控和日志
 
