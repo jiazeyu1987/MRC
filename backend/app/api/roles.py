@@ -3,6 +3,7 @@ from flask_restful import Resource
 from app import db
 from app.models import Role
 from app.schemas import RoleSchema, RoleListSchema
+from app.services.role_service import RoleService
 from sqlalchemy import or_
 
 
@@ -58,9 +59,21 @@ class RoleList(Resource):
             }, 500
 
     def post(self):
-        """创建新角色"""
+        """创建新角色或获取删除统计信息"""
         try:
             json_data = request.get_json()
+
+            # 检查是否是获取删除统计信息的请求
+            if json_data and json_data.get('action') == 'get_deletion_statistics':
+                search_filter = json_data.get('search_filter', '')
+                stats = RoleService.get_deletion_statistics(search_filter)
+                return {
+                    'success': True,
+                    'data': stats,
+                    'message': f'找到 {stats["total_roles"]} 个角色，其中 {stats["deletable_roles"]} 个可以删除'
+                }
+
+            # 原有的创建角色逻辑
             if not json_data:
                 return {
                     'success': False,
@@ -107,11 +120,66 @@ class RoleList(Resource):
 
         except Exception as e:
             db.session.rollback()
-            current_app.logger.error(f"创建角色失败: {str(e)}")
+            current_app.logger.error(f"角色操作失败: {str(e)}")
             return {
                 'success': False,
                 'error_code': 'INTERNAL_ERROR',
-                'message': '创建角色失败'
+                'message': '角色操作失败'
+            }, 500
+
+    def delete(self):
+        """批量删除角色"""
+        try:
+            # 检查action参数
+            action = request.args.get('action', '')
+
+            # 如果不是批量删除操作，返回方法不允许
+            if action != 'bulk_delete':
+                return {
+                    'success': False,
+                    'error_code': 'METHOD_NOT_ALLOWED',
+                    'message': 'DELETE方法仅支持批量删除操作'
+                }, 405
+
+            # 获取查询参数
+            search_filter = request.args.get('search_filter', '', type=str)
+            confirm = request.args.get('confirm', 'false', type=str).lower() == 'true'
+
+            # 如果没有确认参数，返回需要确认的统计信息
+            if not confirm:
+                stats = RoleService.get_deletion_statistics(search_filter)
+                return {
+                    'success': True,
+                    'data': {
+                        'total_roles': stats['total_roles'],
+                        'deletable_roles': stats['deletable_roles'],
+                        'used_roles': stats['used_roles'],
+                        'search_filter': search_filter
+                    },
+                    'message': f'找到 {stats["total_roles"]} 个角色，其中 {stats["deletable_roles"]} 个可以删除，{stats["used_roles"]} 个正在被使用'
+                }
+
+            # 确认删除，执行批量删除
+            result = RoleService.bulk_delete_roles(search_filter, confirm=True)
+
+            return {
+                'success': True,
+                'data': {
+                    'deleted_roles': result['deleted_roles'],
+                    'skipped_roles': result['skipped_roles'],
+                    'errors': result['errors']
+                },
+                'message': f'批量删除完成：成功删除 {result["deleted_roles"]} 个角色' +
+                           f'，跳过 {len(result["skipped_roles"])} 个角色'
+            }
+
+        except Exception as e:
+            current_app.logger.error(f"批量删除角色失败: {str(e)}")
+            db.session.rollback()
+            return {
+                'success': False,
+                'error_code': 'INTERNAL_ERROR',
+                'message': '批量删除角色失败'
             }, 500
 
 

@@ -473,6 +473,65 @@ const RoleManagement = () => {
     }
   };
 
+  const handleDeleteAllRoles = async () => {
+    try {
+      // 第一步：获取删除统计信息
+      const stats = await roleApi.getDeletionStatistics();
+
+      if (stats.total_roles === 0) {
+        alert('当前没有角色可以删除');
+        return;
+      }
+
+      if (stats.deletable_roles === 0) {
+        alert(`找到 ${stats.total_roles} 个角色，但所有角色都在被使用，无法删除`);
+        return;
+      }
+
+      // 第二步：显示统计信息并要求确认
+      const confirmMessage = `找到 ${stats.total_roles} 个角色：\n` +
+        `• 可以删除：${stats.deletable_roles} 个\n` +
+        `• 正在使用：${stats.used_roles} 个\n\n` +
+        `只有未被使用的角色才会被删除，是否继续？`;
+
+      if (!confirm(confirmMessage)) {
+        return;
+      }
+
+      // 第三步：最终确认
+      const finalConfirm = prompt('请输入 "删除所有角色" 来确认批量删除操作：');
+      if (finalConfirm !== '删除所有角色') {
+        alert('确认文本不正确，操作已取消');
+        return;
+      }
+
+      // 执行批量删除
+      const result = await roleApi.deleteAllRoles('', true);
+
+      // 显示结果
+      let message = `批量删除完成！\n` +
+        `• 成功删除：${result.deleted_roles} 个角色`;
+
+      if (result.skipped_roles.length > 0) {
+        message += `\n• 跳过删除：${result.skipped_roles.length} 个角色`;
+      }
+
+      if (result.errors.length > 0) {
+        message += `\n• 错误：${result.errors.length} 个`;
+        console.error('删除错误:', result.errors);
+      }
+
+      alert(message);
+
+      // 重新获取角色列表
+      await fetchRoles();
+
+    } catch (error: any) {
+      console.error('批量删除角色失败:', error);
+      alert(error.message || '批量删除失败');
+    }
+  };
+
   const openEditModal = (role: Role) => {
     setEditingRole(role);
     setIsModalOpen(true);
@@ -495,7 +554,18 @@ const RoleManagement = () => {
           <h1 className="text-2xl font-bold text-gray-900">角色管理</h1>
           <p className="text-gray-500 text-sm mt-1">创建角色并定义其核心 Prompt</p>
         </div>
-        <Button onClick={openCreateModal} icon={Plus} disabled={loading}>新建角色</Button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleDeleteAllRoles}
+            disabled={loading || roles.length === 0}
+            className={`px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-sm font-medium`}
+            title="删除所有未被使用的角色"
+          >
+            <Trash2 size={16} />
+            删除所有角色
+          </button>
+          <Button onClick={openCreateModal} icon={Plus} disabled={loading}>新建角色</Button>
+        </div>
       </div>
 
       {loading ? (

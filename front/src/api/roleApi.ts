@@ -101,8 +101,17 @@ class ApiClient {
     });
   }
 
-  async delete<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, {
+  async delete<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
+    const url = new URL(endpoint, this.baseURL);
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          url.searchParams.append(key, String(value));
+        }
+      });
+    }
+
+    return this.request<T>(url.pathname + url.search, {
       method: 'DELETE',
     });
   }
@@ -159,6 +168,41 @@ export const roleApi = {
    */
   async deleteRole(id: number): Promise<void> {
     return apiClient.delete<void>(`/api/roles/${id}`);
+  },
+
+  /**
+   * 获取删除统计信息
+   */
+  async getDeletionStatistics(searchFilter?: string): Promise<{
+    total_roles: number;
+    deletable_roles: number;
+    used_roles: number;
+    search_filter: string;
+  }> {
+    return apiClient.post<any>('/api/roles', {
+      action: 'get_deletion_statistics',
+      search_filter: searchFilter || ''
+    });
+  },
+
+  /**
+   * 批量删除角色
+   */
+  async deleteAllRoles(searchFilter?: string, confirm: boolean = false): Promise<{
+    deleted_roles: number;
+    skipped_roles: Array<{
+      id: number;
+      name: string;
+      reason: string;
+    }>;
+    errors: string[];
+  }> {
+    const params = new URLSearchParams();
+    if (searchFilter) params.append('search_filter', searchFilter);
+    params.append('confirm', confirm.toString());
+    params.append('action', 'bulk_delete');
+
+    return apiClient.delete<any>(`/api/roles?${params}`);
   },
 };
 
