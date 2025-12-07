@@ -710,3 +710,78 @@ class SessionService:
         except Exception as e:
             db.session.rollback()
             raise SessionError(f"批量删除会话失败: {str(e)}")
+
+    @staticmethod
+    def force_bulk_delete_sessions(status_filter: str = '') -> Dict[str, Any]:
+        """
+        强制批量删除会话（包括运行中的会话）
+
+        Args:
+            status_filter: 状态过滤条件，空字符串表示删除所有会话
+
+        Returns:
+            Dict: 包含删除结果的字典
+        """
+        try:
+            from flask import current_app
+            current_app.logger.warning(f"执行强制批量删除会话操作，状态过滤: '{status_filter}'")
+
+            query = Session.query
+
+            # 应用状态过滤
+            if status_filter:
+                status_list = status_filter.split(',')
+                query = query.filter(Session.status.in_(status_list))
+
+            # 获取所有要删除的会话（包括运行中的）
+            sessions_to_delete = query.all()
+
+            deleted_sessions = 0
+            force_deleted_sessions = 0
+            skipped_sessions = 0
+            errors = []
+
+            # 逐个删除会话以确保完整性
+            for session in sessions_to_delete:
+                try:
+                    # 如果是运行中的会话，记录强制删除
+                    if session.status == 'running':
+                        current_app.logger.warning(f"强制删除运行中的会话 {session.id}: {session.topic}")
+                        force_deleted_sessions += 1
+
+                        # 更新会话状态为terminated
+                        session.status = 'terminated'
+                        session.ended_at = datetime.utcnow()
+                        session.error_reason = "Force deleted during bulk operation"
+                        db.session.commit()
+
+                    # 删除相关的消息
+                    Message.query.filter_by(session_id=session.id).delete()
+
+                    # 删除相关的会话角色
+                    SessionRole.query.filter_by(session_id=session.id).delete()
+
+                    # 删除会话
+                    db.session.delete(session)
+                    deleted_sessions += 1
+
+                except Exception as e:
+                    errors.append(f"删除会话 {session.id} 失败: {str(e)}")
+                    db.session.rollback()
+
+            # 提交所有删除操作
+            if deleted_sessions > 0:
+                db.session.commit()
+
+            current_app.logger.info(f"强制批量删除完成：总计删除 {deleted_sessions} 个会话，其中 {force_deleted_sessions} 个运行中会话")
+
+            return {
+                'deleted_sessions': deleted_sessions,
+                'force_deleted_sessions': force_deleted_sessions,
+                'skipped_sessions': skipped_sessions,
+                'errors': errors
+            }
+
+        except Exception as e:
+            db.session.rollback()
+            raise SessionError(f"强制批量删除会话失败: {str(e)}")

@@ -37,7 +37,8 @@ import {
   Globe,
   Key,
   FileCheck,
-  Pause
+  Pause,
+  AlertTriangle
 } from 'lucide-react';
 
 
@@ -1218,6 +1219,127 @@ const SessionManagement = ({ onPlayback }: any) => {
     }
   };
 
+  // Force delete single session
+  const handleForceDeleteSession = async (sessionId: number, topic: string) => {
+    // 显示强制删除警告对话框
+    const confirmed = window.confirm(
+      `⚠️ 强制删除警告 ⚠️\n\n` +
+      `您确定要强制删除正在运行的会话 "${topic}" 吗？\n\n` +
+      `这将会：\n` +
+      `• 立即终止正在进行的对话流程\n` +
+      `• 删除会话及其所有消息数据\n` +
+      `• 可能导致部分对话内容丢失\n\n` +
+      `此操作不可恢复，请谨慎操作！`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    // 二次确认
+    const finalConfirmation = window.confirm(
+      `最后确认：\n\n` +
+      `真的要强制删除会话 "${topic}" 吗？\n\n` +
+      `此操作将中断正在运行的AI对话，确认继续吗？`
+    );
+
+    if (!finalConfirmation) {
+      return;
+    }
+
+    try {
+      await sessionApi.forceDeleteSession(sessionId);
+
+      // 显示成功消息
+      alert('✅ 强制删除成功！会话已终止并删除。');
+
+      // 重新加载会话列表
+      const sessionsData = await sessionApi.getSessions({ page_size: 50 });
+      setSessions(sessionsData.items);
+
+    } catch (error) {
+      console.error('强制删除会话失败:', error);
+      alert(`❌ 强制删除失败: ${(error as Error).message || '强制删除会话时发生错误'}`);
+    }
+  };
+
+  // Force delete all sessions
+  const handleForceDeleteAllSessions = async () => {
+    if (sessions.length === 0) {
+      alert('当前没有会话可以删除。');
+      return;
+    }
+
+    // 先获取统计信息
+    const stats = await sessionApi.getDeletionStatistics();
+
+    // 显示强制删除警告对话框
+    const confirmed = window.confirm(
+      `⚠️ 强制删除所有会话警告 ⚠️\n\n` +
+      `您确定要强制删除所有会话吗？\n\n` +
+      `统计信息：\n` +
+      `• 总会话数: ${stats.total_sessions}\n` +
+      `• 正在运行: ${stats.running_sessions}\n` +
+      `• 可正常删除: ${stats.deletable_sessions}\n\n` +
+      `这将会：\n` +
+      `• 终止所有正在运行的对话流程\n` +
+      `• 删除所有会话及其消息数据\n` +
+      `• 可能导致部分对话内容丢失\n\n` +
+      `此操作不可恢复，请极度谨慎！`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    // 二次确认
+    const finalConfirmation = window.confirm(
+      `最后确认：\n\n` +
+      `真的要强制删除所有 ${stats.total_sessions} 个会话吗？\n\n` +
+      `其中包括 ${stats.running_sessions} 个正在运行的会话！\n\n` +
+      `此操作将中断所有正在运行的AI对话，确认继续吗？`
+    );
+
+    if (!finalConfirmation) {
+      return;
+    }
+
+    // 三次确认 - 要求输入特殊文本
+    const typedConfirmation = window.prompt(
+      `为了防止误操作，请输入以下文本以确认强制删除：\n\n` +
+      `输入: "我确认强制删除所有会话"\n\n` +
+      `（注意：区分大小写）`
+    );
+
+    if (typedConfirmation !== "我确认强制删除所有会话") {
+      alert('❌ 确认文本不正确，操作已取消。');
+      return;
+    }
+
+    try {
+      // 执行强制批量删除
+      const result = await sessionApi.forceDeleteAllSessions('', true);
+
+      // 显示成功消息
+      alert(
+        `✅ 强制批量删除成功！\n\n` +
+        `操作结果：\n` +
+        `• 总删除: ${result.deleted_sessions} 个会话\n` +
+        `• 强制删除运行中: ${result.force_deleted_sessions} 个会话\n` +
+        `• 跳过: ${result.skipped_sessions} 个会话` +
+        (result.errors.length > 0 ? `\n• 错误: ${result.errors.length} 个` : '')
+      );
+
+      // 重新加载会话列表
+      const sessionsData = await sessionApi.getSessions({ page_size: 50 });
+      setSessions(sessionsData.items);
+
+    } catch (error) {
+      console.error('强制批量删除会话失败:', error);
+      alert(`❌ 强制批量删除失败: ${(error as Error).message || '强制批量删除会话时发生错误'}`);
+    }
+  };
+
   if (view === 'create') {
     return <SessionCreator
       onCancel={() => setView('list')}
@@ -1267,6 +1389,15 @@ const SessionManagement = ({ onPlayback }: any) => {
         </div>
         <div className="flex gap-2">
           <Button
+            onClick={handleForceDeleteAllSessions}
+            variant="danger"
+            icon={AlertTriangle}
+            disabled={sessions.length === 0}
+            className="bg-orange-600 hover:bg-orange-700"
+          >
+            强制删除所有
+          </Button>
+          <Button
             onClick={handleDeleteAllSessions}
             variant="danger"
             icon={Trash2}
@@ -1309,6 +1440,15 @@ const SessionManagement = ({ onPlayback }: any) => {
                         title="删除会话"
                       >
                         <Trash2 size={16} />
+                      </button>
+                    )}
+                    {s.status === 'running' && (
+                      <button
+                        onClick={() => handleForceDeleteSession(s.id, s.topic)}
+                        className="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-full transition-colors"
+                        title="强制删除会话（危险操作）"
+                      >
+                        <AlertTriangle size={16} />
                       </button>
                     )}
                     <button onClick={() => { setActiveSessionId(s.id); setView('theater'); }} className={`${theme.text} ${theme.textHover} font-medium text-sm flex items-center gap-1`}>

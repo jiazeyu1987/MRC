@@ -153,7 +153,7 @@ class SessionList(Resource):
             }, 500
 
     def delete(self):
-        """批量删除会话"""
+        """批量删除会话或强制批量删除会话"""
         try:
             # 检查action参数
             action = request.args.get('action', '')
@@ -169,6 +169,7 @@ class SessionList(Resource):
             # 获取查询参数
             status_filter = request.args.get('status', '', type=str)
             confirm = request.args.get('confirm', 'false', type=str).lower() == 'true'
+            force = request.args.get('force', 'false', type=str).lower() == 'true'
 
             # 如果没有确认参数，返回需要确认的统计信息
             if not confirm:
@@ -179,22 +180,32 @@ class SessionList(Resource):
                         'total_sessions': stats['total_sessions'],
                         'deletable_sessions': stats['deletable_sessions'],
                         'running_sessions': stats['running_sessions'],
-                        'status_filter': status_filter
+                        'status_filter': status_filter,
+                        'force_available': stats['running_sessions'] > 0
                     },
-                    'message': f'找到 {stats["total_sessions"]} 个会话，其中 {stats["deletable_sessions"]} 个可以删除，{stats["running_sessions"]} 个正在运行'
+                    'message': f'找到 {stats["total_sessions"]} 个会话，其中 {stats["deletable_sessions"]} 个可以删除，{stats["running_sessions"]} 个正在运行' +
+                               ('（可强制删除）' if force and stats['running_sessions'] > 0 else '')
                 }
 
             # 确认删除，执行批量删除
-            result = SessionService.bulk_delete_sessions(status_filter)
+            if force:
+                result = SessionService.force_bulk_delete_sessions(status_filter)
+                operation_type = "强制批量删除"
+            else:
+                result = SessionService.bulk_delete_sessions(status_filter)
+                operation_type = "批量删除"
 
             return {
                 'success': True,
                 'data': {
                     'deleted_sessions': result['deleted_sessions'],
                     'skipped_sessions': result['skipped_sessions'],
+                    'force_deleted_sessions': result.get('force_deleted_sessions', 0),
                     'errors': result.get('errors', [])
                 },
-                'message': f'批量删除完成：成功删除 {result["deleted_sessions"]} 个会话，跳过 {result["skipped_sessions"]} 个正在运行的会话'
+                'message': f'{operation_type}完成：成功删除 {result["deleted_sessions"]} 个会话' +
+                           (f'，强制删除 {result.get("force_deleted_sessions", 0)} 个运行中的会话' if force else '') +
+                           f'，跳过 {result["skipped_sessions"]} 个会话'
             }
 
         except Exception as e:
@@ -298,8 +309,11 @@ class SessionDetail(Resource):
             }, 500
 
     def delete(self, session_id):
-        """删除会话"""
+        """删除会话或强制删除会话"""
         try:
+            # 获取查询参数
+            force = request.args.get('force', 'false', type=str).lower() == 'true'
+
             session = SessionService.get_session_by_id(session_id)
             if not session:
                 return {
@@ -308,20 +322,39 @@ class SessionDetail(Resource):
                     'message': '会话不存在'
                 }, 404
 
-            # 检查会话状态，正在运行的会话不能删除
-            if session.status == 'running':
+            # 检查会话状态
+            if session.status == 'running' and not force:
                 return {
                     'success': False,
                     'error_code': 'INVALID_STATE',
                     'message': '正在运行的会话不能删除，请先暂停或结束会话'
                 }, 400
 
+            # 如果是强制删除，记录操作并更新状态
+            if force:
+                current_app.logger.warning(f"强制删除运行中的会话 {session_id}: {session.topic}")
+                # 更新会话状态为terminated
+                session.status = 'terminated'
+                session.ended_at = datetime.utcnow()
+                session.error_reason = "Force deleted by user"
+                db.session.commit()
+
+            # 删除相关的消息和角色
+            Message.query.filter_by(session_id=session_id).delete()
+            SessionRole.query.filter_by(session_id=session_id).delete()
+
+            # 删除会话
             db.session.delete(session)
             db.session.commit()
 
+            action_type = "强制删除" if force else "删除"
             return {
                 'success': True,
-                'message': '会话删除成功'
+                'message': f'会话{action_type}成功',
+                'data': {
+                    'force_deleted': force,
+                    'was_running': session.status == 'running' if not force else False
+                }
             }
 
         except Exception as e:

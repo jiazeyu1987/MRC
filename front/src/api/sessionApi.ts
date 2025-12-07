@@ -311,6 +311,37 @@ export const sessionApi = {
   },
 
   /**
+   * 强制删除单个会话
+   */
+  async forceDeleteSession(sessionId: number): Promise<{
+    force_deleted: boolean;
+    was_running: boolean;
+  }> {
+    return apiClient.delete<any>(`/api/sessions/${sessionId}?force=true`);
+  },
+
+  /**
+   * 强制批量删除会话
+   */
+  async forceDeleteAllSessions(statusFilter?: string, confirm: boolean = false): Promise<{
+    total_sessions: number;
+    deletable_sessions: number;
+    running_sessions: number;
+    deleted_sessions: number;
+    force_deleted_sessions: number;
+    skipped_sessions: number;
+    errors: string[];
+  }> {
+    const params = new URLSearchParams();
+    if (statusFilter) params.append('status', statusFilter);
+    params.append('confirm', confirm.toString());
+    params.append('force', 'true');
+    params.append('action', 'bulk_delete');
+
+    return apiClient.delete<any>(`/api/sessions?${params}`);
+  },
+
+  /**
    * 导出会话记录
    */
   async exportSession(sessionId: number, format: 'json' | 'csv' | 'txt' = 'json'): Promise<any> {
