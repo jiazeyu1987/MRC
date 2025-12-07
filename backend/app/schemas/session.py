@@ -37,7 +37,7 @@ class SessionSchema(Schema):
     """会话模式"""
     id = fields.Integer(dump_only=True)
     user_id = fields.Integer()
-    topic = fields.String(required=True, validate=validate.Length(min=1, max=200))
+    topic = fields.String(required=True, validate=validate.Length(min=1, max=2000))
     flow_template_id = fields.Integer(required=True)
     status = fields.String(dump_only=True, validate=validate.OneOf([
         'not_started', 'running', 'paused', 'finished', 'failed'
@@ -58,7 +58,7 @@ class SessionSchema(Schema):
 
 class CreateSessionSchema(Schema):
     """创建会话模式"""
-    topic = fields.String(required=True, validate=validate.Length(min=1, max=200))
+    topic = fields.String(required=True, validate=validate.Length(min=1, max=2000))
     flow_template_id = fields.Integer(required=True)
     role_mappings = fields.Dict(required=True)  # {"teacher": 1, "student": 2}
 

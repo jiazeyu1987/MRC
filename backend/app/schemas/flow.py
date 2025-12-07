@@ -62,7 +62,7 @@ class FlowTemplateSchema(Schema):
 
     id = fields.Integer(dump_only=True)
     name = fields.String(required=True, validate=validate.Length(min=1, max=200))
-    topic = fields.String(allow_none=True, validate=validate.Length(max=200))
+    topic = fields.String(allow_none=True, validate=validate.Length(max=2000))
     type = fields.String(
         required=True,
         validate=validate.OneOf(['teaching', 'review', 'debate', 'discussion', 'interview', 'other'])

@@ -9,7 +9,7 @@ class FlowTemplate(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
-    topic = db.Column(db.String(200), nullable=True)  # 与前端一致：可选字段
+    topic = db.Column(db.String(2000), nullable=True)  # 与前端一致：可选字段
     type = db.Column(db.String(50), nullable=False)   # 严格匹配前端枚举
     description = db.Column(db.Text, nullable=True)   # 与前端一致：可选字段
     version = db.Column(db.String(20), nullable=True)  # 与前端一致：可选，无默认值

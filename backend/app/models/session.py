@@ -9,7 +9,7 @@ class Session(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)  # 用户ID，暂未实现用户系统
-    topic = db.Column(db.String(200), nullable=False)  # 会话主题
+    topic = db.Column(db.String(2000), nullable=False)  # 会话主题
     flow_template_id = db.Column(db.Integer, db.ForeignKey('flow_templates.id'), nullable=False)
     flow_snapshot = db.Column(db.Text)  # 流程模板快照，JSON格式
     roles_snapshot = db.Column(db.Text)  # 参与角色快照，JSON格式

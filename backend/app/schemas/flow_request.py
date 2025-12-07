@@ -5,7 +5,7 @@ from .flow import FlowStepSchema
 class FlowTemplateCreateSchema(Schema):
     """流程模板创建模式，完全适配前端FlowTemplateRequest结构"""
     name = fields.String(required=True, validate=validate.Length(min=1, max=200))
-    topic = fields.String(validate=validate.Length(max=200))  # 添加topic字段支持前端
+    topic = fields.String(validate=validate.Length(max=2000))  # 添加topic字段支持前端
     type = fields.String(required=True, validate=validate.OneOf([
         'teaching', 'review', 'debate', 'discussion', 'interview', 'other'
     ]))
@@ -26,7 +26,7 @@ class FlowTemplateCreateSchema(Schema):
 class FlowTemplateUpdateSchema(Schema):
     """流程模板更新模式，完全适配前端FlowTemplateRequest结构"""
     name = fields.String(validate=validate.Length(min=1, max=200))
-    topic = fields.String(validate=validate.Length(max=200))  # 添加topic字段支持前端
+    topic = fields.String(validate=validate.Length(max=2000))  # 添加topic字段支持前端
     type = fields.String(validate=validate.OneOf([
         'teaching', 'review', 'debate', 'discussion', 'interview', 'other'
     ]))

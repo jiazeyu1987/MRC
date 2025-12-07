@@ -3,7 +3,7 @@ from marshmallow import Schema, fields, validate, validates, ValidationError
 
 class CreateSessionSchema(Schema):
     """创建会话模式"""
-    topic = fields.String(required=True, validate=validate.Length(min=1, max=200))
+    topic = fields.String(required=True, validate=validate.Length(min=1, max=2000))
     flow_template_id = fields.Integer(required=True, validate=validate.Range(min=1))
     role_mappings = fields.Dict(required=False, missing=None)  # {"teacher": 1, "student": 2} - 现在是可选的
     user_id = fields.Integer()
@@ -34,7 +34,7 @@ class CreateSessionSchema(Schema):
 
 class UpdateSessionSchema(Schema):
     """更新会话模式"""
-    topic = fields.String(validate=validate.Length(min=1, max=200))
+    topic = fields.String(validate=validate.Length(min=1, max=2000))
     status = fields.String(validate=validate.OneOf(['not_started', 'running', 'paused', 'finished']))
 
 
@@ -54,7 +54,7 @@ class SessionControlSchema(Schema):
 class CreateBranchSessionSchema(Schema):
     """创建分支会话模式"""
     branch_point_message_id = fields.Integer(required=True, validate=validate.Range(min=1))
-    new_topic = fields.String(validate=validate.Length(min=1, max=200))
+    new_topic = fields.String(validate=validate.Length(min=1, max=2000))
 
     @validates('branch_point_message_id')
     def validate_branch_point_message_id(self, value):
