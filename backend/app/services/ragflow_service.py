@@ -18,10 +18,10 @@ import requests
 import json
 import time
 import logging
+import os
 from typing import Optional, List, Dict, Any, Tuple
 from dataclasses import dataclass
 from datetime import datetime
-import os
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -241,6 +241,8 @@ class RAGFlowService:
         method: str,
         endpoint: str,
         data: Optional[Dict[str, Any]] = None,
+        files: Optional[Dict] = None,
+        params: Optional[Dict[str, Any]] = None,
         request_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
@@ -250,6 +252,8 @@ class RAGFlowService:
             method (str): HTTP方法
             endpoint (str): API端点
             data (Optional[Dict]): 请求数据
+            files (Optional[Dict]): 文件上传数据
+            params (Optional[Dict]): URL查询参数
             request_id (Optional[str]): 请求ID用于日志追踪
 
         Returns:
@@ -260,10 +264,68 @@ class RAGFlowService:
         """
         url = f"{self.config.api_base_url}{endpoint}"
 
+        # 检查是否启用详细RAGFlow日志
+        ragflow_debug = os.environ.get('RAGFLOW_DEBUG_LOGGING', 'false').lower() == 'true'
+        log_bodies = os.environ.get('RAGFLOW_LOG_REQUEST_BODIES', 'false').lower() == 'true'
+        log_curl = os.environ.get('RAGFLOW_LOG_CURL_COMMANDS', 'false').lower() == 'true'
+        max_body_size = int(os.environ.get('RAGFLOW_MAX_BODY_LOG_SIZE', '1000'))
+
         # 如果没有传入request_id，尝试从当前上下文获取
         if request_id is None:
             context = RequestTracker.get_context()
             request_id = context.request_id if context else "UNKNOWN"
+
+        # 详细的URL构造日志
+        if ragflow_debug:
+            logger.info(f"[RAGFLOW_DEBUG] 完整RAGFlow API URL构建")
+            logger.info(f"  方法: {method}")
+            logger.info(f"  端点: {endpoint}")
+            logger.info(f"  基础URL: {self.config.api_base_url}")
+            logger.info(f"  完整URL: {url}")
+            logger.info(f"  请求ID: {request_id}")
+            logger.info(f"  超时: {self.config.timeout}秒")
+            logger.info(f"  SSL验证: {self.config.verify_ssl}")
+
+        # 生成cURL命令用于调试
+        if log_curl and ragflow_debug:
+            curl_parts = [f"curl -X {method} '{url}'"]
+
+            # 添加授权头（隐藏敏感信息）
+            if hasattr(self.session, 'headers') and self.session.headers:
+                for key, value in self.session.headers.items():
+                    if key.lower() == 'authorization':
+                        curl_parts.append(f"-H '{key}: Bearer ***'")
+                    else:
+                        curl_parts.append(f"-H '{key}: {value}'")
+
+            # 添加数据
+            if data and log_bodies:
+                data_str = str(data)
+                if len(data_str) > max_body_size:
+                    data_str = data_str[:max_body_size] + f"...(truncated, total: {len(data_str)})"
+                curl_parts.append(f"-d '{data_str}'")
+
+            curl_command = " \\\n  ".join(curl_parts)
+            logger.info(f"[RAGFLOW_DEBUG] cURL等效命令:")
+            logger.info(f"  {curl_command}")
+
+        # 请求详情日志
+        if ragflow_debug:
+            logger.info(f"[RAGFLOW_DEBUG] RAGFlow API请求详情")
+            if hasattr(self.session, 'headers') and self.session.headers:
+                logger.info(f"  请求头: {dict(self.session.headers)}")
+            logger.info(f"  有数据: {data is not None}")
+            logger.info(f"  有文件: {files is not None}")
+
+            if data and log_bodies:
+                data_str = str(data)
+                if len(data_str) > max_body_size:
+                    data_str = data_str[:max_body_size] + f"...(truncated, total: {len(data_str)})"
+                logger.info(f"  请求数据: {data_str}")
+
+            if files:
+                file_names = list(files.keys()) if isinstance(files, dict) else "文件对象"
+                logger.info(f"  文件: {file_names}")
 
         log_llm_info(
             "RAGFLOW_SERVICE",
@@ -276,7 +338,18 @@ class RAGFlowService:
         start_time = time.time()
 
         try:
-            if data is not None:
+            if files is not None:
+                # File upload request
+                response = self.session.request(
+                    method=method,
+                    url=url,
+                    data=data,
+                    files=files,
+                    timeout=self.config.timeout,
+                    verify=self.config.verify_ssl
+                )
+            elif data is not None:
+                # JSON request
                 response = self.session.request(
                     method=method,
                     url=url,
@@ -285,9 +358,11 @@ class RAGFlowService:
                     verify=self.config.verify_ssl
                 )
             else:
+                # Plain request (with optional query parameters)
                 response = self.session.request(
                     method=method,
                     url=url,
+                    params=params,
                     timeout=self.config.timeout,
                     verify=self.config.verify_ssl
                 )
@@ -331,6 +406,27 @@ class RAGFlowService:
                     error=str(e)
                 )
                 raise RAGFlowAPIError(f"RAGFlow API响应格式错误: {str(e)}")
+
+            # 详细的响应详情日志
+            if ragflow_debug:
+                logger.info(f"[RAGFLOW_DEBUG] RAGFlow API响应详情")
+                logger.info(f"  状态码: {response.status_code}")
+                logger.info(f"  响应时间: {response_time:.3f}秒")
+                logger.info(f"  响应头: {dict(response.headers)}")
+                logger.info(f"  响应大小: {len(response.text)} 字符")
+
+                if isinstance(response_data, dict):
+                    logger.info(f"  响应键: {list(response_data.keys())}")
+                else:
+                    logger.info(f"  响应类型: {type(response_data)}")
+
+                # 记录响应体（如果启用）
+                log_response_bodies = os.environ.get('RAGFLOW_LOG_RESPONSE_BODIES', 'false').lower() == 'true'
+                if log_response_bodies and ragflow_debug:
+                    response_text = response.text
+                    if len(response_text) > max_body_size:
+                        response_text = response_text[:max_body_size] + f"...(truncated, total: {len(response_text)})"
+                    logger.info(f"  响应体: {response_text}")
 
             log_llm_info(
                 "RAGFLOW_SERVICE",
@@ -729,6 +825,334 @@ class RAGFlowService:
                 'error': str(e),
                 'timestamp': datetime.utcnow().isoformat()
             }
+
+    # ========== Document Management Methods ==========
+
+    def upload_document_to_dataset(self, knowledge_base_id: str, file_obj, filename: str) -> Dict[str, Any]:
+        """
+        Upload a document to a RAGFlow dataset.
+
+        Args:
+            knowledge_base_id: Knowledge base ID to find the corresponding RAGFlow dataset
+            file_obj: File object to upload
+            filename: Original filename
+
+        Returns:
+            Dict with upload result and document ID
+        """
+        try:
+            # Get knowledge base to find RAGFlow dataset ID
+            from app.models.knowledge_base import KnowledgeBase
+            kb = KnowledgeBase.query.get(knowledge_base_id)
+            if not kb or not kb.ragflow_dataset_id:
+                raise RAGFlowConfigError(f"Knowledge base {knowledge_base_id} not found or no RAGFlow dataset ID")
+
+            dataset_id = kb.ragflow_dataset_id
+
+            # Prepare file upload
+            files = {'file': (filename, file_obj)}
+            data = {
+                'description': f'Uploaded via MRC Knowledge Base {knowledge_base_id}'
+            }
+
+            # Upload to RAGFlow
+            endpoint = f"/api/datasets/{dataset_id}/documents"
+            response = self._make_request("POST", endpoint, data=data, files=files, request_id="upload_doc")
+
+            if response.get('data') and response['data'].get('id'):
+                doc_id = response['data']['id']
+                log_llm_info(
+                    "RAGFLOW_UPLOAD",
+                    f"Document uploaded successfully",
+                    additional_params={
+                        "dataset_id": dataset_id,
+                        "document_id": doc_id,
+                        "filename": filename
+                    }
+                )
+                return {
+                    'success': True,
+                    'document_id': doc_id,
+                    'dataset_id': dataset_id
+                }
+            else:
+                error_msg = response.get('message', 'Unknown upload error')
+                log_llm_error(
+                    "RAGFLOW_UPLOAD",
+                    f"Document upload failed: {error_msg}",
+                    error=error_msg
+                )
+                return {
+                    'success': False,
+                    'error': error_msg
+                }
+
+        except Exception as e:
+            log_llm_error(
+                "RAGFLOW_UPLOAD",
+                f"Document upload error: {str(e)}",
+                error=str(e)
+            )
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def parse_document(self, document_id: str) -> Dict[str, Any]:
+        """
+        Trigger document parsing in RAGFlow.
+
+        Args:
+            document_id: RAGFlow document ID
+
+        Returns:
+            Dict with parsing result
+        """
+        try:
+            endpoint = f"/api/documents/{document_id}/parse"
+            response = self._make_request("POST", endpoint, request_id="parse_doc")
+
+            if response.get('data'):
+                log_llm_info(
+                    "RAGFLOW_PARSE",
+                    f"Document parsing initiated",
+                    additional_params={"document_id": document_id}
+                )
+                return {
+                    'success': True,
+                    'document_id': document_id,
+                    'status': response['data'].get('status', 'unknown')
+                }
+            else:
+                error_msg = response.get('message', 'Unknown parsing error')
+                log_llm_error(
+                    "RAGFLOW_PARSE",
+                    f"Document parsing failed: {error_msg}",
+                    error=error_msg
+                )
+                return {
+                    'success': False,
+                    'error': error_msg
+                }
+
+        except Exception as e:
+            log_llm_error(
+                "RAGFLOW_PARSE",
+                f"Document parsing error: {str(e)}",
+                error=str(e)
+            )
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def delete_document(self, document_id: str) -> Dict[str, Any]:
+        """
+        Delete a document from RAGFlow.
+
+        Args:
+            document_id: RAGFlow document ID
+
+        Returns:
+            Dict with deletion result
+        """
+        try:
+            endpoint = f"/api/documents/{document_id}"
+            response = self._make_request("DELETE", endpoint, request_id="delete_doc")
+
+            log_llm_info(
+                "RAGFLOW_DELETE",
+                f"Document deleted successfully",
+                additional_params={"document_id": document_id}
+            )
+            return {
+                'success': True,
+                'document_id': document_id
+            }
+
+        except Exception as e:
+            log_llm_error(
+                "RAGFLOW_DELETE",
+                f"Document deletion error: {str(e)}",
+                error=str(e)
+            )
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def get_document_chunks(self, document_id: str, dataset_id: str = None) -> List[Dict[str, Any]]:
+        """
+        Get chunks for a specific document.
+
+        Args:
+            document_id: RAGFlow document ID
+            dataset_id: RAGFlow dataset ID (required for correct API endpoint)
+
+        Returns:
+            List of chunk dictionaries
+        """
+        try:
+            # If dataset_id is not provided, try to find it from knowledge bases
+            if not dataset_id:
+                from app.models.knowledge_base import KnowledgeBase
+                # Find knowledge base that contains this document
+                kb = KnowledgeBase.query.filter(KnowledgeBase.ragflow_dataset_id.isnot(None)).first()
+                if kb:
+                    dataset_id = kb.ragflow_dataset_id
+                else:
+                    log_llm_error(
+                        "RAGFLOW_CHUNKS",
+                        "No dataset_id provided and no knowledge base found",
+                        error="Missing dataset_id"
+                    )
+                    return []
+
+            # Use correct RAGFlow API endpoint
+            endpoint = f"/api/v1/datasets/{dataset_id}/documents/{document_id}/chunks"
+            response = self._make_request("GET", endpoint, request_id="get_chunks")
+
+            # Check response structure
+            if response.get('code') != 0:
+                error_msg = response.get('message', 'Unknown error')
+                log_llm_error(
+                    "RAGFLOW_CHUNKS",
+                    f"RAGFlow API returned error: {error_msg}",
+                    error=f"Code {response.get('code')}: {error_msg}"
+                )
+                return []
+
+            # Extract chunks from correct location in response
+            data = response.get('data', {})
+            chunks = data.get('chunks', [])
+
+            # Handle case where chunks might be None
+            if chunks is None:
+                chunks = []
+
+            log_llm_info(
+                "RAGFLOW_CHUNKS",
+                f"Retrieved {len(chunks)} chunks",
+                additional_params={
+                    "document_id": document_id,
+                    "dataset_id": dataset_id
+                }
+            )
+            return chunks
+
+        except Exception as e:
+            log_llm_error(
+                "RAGFLOW_CHUNKS",
+                f"Get chunks error: {str(e)}",
+                error=str(e)
+            )
+            return []
+
+    def search_chunks_in_dataset(self, knowledge_base_id: str, query: str, top_k: int = 10) -> List[Dict[str, Any]]:
+        """
+        Search for chunks in a RAGFlow dataset.
+
+        Args:
+            knowledge_base_id: Knowledge base ID to find the corresponding RAGFlow dataset
+            query: Search query
+            top_k: Maximum number of results
+
+        Returns:
+            List of search result chunks
+        """
+        try:
+            # Get knowledge base to find RAGFlow dataset ID
+            from app.models.knowledge_base import KnowledgeBase
+            kb = KnowledgeBase.query.get(knowledge_base_id)
+            if not kb or not kb.ragflow_dataset_id:
+                log_llm_warning(
+                    "RAGFLOW_SEARCH",
+                    f"Knowledge base {knowledge_base_id} not found or no RAGFlow dataset ID"
+                )
+                return []
+
+            dataset_id = kb.ragflow_dataset_id
+
+            # Perform search
+            endpoint = f"/api/datasets/{dataset_id}/chunks"
+            data = {
+                'query': query,
+                'top_k': top_k,
+                'retrieval_type': 'vector'
+            }
+
+            response = self._make_request("POST", endpoint, data=data, request_id="search_chunks")
+            chunks = response.get('data', [])
+
+            log_llm_info(
+                "RAGFLOW_SEARCH",
+                f"Search completed for query: {query}",
+                additional_params={
+                    "dataset_id": dataset_id,
+                    "results_count": len(chunks),
+                    "top_k": top_k
+                }
+            )
+            return chunks
+
+        except Exception as e:
+            log_llm_error(
+                "RAGFLOW_SEARCH",
+                f"Search error: {str(e)}",
+                error=str(e)
+            )
+            return []
+
+    def get_dataset_documents(self, dataset_id: str, status: str = None, page: int = 1, size: int = 20) -> List[Dict[str, Any]]:
+        """
+        Get documents in a RAGFlow dataset with optional filtering and pagination.
+
+        Args:
+            dataset_id: RAGFlow dataset ID
+            status: Filter by parsing status (completed, failed, parsing, waiting)
+            page: Page number for pagination
+            size: Page size for pagination
+
+        Returns:
+            List of document dictionaries
+        """
+        try:
+            endpoint = f"/api/v1/datasets/{dataset_id}/documents"
+
+            # Build query parameters
+            params = {}
+            if status:
+                params['run'] = status  # RAGFlow uses 'run' parameter for status
+            if page:
+                params['page'] = page
+            if size:
+                params['page_size'] = size  # RAGFlow uses 'page_size' instead of 'size'
+
+            response = self._make_request("GET", endpoint, params=params, request_id="get_dataset_docs")
+
+            # RAGFlow returns documents in response.data.docs
+            response_data = response.get('data', {})
+            documents = response_data.get('docs', []) if response_data else []
+
+            log_llm_info(
+                "RAGFLOW_DATASET_DOCS",
+                f"Retrieved {len(documents)} documents",
+                additional_params={
+                    "dataset_id": dataset_id,
+                    "status": status,
+                    "page": page,
+                    "size": size
+                }
+            )
+            return documents
+
+        except Exception as e:
+            log_llm_error(
+                "RAGFLOW_DATASET_DOCS",
+                f"Get dataset documents error: {str(e)}",
+                error=str(e)
+            )
+            return []
 
 
 # 全局服务实例

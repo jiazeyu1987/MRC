@@ -471,10 +471,23 @@ class KnowledgeBaseService:
                     )
 
                     if local_kb:
+                        # 获取实际的文档数量
+                        actual_doc_count = dataset.document_count
+                        try:
+                            # 尝试从RAGFlow获取实际的文档数量
+                            # 获取第一页来获取总数信息
+                            documents = ragflow_service.get_dataset_documents(dataset.id, page=1, size=100)
+                            actual_doc_count = len(documents)
+                            current_app.logger.debug(f"Retrieved {len(documents)} documents from RAGFlow for dataset {dataset.id}")
+                        except Exception as doc_count_error:
+                            current_app.logger.warning(f"Failed to get actual document count for dataset {dataset.id}: {doc_count_error}")
+                            # 如果获取实际数量失败，使用dataset.document_count作为fallback
+                            actual_doc_count = dataset.document_count
+
                         # 更新现有知识库
                         local_kb.name = dataset.name
                         local_kb.description = dataset.description
-                        local_kb.document_count = dataset.document_count
+                        local_kb.document_count = actual_doc_count
                         local_kb.total_size = dataset.size
                         local_kb.updated_at = datetime.utcnow()
 
@@ -483,7 +496,7 @@ class KnowledgeBaseService:
                             'action': 'updated',
                             'dataset_id': dataset.id,
                             'name': dataset.name,
-                            'document_count': dataset.document_count
+                            'document_count': actual_doc_count
                         })
 
                         current_app.logger.info(f"更新知识库: {dataset.name}")

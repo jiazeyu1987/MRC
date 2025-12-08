@@ -17,6 +17,18 @@ import {
   ApiError
 } from '../types/knowledge';
 
+import {
+  Document,
+  DocumentChunk,
+  DocumentFilters,
+  ChunkSearchFilters,
+  UploadResponse,
+  ChunkSearchResult,
+  DocumentStatistics,
+  DocumentListResponse,
+  UploadProgress,
+} from '../types/document';
+
 // API基础URL配置 - 使用不常用端口（默认 5010）
 // 优先读取新的环境变量 VITE_API_BASE_URL_ALT，兼容旧的 VITE_API_BASE_URL
 const API_BASE_URL =
@@ -122,6 +134,44 @@ class ApiClient {
 
     return this.request<T>(url.pathname + url.search, {
       method: 'DELETE',
+    });
+  }
+
+  async upload<T>(endpoint: string, formData: FormData, onProgress?: (progress: number) => void): Promise<T> {
+    const url = `${this.baseURL}${endpoint}`;
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      // Setup progress tracking
+      if (onProgress) {
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            const progress = (event.loaded / event.total) * 100;
+            onProgress(progress);
+          }
+        });
+      }
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            resolve(response);
+          } catch (error) {
+            reject(new Error(`Failed to parse response: ${error}`));
+          }
+        } else {
+          reject(new Error(`Upload failed with status: ${xhr.status}`));
+        }
+      });
+
+      xhr.addEventListener('error', () => {
+        reject(new Error('Upload failed'));
+      });
+
+      xhr.open('POST', url);
+      xhr.send(formData);
     });
   }
 }
@@ -233,6 +283,257 @@ export const knowledgeApi = {
       `/api/knowledge-bases/${id}`,
       actionRequest
     );
+  },
+
+  // ========== Document Management Methods ==========
+
+  /**
+   * 获取知识库的文档列表
+   */
+  async getDocuments(
+    knowledgeBaseId: string,
+    filters?: DocumentFilters
+  ): Promise<DocumentListResponse> {
+    const queryParams = {
+      page: filters?.page || 1,
+      limit: filters?.limit || 20,
+      search: filters?.search,
+      status: filters?.status,
+      file_type: filters?.file_type,
+      sort_by: filters?.sort_by || 'created_at',
+      sort_order: filters?.sort_order || 'desc',
+    };
+
+    return apiClient.get<DocumentListResponse>(`/api/knowledge-bases/${knowledgeBaseId}/documents`, queryParams);
+  },
+
+  /**
+   * 上传文档到知识库
+   */
+  async uploadDocument(
+    knowledgeBaseId: string,
+    file: File,
+    onProgress?: (progress: number) => void
+  ): Promise<UploadResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Add optional upload_id for progress tracking
+    const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    formData.append('upload_id', uploadId);
+
+    try {
+      const response = await apiClient.upload<UploadResponse>(
+        `/api/knowledge-bases/${knowledgeBaseId}/documents/upload`,
+        formData,
+        onProgress
+      );
+
+      return response;
+    } catch (error) {
+      console.error('Document upload failed:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * 获取文档详情
+   */
+  async getDocument(knowledgeBaseId: string, documentId: string): Promise<Document> {
+    const response = await apiClient.get<{ success: boolean; data: Document }>(
+      `/api/knowledge-bases/${knowledgeBaseId}/ragflow-documents/${documentId}`
+    );
+
+    if (response.success && response.data) {
+      return response.data;
+    } else {
+      throw new Error('Failed to get document details');
+    }
+  },
+
+  /**
+   * 删除文档
+   */
+  async deleteDocument(knowledgeBaseId: string, documentId: string): Promise<void> {
+    console.log('🗑️ [DEBUG] Deleting document:', { knowledgeBaseId, documentId });
+
+    // Use direct fetch for delete operation since API format is inconsistent
+    const url = `${API_BASE_URL}/api/knowledge-bases/${knowledgeBaseId}/ragflow-documents/${documentId}`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('📦 [DEBUG] Delete raw response status:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('📦 [DEBUG] Delete response received:', result);
+
+      if (result.success === true) {
+        console.log('✅ [DEBUG] Document deleted successfully');
+        return;
+      } else {
+        const errorMsg = result.message || 'Failed to delete document';
+        console.error('❌ [DEBUG] Delete failed:', { result, errorMsg });
+        throw new Error(errorMsg);
+      }
+    } catch (error) {
+      console.error('💥 [DEBUG] Delete request failed:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * 搜索文档块
+   */
+  async searchChunks(
+    knowledgeBaseId: string,
+    query: string,
+    filters?: ChunkSearchFilters
+  ): Promise<ChunkSearchResult> {
+    const requestData = {
+      query,
+      document_id: filters?.document_id,
+      min_relevance_score: filters?.min_relevance_score,
+      max_results: filters?.max_results || 10,
+    };
+
+    const response = await apiClient.post<{ success: boolean; data: ChunkSearchResult }>(
+      `/api/knowledge-bases/${knowledgeBaseId}/chunks/search`,
+      requestData
+    );
+
+    if (response.success && response.data) {
+      return response.data;
+    } else {
+      throw new Error('Failed to search chunks');
+    }
+  },
+
+  /**
+   * 获取文档的所有块
+   */
+  async getDocumentChunks(
+    knowledgeBaseId: string,
+    documentId: string,
+    filters?: {
+      chunk_index_min?: number;
+      chunk_index_max?: number;
+      sort_by?: string;
+      sort_order?: string;
+    }
+  ): Promise<{
+    document_id: string;
+    document_name: string;
+    chunks: DocumentChunk[];
+    total_chunks: number;
+  }> {
+    console.log('🔍 [DEBUG] getDocumentChunks called with:', { knowledgeBaseId, documentId, filters });
+
+    const queryParams: Record<string, any> = {};
+    if (filters?.chunk_index_min !== undefined) queryParams.chunk_index_min = filters.chunk_index_min;
+    if (filters?.chunk_index_max !== undefined) queryParams.chunk_index_max = filters.chunk_index_max;
+    if (filters?.sort_by) queryParams.sort_by = filters.sort_by;
+    if (filters?.sort_order) queryParams.sort_order = filters.sort_order;
+
+    const apiUrl = `/api/knowledge-bases/${knowledgeBaseId}/ragflow-documents/${documentId}/chunks`;
+    console.log('🌐 [DEBUG] Making API request to:', apiUrl, 'with params:', queryParams);
+
+    try {
+      const response = await apiClient.get<{
+        success: boolean;
+        data?: {
+          document_id: string;
+          document_name: string;
+          chunks: DocumentChunk[];
+          total_chunks: number;
+        };
+        error_code?: string;
+        message?: string;
+      }>(apiUrl, queryParams);
+
+      console.log('📦 [DEBUG] API response received:', response);
+
+      // Check if response has the expected structure for document chunks
+      if (response && response.document_id && Array.isArray(response.chunks)) {
+        console.log('✅ [DEBUG] Successfully retrieved chunks:', {
+          documentId: response.document_id,
+          documentName: response.document_name,
+          chunkCount: response.total_chunks,
+          chunks: response.chunks?.length
+        });
+        return response;
+      } else {
+        const errorMsg = 'Invalid response structure';
+        console.error('❌ [DEBUG] API returned error:', { response, errorMsg });
+        throw new Error(`Failed to get document chunks: ${errorMsg}`);
+      }
+    } catch (error) {
+      console.error('💥 [DEBUG] API request failed:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * 获取文档统计信息
+   */
+  async getDocumentStatistics(knowledgeBaseId: string): Promise<DocumentStatistics> {
+    // First try to get from knowledge base details
+    const response = await apiClient.get<{
+      success: boolean;
+      data: {
+        document_statistics?: DocumentStatistics;
+      };
+    }>(`/api/knowledge-bases/${knowledgeBaseId}`);
+
+    if (response.success && response.data?.document_statistics) {
+      return response.data.document_statistics;
+    } else {
+      // Fallback - return basic statistics
+      const documentsResponse = await this.getDocuments(knowledgeBaseId, { limit: 1 });
+      const documents = documentsResponse.documents || [];
+
+      const stats: DocumentStatistics = {
+        total_documents: documentsResponse.pagination?.total || 0,
+        total_file_size_bytes: documents.reduce((sum, doc) => sum + doc.file_size, 0),
+        total_file_size_mb: documents.reduce((sum, doc) => sum + (doc.file_size / (1024 * 1024)), 0),
+        total_chunks: documents.reduce((sum, doc) => sum + doc.chunk_count, 0),
+        status_breakdown: {},
+        file_type_breakdown: {},
+        updated_at: new Date().toISOString(),
+      };
+
+      return stats;
+    }
+  },
+
+  /**
+   * 获取上传进度
+   */
+  async getUploadProgress(knowledgeBaseId: string, uploadId: string): Promise<UploadProgress | null> {
+    const response = await apiClient.get<{
+      success: boolean;
+      data?: UploadProgress;
+    }>(`/api/knowledge-bases/${knowledgeBaseId}/documents/upload?upload_id=${uploadId}`);
+
+    return response.success && response.data ? response.data : null;
+  },
+
+  /**
+   * 取消上传
+   */
+  async cancelUpload(knowledgeBaseId: string, uploadId: string): Promise<void> {
+    // This would need to be implemented in the backend
+    console.log('Cancel upload not yet implemented:', { knowledgeBaseId, uploadId });
+    // For now, we'll just log it
   }
 };
 

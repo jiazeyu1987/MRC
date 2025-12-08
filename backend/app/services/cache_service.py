@@ -159,6 +159,10 @@ class CacheService:
             self.logger.error(f"Cache clear error: {str(e)}")
             return 0
 
+    def delete_pattern(self, pattern: str) -> int:
+        """按模式删除缓存键 (alias for clear)"""
+        return self.clear(pattern)
+
     def increment(self, key: str, amount: int = 1) -> int:
         """递增计数器"""
         if not self.enabled:

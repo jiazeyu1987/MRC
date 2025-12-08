@@ -484,3 +484,145 @@ def filter_sensitive_data_decorator(mask_fields: List[str] = None):
             return result
         return wrapper
     return decorator
+
+
+class SecurityService:
+    """Security service for file scanning and validation."""
+
+    def __init__(self):
+        self.malicious_patterns = [
+            # Executable patterns
+            b'MZ\x90\x00',  # Windows PE
+            b'\x7fELF',     # Linux ELF
+            b'\xca\xfe\xba\xbe',  # Java class
+            b'\xfe\xed\xfa\xce',  # Mach-O binary
+
+            # Script patterns
+            b'<?php',      # PHP
+            b'<%',         # ASP
+            b'<script',    # JavaScript
+
+            # Suspicious content patterns
+            b'eval(',      # Code execution
+            b'system(',    # System command
+            b'exec(',      # Execute command
+            b'shell_exec(', # Shell execution
+        ]
+
+        self.max_scan_size = 1024 * 1024  # 1MB max scan size
+
+    def scan_file_content(self, content: bytes) -> Dict[str, Any]:
+        """
+        Scan file content for malicious patterns.
+
+        Args:
+            content: File content bytes
+
+        Returns:
+            Dictionary with scan results
+        """
+        try:
+            scan_result = {
+                'safe': True,
+                'reason': None,
+                'threats_found': []
+            }
+
+            # Limit scan size
+            if len(content) > self.max_scan_size:
+                content = content[:self.max_scan_size]
+                scan_result['reason'] = f"File too large for complete scan (scanned first {self.max_scan_size} bytes)"
+
+            # Check for malicious patterns
+            for pattern in self.malicious_patterns:
+                if pattern in content:
+                    scan_result['safe'] = False
+                    scan_result['threats_found'].append(f"Malicious pattern detected: {pattern}")
+
+            # Check for file type mismatch
+            file_signature = content[:4] if len(content) >= 4 else b''
+            if not self._is_safe_file_signature(file_signature):
+                scan_result['safe'] = False
+                scan_result['threats_found'].append("Suspicious file signature")
+
+            # Additional heuristic checks
+            if self._contains_suspicious_strings(content):
+                scan_result['safe'] = False
+                scan_result['threats_found'].append("Suspicious content detected")
+
+            if not scan_result['safe']:
+                scan_result['reason'] = "; ".join(scan_result['threats_found'])
+
+            return scan_result
+
+        except Exception as e:
+            logger.error(f"Error scanning file content: {e}")
+            return {
+                'safe': False,
+                'reason': f"Scan error: {str(e)}",
+                'threats_found': []
+            }
+
+    def _is_safe_file_signature(self, signature: bytes) -> bool:
+        """Check if file signature is safe."""
+        safe_signatures = [
+            b'%PDF',       # PDF
+            b'PK\x03\x04',  # ZIP/DOCX
+            b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1',  # DOC
+            b'<!DOCTYPE',  # HTML
+            b'<html',      # HTML
+            b'#',          # Markdown/Text
+        ]
+
+        # If signature matches any safe signature, it's safe
+        for safe_sig in safe_signatures:
+            if signature.startswith(safe_sig):
+                return True
+
+        # If signature matches malicious patterns, it's not safe
+        for malicious_sig in self.malicious_patterns[:4]:  # Check binary signatures
+            if signature.startswith(malicious_sig):
+                return False
+
+        # Text files without specific signature are considered safe
+        return True
+
+    def _contains_suspicious_strings(self, content: bytes) -> bool:
+        """Check for suspicious strings in content."""
+        try:
+            content_str = content.decode('utf-8', errors='ignore').lower()
+
+            suspicious_strings = [
+                'eval(base64_decode',
+                'system($_',
+                'exec($_',
+                'shell_exec($_',
+                'passthru($_',
+                'file_get_contents($_',
+                'fopen($_',
+                'fwrite($_',
+                '<script language="php"',
+                '<?=$_server',
+                'document.cookie',
+                'window.location',
+                'javascript:',
+            ]
+
+            for suspicious in suspicious_strings:
+                if suspicious in content_str:
+                    return True
+
+        except Exception:
+            # If decoding fails, binary content might be suspicious
+            pass
+
+        return False
+
+
+# Global security service instance
+security_service = SecurityService()
+
+
+def get_security_service() -> SecurityService:
+    """Get security service instance"""
+    return security_service

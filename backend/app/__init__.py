@@ -89,7 +89,9 @@ def register_api(app):
     from app.api.sessions import SessionList, SessionDetail, SessionExecution, SessionControl, SessionBranch, SessionStatistics, LLMDebugInfo
     from app.api.messages import MessageList, MessageDetail, MessageExport, MessageReplies, MessageStatistics, MessageFlow, MessageSearch
     from app.api.knowledge_bases import (KnowledgeBaseList, KnowledgeBaseDetail,
-                                        KnowledgeBaseStatistics, KnowledgeBaseConversationDetail)
+                                        KnowledgeBaseStatistics, KnowledgeBaseConversationDetail,
+                                        DocumentListResource, DocumentResource, DocumentUploadResource,
+                                        ChunkSearchResource, DocumentChunksResource)
     from app.api.monitoring import (SystemHealth, PerformanceMetrics, PerformanceHistory,
                                   PerformanceSummary, HealthHistory, ComponentHealthTrend,
                                   SystemInfo, MonitoringAlerts, MonitoringControl, MonitoringDashboard)
@@ -150,6 +152,18 @@ def register_api(app):
     api.add_resource(KnowledgeBaseDetail, '/api/knowledge-bases/<int:knowledge_base_id>')
     api.add_resource(KnowledgeBaseStatistics, '/api/knowledge-bases/statistics')
     api.add_resource(KnowledgeBaseConversationDetail, '/api/knowledge-bases/<int:knowledge_base_id>/conversations/<int:conversation_id>')
+
+    # 文档管理接口
+    api.add_resource(DocumentListResource, '/api/knowledge-bases/<int:knowledge_base_id>/documents')
+    api.add_resource(DocumentResource, '/api/knowledge-bases/<int:knowledge_base_id>/documents/<int:document_id>')
+    api.add_resource(DocumentUploadResource, '/api/knowledge-bases/<int:knowledge_base_id>/documents/upload')
+    api.add_resource(ChunkSearchResource, '/api/knowledge-bases/<int:knowledge_base_id>/chunks/search')
+    api.add_resource(DocumentChunksResource, '/api/knowledge-bases/<int:knowledge_base_id>/documents/<int:document_id>/chunks')
+
+    # RAGFlow文档管理接口 (使用字符串文档ID)
+    from app.api.knowledge_bases import RAGFlowDocumentResource, RAGFlowDocumentChunksResource
+    api.add_resource(RAGFlowDocumentResource, '/api/knowledge-bases/<int:knowledge_base_id>/ragflow-documents/<string:document_id>')
+    api.add_resource(RAGFlowDocumentChunksResource, '/api/knowledge-bases/<int:knowledge_base_id>/ragflow-documents/<string:document_id>/chunks')
 
     # LLM文件记录接口
     from app.api.llm_file_records import llm_file_records_bp

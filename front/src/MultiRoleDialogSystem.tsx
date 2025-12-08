@@ -2204,10 +2204,20 @@ const SettingsPage = () => {
 const App = () => {
   const [activeTab, setActiveTab] = useState('roles');
   const [playbackSessionId, setPlaybackSessionId] = useState<number | null>(null);
+  const [knowledgeTabRefresh, setKnowledgeTabRefresh] = useState<number>(0);
 
   // State for Theme
   const [themeKey, setThemeKey] = useState<ThemeKey>('blue');
   const theme = THEMES[themeKey];
+
+  // Handle tab switching with manual refresh for knowledge tab
+  const handleTabSwitch = (tab: string) => {
+    setActiveTab(tab);
+    if (tab === 'knowledge') {
+      // Trigger refresh for knowledge base tab
+      setKnowledgeTabRefresh(prev => prev + 1);
+    }
+  };
 
   // Global LLM Debug State
   const [globalLLMDebugInfo, setGlobalLLMDebugInfo] = useState<any>(null);
@@ -2230,7 +2240,7 @@ const App = () => {
       case 'roles': return <RoleManagement />;
       case 'flows': return <FlowManagement />;
       case 'sessions': return <SessionManagement onPlayback={playbackSessionId} />;
-      case 'knowledge': return <KnowledgeBaseManagement />;
+      case 'knowledge': return <KnowledgeBaseManagement manualRefresh={knowledgeTabRefresh > 0} />;
       case 'history': return <HistoryPage onPlayback={handlePlayback} />;
       case 'settings': return <SettingsPage />;
       default: return <RoleManagement />;
@@ -2256,13 +2266,13 @@ const App = () => {
             <div className="text-xs text-slate-400 mt-1">多角色对话仿真系统</div>
           </div>
           <nav className="flex-1 px-4 space-y-2">
-            <NavItem icon={Users} label="角色管理" active={activeTab === 'roles'} onClick={() => setActiveTab('roles')} />
-            <NavItem icon={GitBranch} label="流程模板" active={activeTab === 'flows'} onClick={() => setActiveTab('flows')} />
-            <NavItem icon={Play} label="会话剧场" active={activeTab === 'sessions'} onClick={() => setActiveTab('sessions')} />
-            <NavItem icon={Database} label="知识库" active={activeTab === 'knowledge'} onClick={() => setActiveTab('knowledge')} />
+            <NavItem icon={Users} label="角色管理" active={activeTab === 'roles'} onClick={() => handleTabSwitch('roles')} />
+            <NavItem icon={GitBranch} label="流程模板" active={activeTab === 'flows'} onClick={() => handleTabSwitch('flows')} />
+            <NavItem icon={Play} label="会话剧场" active={activeTab === 'sessions'} onClick={() => handleTabSwitch('sessions')} />
+            <NavItem icon={Database} label="知识库" active={activeTab === 'knowledge'} onClick={() => handleTabSwitch('knowledge')} />
             <div className="pt-4 mt-4 border-t border-slate-700">
-              <NavItem icon={FileText} label="历史记录" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
-              <NavItem icon={Settings} label="系统设置" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
+              <NavItem icon={FileText} label="历史记录" active={activeTab === 'history'} onClick={() => handleTabSwitch('history')} />
+              <NavItem icon={Settings} label="系统设置" active={activeTab === 'settings'} onClick={() => handleTabSwitch('settings')} />
             </div>
           </nav>
           <div className="p-4 bg-slate-800 m-4 rounded-lg">

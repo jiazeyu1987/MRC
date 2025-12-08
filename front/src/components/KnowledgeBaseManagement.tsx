@@ -17,6 +17,10 @@ import TestConversation from './TestConversation';
 
 type View = 'list' | 'details' | 'conversation';
 
+interface KnowledgeBaseManagementProps {
+  manualRefresh?: boolean;
+}
+
 interface ConnectionStatus {
   connected: boolean;
   checking: boolean;
@@ -24,7 +28,7 @@ interface ConnectionStatus {
   error: string | null;
 }
 
-const KnowledgeBaseManagement: React.FC = () => {
+const KnowledgeBaseManagement: React.FC<KnowledgeBaseManagementProps> = ({ manualRefresh = false }) => {
   const { theme } = useTheme();
   const [view, setView] = useState<View>('list');
   const [selectedKnowledgeBase, setSelectedKnowledgeBase] = useState<KnowledgeBase | null>(null);
@@ -100,12 +104,14 @@ const KnowledgeBaseManagement: React.FC = () => {
   // 组件初始化时检查连接状态
   useEffect(() => {
     checkConnectionStatus();
-
-    // 定期检查连接状态（每30秒）
-    const interval = setInterval(checkConnectionStatus, 30000);
-
-    return () => clearInterval(interval);
   }, []);
+
+  // 当手动刷新时触发连接检查
+  useEffect(() => {
+    if (manualRefresh) {
+      checkConnectionStatus();
+    }
+  }, [manualRefresh]);
 
   // 获取连接状态指示器组件
   const getConnectionStatusIndicator = () => {

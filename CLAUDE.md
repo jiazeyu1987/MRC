@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **Multi-Role Dialogue System (MRC)** - a comprehensive full-stack application for creating configurable, multi-role conversation environments with integrated **RAGFlow Knowledge Base System**. The system enables users to orchestrate conversations between multiple virtual roles (teachers, students, experts, officials, etc.) around specific topics using structured dialogue flows with advanced features like loops, conditions, and real-time execution. The knowledge base system provides powerful retrieval-augmented generation capabilities through RAGFlow integration. The project was migrated from `D:\ProjectPackage\MultiRoleChat\backend` on 2025-12-05.
+This is a **Multi-Role Dialogue System (MRC)** - a comprehensive full-stack application for creating configurable, multi-role conversation environments with integrated **RAGFlow Knowledge Base System** and **Document Management** capabilities. The system enables users to orchestrate conversations between multiple virtual roles (teachers, students, experts, officials, etc.) around specific topics using structured dialogue flows with advanced features like loops, conditions, and real-time execution. The knowledge base system provides powerful retrieval-augmented generation capabilities through RAGFlow integration, including document upload, processing, and chunking functionality. The project was migrated from `D:\ProjectPackage\MultiRoleChat\backend` on 2025-12-05.
 
 ## Architecture
 
@@ -77,6 +77,9 @@ python cleanup_llm_records.py   # Clean LLM interaction records
 python add_knowledge_base_tables.py  # Add knowledge base tables to database
 python add_knowledge_base_config_migration.py  # Add knowledge base configuration fields
 
+# Document management system setup (new)
+python add_document_management_tables.py  # Add document management tables to database
+
 # Code verification and utilities
 python check_syntax.py          # Check Python syntax
 python verify_fix.py            # Verify applied fixes
@@ -105,6 +108,12 @@ npm run lint
 
 # Quick check (lint + build)
 npm run check
+
+# Run tests
+npm test                                    # Run Jest tests
+npm run test:watch                         # Run tests in watch mode
+npm run test:coverage                      # Run test coverage
+npm run test:knowledge-base                # Run specific knowledge base tests
 ```
 
 ### Quick Development Workflow
@@ -125,6 +134,11 @@ cd front && npm run quick-start
 cd backend && python add_knowledge_base_tables.py
 # Configure RAGFlow in .env file (RAGFLOW_API_KEY, RAGFLOW_BASE_URL)
 # Access Knowledge Base tab in the UI to sync datasets
+
+# Document Management Setup (one-time, new)
+cd backend && python add_document_management_tables.py
+# Document management UI will be available in Knowledge Base details page
+# Supports drag-and-drop upload, progress tracking, and chunk visualization
 ```
 
 ### Quick Start Scripts (Recommended for First-time Setup)
@@ -173,6 +187,11 @@ cd front && node quick-start.js
 - **KnowledgeBaseConversation** - Test conversation history with RAGFlow responses and reference tracking
 - **RoleKnowledgeBase** - Junction table linking roles to knowledge bases with priority and retrieval configuration
 
+#### Document Management System Models (New)
+- **Document** - Document tracking within knowledge bases with file metadata and processing status
+- **DocumentChunk** - Document chunk storage and retrieval with content, metadata, and scoring capabilities
+- **ProcessingLog** - Document processing operation tracking with status, error handling, and performance metrics
+
 ### Backend Services Architecture
 The backend includes a comprehensive services layer (`backend/app/services/`):
 
@@ -196,6 +215,11 @@ The backend includes a comprehensive services layer (`backend/app/services/`):
 #### Knowledge Base Services
 - **KnowledgeBaseService** (`knowledge_base_service.py`) - Complete knowledge base management with CRUD operations, RAGFlow synchronization, role associations, and statistics
 - **RAGFlowService** (`ragflow_service.py`) - RAGFlow API integration with dataset management, chat assistant functionality, connection management, and retry logic
+
+#### Document Management Services (New)
+- **DocumentService** (`document_service.py`) - Core document management with CRUD operations, validation, and metadata handling
+- **UploadService** (`upload_service.py`) - File upload service with streaming, progress tracking, and multi-format support
+- **ChunkService** (`chunk_service.py`) - Document chunking and retrieval service with configurable strategies and metadata
 
 #### Utility Services
 - **LLM Logger** (`utils/llm_logger.py`) - Specialized LLM request/response logging with detailed metrics
@@ -222,6 +246,12 @@ The backend includes a comprehensive services layer (`backend/app/services/`):
 - **KnowledgeBaseList.tsx** - Knowledge base listing with search, filtering, and status management
 - **KnowledgeBaseDetails.tsx** - Detailed knowledge base view with statistics, role associations, and test conversation interface
 - **TestConversation.tsx** - Knowledge base test conversation interface with reference tracking and history
+
+#### Document Management Components (New)
+- **DocumentUpload.tsx** - Document upload interface with drag-and-drop, progress tracking, and file validation
+- **DocumentList.tsx** - Document listing with search, filtering, pagination, and bulk operations
+- **DocumentView.tsx** - Detailed document view with metadata, chunk visualization, and management capabilities
+- **DocumentUploadFallback.tsx** - Fallback upload component for browsers with limited file API support
 
 #### Note on Frontend Structure
 Some directories mentioned in architectural documentation have limited current implementation:
@@ -263,6 +293,16 @@ Some directories mentioned in architectural documentation have limited current i
 - `GET /api/knowledge-bases/{id}/conversations/{conversation_id}` - Get detailed test conversation information
 - `DELETE /api/knowledge-bases/{id}/conversations/{conversation_id}` - Delete test conversation records
 
+#### Document Management Endpoints (New)
+- `POST /api/knowledge-bases/{id}/documents` - Upload documents to knowledge base with progress tracking
+- `GET /api/knowledge-bases/{id}/documents` - List documents with pagination, search, and filtering
+- `GET /api/documents/{document_id}` - Get detailed document information with metadata and processing status
+- `PUT /api/documents/{document_id}` - Update document metadata and configuration
+- `DELETE /api/documents/{document_id}` - Delete document and associated chunks
+- `GET /api/documents/{document_id}/chunks` - Get document chunks with content and metadata
+- `POST /api/documents/{document_id}/reprocess` - Reprocess document with updated configuration
+- `GET /api/documents/{document_id}/status` - Get real-time processing status and progress
+
 ## Key Features
 
 ### Role Management
@@ -297,6 +337,16 @@ Some directories mentioned in architectural documentation have limited current i
 - **Reference Tracking**: View source document references and confidence scores for knowledge base responses
 - **Batch Operations**: Bulk update knowledge base status and synchronize datasets from RAGFlow
 - **Caching and Performance**: Optimized data retrieval with intelligent caching mechanisms
+
+### Document Management System (New)
+- **Multi-Format Upload Support**: Upload documents in various formats (PDF, DOCX, TXT, MD, etc.)
+- **Real-time Processing Status**: Track document processing progress with live status updates
+- **Document Chunking**: Automatic document chunking with configurable strategies and metadata
+- **Visual Document Management**: Complete UI for viewing, managing, and organizing uploaded documents
+- **Search and Filtering**: Advanced document search with filtering by status, type, and content
+- **Bulk Operations**: Support for bulk document operations (upload, delete, reprocess)
+- **Processing Logs**: Comprehensive logging of document processing operations with error tracking
+- **Version Management**: Document version tracking and rollback capabilities
 
 ## Development Guidelines
 
@@ -414,6 +464,20 @@ cd backend
 python -m pytest tests/test_knowledge_base.py                # Knowledge base service tests
 python -m pytest tests/test_knowledge_base_integration.py     # Integration tests
 python -c "from app.services.knowledge_base_service import get_knowledge_base_service; print('Knowledge base service OK')"  # Quick service test
+
+# Document management system testing (new)
+python -m pytest tests/test_document_management_integration.py  # Document management integration tests
+python -c "from app.services.document_service import get_document_service; print('Document service OK')"  # Quick document service test
+
+# Custom test runner (comprehensive)
+python run_tests.py                             # Run all knowledge base tests with detailed reporting
+python run_tests.py --test TestKnowledgeBaseModel  # Run specific test class
+python run_tests.py --quick                    # Quick test run (skip integration tests)
+python run_tests.py --verbose                  # Verbose output
+
+# Direct unittest execution
+python -m unittest tests.test_knowledge_base   # Run specific test file
+python -m unittest tests.test_knowledge_base -v  # Run with verbose output
 ```
 
 ### Quality Assurance Features
@@ -604,4 +668,16 @@ For complete RAGFlow API documentation, refer to:
 
 ## Migration Notes
 
-This project was migrated from `D:\ProjectPackage\MultiRoleChat\backend` on 2025-12-05, maintaining complete database structure and functionality while adding enhanced frontend capabilities, comprehensive monitoring features, a robust services architecture, and the integrated RAGFlow knowledge base system.
+This project was migrated from `D:\ProjectPackage\MultiRoleChat\backend` on 2025-12-05, maintaining complete database structure and functionality while adding enhanced frontend capabilities, comprehensive monitoring features, a robust services architecture, the integrated RAGFlow knowledge base system, and a complete document management system with upload, processing, and chunking capabilities.
+
+## Document Management Implementation
+
+The document management system is structured with comprehensive task breakdown in `tasks.md`, featuring 40+ atomic tasks for complete implementation. The system includes:
+
+- **Backend Models**: Document, DocumentChunk, ProcessingLog with full SQLAlchemy integration
+- **Services Layer**: DocumentService, UploadService, ChunkService with RAGFlow integration
+- **API Endpoints**: Complete REST API for document operations with progress tracking
+- **Frontend Components**: React components for upload, listing, viewing, and management
+- **Testing Framework**: Comprehensive unit and integration tests
+
+The implementation follows existing MRC patterns and integrates seamlessly with the current knowledge base system, enabling users to upload documents directly to knowledge bases, track processing status, and manage document chunks through an intuitive interface.

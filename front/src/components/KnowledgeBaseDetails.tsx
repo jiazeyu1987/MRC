@@ -14,12 +14,21 @@ import {
   Send,
   Loader2,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  Upload,
+  List,
+  Eye,
+  FolderOpen,
+  FileUp
 } from 'lucide-react';
 import { useTheme } from '../theme';
 import { knowledgeApi } from '../api/knowledgeApi';
 import { KnowledgeBase, KnowledgeBaseConversation } from '../types/knowledge';
+import { Document } from '../types/document';
 import { handleError } from '../utils/errorHandler';
+import DocumentUpload from './DocumentUpload';
+import DocumentList from './DocumentList';
+import DocumentView from './DocumentView';
 
 interface KnowledgeBaseDetailsProps {
   knowledgeBaseId: number;
@@ -39,6 +48,11 @@ const KnowledgeBaseDetails: React.FC<KnowledgeBaseDetailsProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [testQuestion, setTestQuestion] = useState<string>('');
   const [testingConversation, setTestingConversation] = useState<boolean>(false);
+
+  // Document management state
+  const [documentView, setDocumentView] = useState<'upload' | 'list' | 'view' | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [documentRefreshTrigger, setDocumentRefreshTrigger] = useState<number>(0);
 
   // 加载知识库详情和统计信息
   const loadKnowledgeBaseDetails = async () => {
@@ -102,6 +116,56 @@ const KnowledgeBaseDetails: React.FC<KnowledgeBaseDetailsProps> = ({
       setError(errorMessage);
     } finally {
       setTestingConversation(false);
+    }
+  };
+
+  // Document management handlers
+  const handleDocumentUpload = () => {
+    setDocumentView('upload');
+    setSelectedDocument(null);
+  };
+
+  const handleDocumentList = () => {
+    setDocumentView('list');
+    setSelectedDocument(null);
+  };
+
+  const handleDocumentSelect = (document: Document) => {
+    setSelectedDocument(document);
+    setDocumentView('view');
+  };
+
+  const handleDocumentBack = () => {
+    if (documentView === 'view') {
+      setDocumentView('list');
+    } else {
+      setDocumentView(null);
+    }
+  };
+
+  const handleDocumentUploadComplete = (documentId: string) => {
+    // Refresh knowledge base details to update document count
+    loadKnowledgeBaseDetails();
+
+    // Trigger document list refresh
+    setDocumentRefreshTrigger(prev => prev + 1);
+
+    // Show success message or switch to list view
+    setTimeout(() => {
+      setDocumentView('list');
+    }, 2000);
+  };
+
+  const handleDocumentDelete = (documentId: string) => {
+    // Refresh knowledge base details to update document count
+    loadKnowledgeBaseDetails();
+
+    // Trigger document list refresh
+    setDocumentRefreshTrigger(prev => prev + 1);
+
+    // If viewing the deleted document, go back to list
+    if (selectedDocument?.id === documentId) {
+      handleDocumentBack();
     }
   };
 
@@ -336,15 +400,162 @@ const KnowledgeBaseDetails: React.FC<KnowledgeBaseDetailsProps> = ({
         </div>
       </div>
 
+      {/* 文档管理 */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <FolderOpen className="w-5 h-5 mr-2 text-blue-500" />
+              <h2 className="text-lg font-semibold text-gray-900">文档管理</h2>
+              {knowledgeBase.document_count > 0 && (
+                <span className="ml-3 px-2 py-1 text-sm bg-blue-100 text-blue-700 rounded-full">
+                  {knowledgeBase.document_count} 个文档
+                </span>
+              )}
+            </div>
+
+            {!documentView && (
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={handleDocumentUpload}
+                  className={`flex items-center px-4 py-2 text-sm font-medium text-white rounded-md ${theme.primary} ${theme.primaryHover} transition-colors`}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  上传文档
+                </button>
+                {knowledgeBase.document_count > 0 && (
+                  <button
+                    onClick={handleDocumentList}
+                    className={`flex items-center px-4 py-2 text-sm font-medium ${theme.text} border ${theme.border} rounded-md hover:bg-gray-50 transition-colors`}
+                  >
+                    <List className="w-4 h-4 mr-2" />
+                    文档列表
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Document management content */}
+          {documentView ? (
+            <div className="mt-4">
+              {documentView === 'upload' && (
+                <DocumentUpload
+                  knowledgeBaseId={knowledgeBaseId.toString()}
+                  onUploadComplete={handleDocumentUploadComplete}
+                  onUploadError={(error) => setError(error)}
+                  maxFileSize={50 * 1024 * 1024} // 50MB
+                  maxFiles={10}
+                />
+              )}
+
+              {documentView === 'list' && (
+                <DocumentList
+                  knowledgeBaseId={knowledgeBaseId.toString()}
+                  onDocumentSelect={handleDocumentSelect}
+                  onDocumentDelete={handleDocumentDelete}
+                  refreshTrigger={documentRefreshTrigger}
+                  className="mt-4"
+                />
+              )}
+
+              {documentView === 'view' && selectedDocument && (
+                <DocumentView
+                  knowledgeBaseId={knowledgeBaseId.toString()}
+                  documentId={selectedDocument.id}
+                  document={selectedDocument}
+                  onBack={handleDocumentBack}
+                  className="mt-4"
+                />
+              )}
+            </div>
+          ) : (
+            // Default view with document management summary
+            <div className="space-y-4">
+              {hasNoDocuments ? (
+                <div className="text-center py-8">
+                  <FileUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">暂无文档</h3>
+                  <p className="text-gray-600 mb-4">
+                    上传文档到知识库以启用智能问答和内容检索功能
+                  </p>
+                  <button
+                    onClick={handleDocumentUpload}
+                    className={`px-4 py-2 text-sm font-medium text-white rounded-md ${theme.primary} ${theme.primaryHover} transition-colors`}
+                  >
+                    <Upload className="w-4 h-4 mr-2 inline" />
+                    上传第一个文档
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                       onClick={handleDocumentUpload}>
+                    <div className="flex items-center">
+                      <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                        <Upload className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-gray-900">上传新文档</h4>
+                        <p className="text-sm text-gray-600">添加PDF、Word、文本等文件</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                       onClick={handleDocumentList}>
+                    <div className="flex items-center">
+                      <div className="p-2 bg-green-100 rounded-lg mr-3">
+                        <List className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-gray-900">查看文档列表</h4>
+                        <p className="text-sm text-gray-600">管理已上传的文档</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Quick stats */}
+              {knowledgeBase.document_count > 0 && (
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                    <div>
+                      <div className="text-2xl font-bold text-gray-900">
+                        {knowledgeBase.document_count}
+                      </div>
+                      <div className="text-sm text-gray-600">文档总数</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-gray-900">
+                        {formatFileSize(knowledgeBase.total_size)}
+                      </div>
+                      <div className="text-sm text-gray-600">总存储大小</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-gray-900">
+                        {knowledgeBase.conversation_count || 0}
+                      </div>
+                      <div className="text-sm text-gray-600">测试对话</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* 警告信息 */}
-      {hasNoDocuments && (
+      {hasNoDocuments && !documentView && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
           <div className="flex">
             <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5" />
             <div className="ml-3">
               <h3 className="text-sm font-medium text-amber-800">注意</h3>
               <p className="mt-1 text-sm text-amber-700">
-                此知识库当前没有已解析的文档。测试对话功能可能无法正常工作，建议先在RAGFlow中上传并解析相关文档。
+                此知识库当前没有已解析的文档。测试对话功能可能无法正常工作，建议先上传文档或使用上方的文档管理功能。
               </p>
             </div>
           </div>

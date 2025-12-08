@@ -11,17 +11,24 @@ import {
   AlertTriangle,
   Loader2,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Search,
+  FileSearch,
+  Info,
+  Database,
+  RefreshCw
 } from 'lucide-react';
 import { useTheme } from '../theme';
 import { knowledgeApi } from '../api/knowledgeApi';
 import { KnowledgeBase, KnowledgeBaseConversation, Reference } from '../types/knowledge';
+import { Document } from '../types/document';
 import { handleError } from '../utils/errorHandler';
 
 interface TestConversationProps {
   knowledgeBase: KnowledgeBase;
   conversation?: KnowledgeBaseConversation;
   onBack?: () => void;
+  onRefreshKnowledgeBase?: () => void;
 }
 
 interface ChatMessage {
@@ -37,7 +44,8 @@ interface ChatMessage {
 const TestConversation: React.FC<TestConversationProps> = ({
   knowledgeBase,
   conversation,
-  onBack
+  onBack,
+  onRefreshKnowledgeBase
 }) => {
   const { theme } = useTheme();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -48,6 +56,13 @@ const TestConversation: React.FC<TestConversationProps> = ({
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Document management state
+  const [showDocumentSearch, setShowDocumentSearch] = useState(false);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [selectedDocuments, setSelectedDocuments] = useState<Document[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
 
   // Initialize with conversation if provided
   useEffect(() => {
@@ -109,10 +124,13 @@ const TestConversation: React.FC<TestConversationProps> = ({
       // Create abort controller for this request
       abortControllerRef.current = new AbortController();
 
+      // Enhanced question with document context
+      const enhancedQuestion = inputValue.trim() + getDocumentContext();
+
       // Call the knowledge API for test conversation
       const response = await knowledgeApi.testConversation(
         knowledgeBase.id,
-        inputValue.trim(),
+        enhancedQuestion,
         `测试对话 - ${new Date().toLocaleString('zh-CN')}`
       );
 
@@ -205,6 +223,50 @@ const TestConversation: React.FC<TestConversationProps> = ({
     }));
   };
 
+  // Document management functions
+  const loadDocuments = async (query?: string) => {
+    try {
+      setIsLoadingDocuments(true);
+      const response = await knowledgeApi.getDocuments(knowledgeBase.id.toString(), {
+        search: query?.trim(),
+        limit: 20,
+        sort_by: 'created_at',
+        sort_order: 'desc'
+      });
+      setDocuments(response.documents || []);
+    } catch (error) {
+      console.error('Failed to load documents:', error);
+    } finally {
+      setIsLoadingDocuments(false);
+    }
+  };
+
+  const toggleDocumentSearch = () => {
+    setShowDocumentSearch(!showDocumentSearch);
+    if (!showDocumentSearch && documents.length === 0) {
+      loadDocuments();
+    }
+  };
+
+  const handleDocumentSelect = (document: Document) => {
+    if (selectedDocuments.find(d => d.id === document.id)) {
+      setSelectedDocuments(prev => prev.filter(d => d.id !== document.id));
+    } else {
+      setSelectedDocuments(prev => [...prev, document]);
+    }
+  };
+
+  const handleSearchDocuments = () => {
+    loadDocuments(searchQuery);
+  };
+
+  const getDocumentContext = () => {
+    if (selectedDocuments.length === 0) return '';
+
+    const docNames = selectedDocuments.map(doc => doc.original_filename).join(', ');
+    return `\n\n请主要参考以下文档：${docNames}`;
+  };
+
   // Format confidence score
   const formatConfidence = (confidence?: number): string => {
     if (confidence === undefined) return '未知';
@@ -244,6 +306,35 @@ const TestConversation: React.FC<TestConversationProps> = ({
           </div>
         </div>
         <div className="flex gap-2">
+          {knowledgeBase.document_count > 0 && (
+            <button
+              onClick={toggleDocumentSearch}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                showDocumentSearch
+                  ? 'bg-blue-50 border border-blue-200 text-blue-600'
+                  : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+              }`}
+              title="选择特定文档进行对话"
+            >
+              <FileSearch size={14} />
+              {showDocumentSearch ? '隐藏文档' : '选择文档'}
+              {selectedDocuments.length > 0 && (
+                <span className="bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded-full">
+                  {selectedDocuments.length}
+                </span>
+              )}
+            </button>
+          )}
+          {onRefreshKnowledgeBase && (
+            <button
+              onClick={onRefreshKnowledgeBase}
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+              title="刷新知识库信息"
+            >
+              <RefreshCw size={14} />
+              刷新
+            </button>
+          )}
           <button
             onClick={handleExportConversation}
             disabled={messages.length === 0}
@@ -270,6 +361,106 @@ const TestConversation: React.FC<TestConversationProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Document Search Panel */}
+      {showDocumentSearch && (
+        <div className="border-b bg-gray-50 p-4">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                <Database className="w-4 h-4" />
+                选择特定文档进行对话
+              </h3>
+              {selectedDocuments.length > 0 && (
+                <button
+                  onClick={() => setSelectedDocuments([])}
+                  className="text-xs text-blue-600 hover:text-blue-800"
+                >
+                  清除选择
+                </button>
+              )}
+            </div>
+
+            {/* Document search */}
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearchDocuments()}
+                  placeholder="搜索文档..."
+                  className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <button
+                onClick={handleSearchDocuments}
+                disabled={isLoadingDocuments}
+                className="px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isLoadingDocuments ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  '搜索'
+                )}
+              </button>
+            </div>
+
+            {/* Documents list */}
+            {documents.length > 0 && (
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {documents.map((document) => {
+                  const isSelected = selectedDocuments.some(d => d.id === document.id);
+                  return (
+                    <div
+                      key={document.id}
+                      onClick={() => handleDocumentSelect(document)}
+                      className={`flex items-center justify-between p-2 rounded-md cursor-pointer border transition-colors ${
+                        isSelected
+                          ? 'bg-blue-50 border-blue-200'
+                          : 'bg-white border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {}}
+                          className="rounded border-gray-300"
+                        />
+                        <FileText className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <span className="text-sm text-gray-900 truncate">
+                          {document.original_filename}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <span>{(document.file_size / 1024 / 1024).toFixed(1)}MB</span>
+                        <span>{document.chunk_count} 块</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {documents.length === 0 && !isLoadingDocuments && (
+              <div className="text-center py-4 text-sm text-gray-500">
+                没有找到文档
+              </div>
+            )}
+
+            {selectedDocuments.length > 0 && (
+              <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                <Info className="w-4 h-4 text-blue-600" />
+                <span className="text-sm text-blue-700">
+                  已选择 {selectedDocuments.length} 个文档，系统将主要参考这些文档进行回答
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">

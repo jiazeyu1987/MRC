@@ -216,33 +216,57 @@ class PerformanceMonitor:
             ragflow_connection_status = 'unknown'
 
             try:
-                from app.services.knowledge_base_service import get_knowledge_base_service
-                from app.services.ragflow_service import get_ragflow_service
-                from app.models import KnowledgeBase
+                from flask import has_app_context
+                # 检查是否有Flask应用上下文
+                if has_app_context():
+                    # 在应用上下文中执行数据库操作
+                    from app.services.knowledge_base_service import get_knowledge_base_service
+                    from app.services.ragflow_service import get_ragflow_service
+                    from app.models import KnowledgeBase
 
-                # 获取知识库统计
-                kb_total_count = KnowledgeBase.query.count()
-                kb_active_count = KnowledgeBase.query.filter_by(status='active').count()
-                kb_error_count = KnowledgeBase.query.filter_by(status='error').count()
+                    # 获取知识库统计
+                    kb_total_count = KnowledgeBase.query.count()
+                    kb_active_count = KnowledgeBase.query.filter_by(status='active').count()
+                    kb_error_count = KnowledgeBase.query.filter_by(status='error').count()
 
-                # 获取文档统计
-                from sqlalchemy import func
-                doc_stats = db.session.query(func.sum(KnowledgeBase.document_count)).first()
-                kb_total_documents = doc_stats[0] or 0
+                    # 获取文档统计
+                    from sqlalchemy import func
+                    doc_stats = db.session.query(func.sum(KnowledgeBase.document_count)).first()
+                    kb_total_documents = doc_stats[0] or 0
 
-                # 检查RAGFlow连接状态
-                ragflow_service = get_ragflow_service()
-                if ragflow_service:
-                    try:
+                    logger.debug(f"成功收集知识库指标: 总数={kb_total_count}, 活跃={kb_active_count}, 错误={kb_error_count}")
+                else:
+                    # 没有应用上下文时跳过数据库操作
+                    kb_total_count = 0
+                    kb_active_count = 0
+                    kb_error_count = 0
+                    kb_total_documents = 0
+                    logger.debug("监控服务运行时没有应用上下文，跳过知识库统计")
+
+                # 检查RAGFlow连接状态（不需要数据库上下文）
+                try:
+                    from app.services.ragflow_service import get_ragflow_service
+                    ragflow_service = get_ragflow_service()
+                    if ragflow_service:
                         is_valid, errors = ragflow_service.validate_config()
                         ragflow_connection_status = 'connected' if is_valid else 'config_error'
-                    except Exception:
-                        ragflow_connection_status = 'connection_failed'
-                else:
-                    ragflow_connection_status = 'not_configured'
+                        logger.debug(f"RAGFlow连接状态: {ragflow_connection_status}")
+                    else:
+                        ragflow_connection_status = 'not_configured'
+                        logger.debug("RAGFlow服务未配置")
+                except Exception as e:
+                    ragflow_connection_status = 'connection_failed'
+                    logger.debug(f"RAGFlow连接检查失败: {str(e)}")
 
             except Exception as e:
                 logger.warning(f"收集知识库指标失败: {str(e)}")
+                logger.debug(f"知识库指标收集异常详情: {type(e).__name__}: {str(e)}")
+                # 设置默认值以防止监控服务中断
+                kb_total_count = 0
+                kb_active_count = 0
+                kb_error_count = 0
+                kb_total_documents = 0
+                ragflow_connection_status = 'error'
 
             return PerformanceMetric(
                 timestamp=current_time,
