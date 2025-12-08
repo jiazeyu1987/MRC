@@ -7,6 +7,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass, asdict
 import json
 import logging
+from app import db
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,11 @@ class PerformanceMetric:
     error_rate: float
     llm_requests: int
     llm_success_rate: float
+    kb_total_count: int
+    kb_active_count: int
+    kb_error_count: int
+    kb_total_documents: int
+    ragflow_connection_status: str
 
 
 @dataclass
@@ -51,6 +57,19 @@ class LLMMetric:
     error_message: Optional[str] = None
 
 
+@dataclass
+class KnowledgeBaseMetric:
+    """知识库操作指标数据类"""
+    timestamp: datetime
+    operation: str  # create, read, update, delete, sync, search
+    status: str     # success, failed, timeout
+    response_time: float
+    knowledge_base_id: Optional[int] = None
+    dataset_id: Optional[str] = None
+    document_count: Optional[int] = None
+    error_message: Optional[str] = None
+
+
 class PerformanceMonitor:
     """性能监控服务"""
 
@@ -61,6 +80,7 @@ class PerformanceMonitor:
         self.metrics_history = deque(maxlen=max_history_size)
         self.request_history = deque(maxlen=max_history_size * 10)
         self.llm_metrics = deque(maxlen=max_history_size)
+        self.kb_metrics = deque(maxlen=max_history_size)
 
         # 实时统计数据
         self.stats = {
@@ -78,6 +98,13 @@ class PerformanceMonitor:
                 'success_calls': 0,
                 'total_tokens': 0,
                 'avg_response_time': 0
+            }),
+            'kb_stats': defaultdict(lambda: {
+                'total_operations': 0,
+                'success_operations': 0,
+                'avg_response_time': 0,
+                'error_rate': 0,
+                'ragflow_connection_status': 'unknown'
             })
         }
 
@@ -91,7 +118,9 @@ class PerformanceMonitor:
             'disk_usage_percent': 90.0,
             'error_rate': 5.0,
             'avg_response_time': 2.0,
-            'llm_error_rate': 10.0
+            'llm_error_rate': 10.0,
+            'kb_error_rate': 15.0,
+            'ragflow_connection_failed': True
         }
 
         # 告警回调列表
@@ -182,6 +211,39 @@ class PerformanceMonitor:
             from app.services.session_service import SessionService
             active_sessions = SessionService.get_active_sessions_count()
 
+            # 收集知识库指标
+            kb_total_count = kb_active_count = kb_error_count = kb_total_documents = 0
+            ragflow_connection_status = 'unknown'
+
+            try:
+                from app.services.knowledge_base_service import get_knowledge_base_service
+                from app.services.ragflow_service import get_ragflow_service
+                from app.models import KnowledgeBase
+
+                # 获取知识库统计
+                kb_total_count = KnowledgeBase.query.count()
+                kb_active_count = KnowledgeBase.query.filter_by(status='active').count()
+                kb_error_count = KnowledgeBase.query.filter_by(status='error').count()
+
+                # 获取文档统计
+                from sqlalchemy import func
+                doc_stats = db.session.query(func.sum(KnowledgeBase.document_count)).first()
+                kb_total_documents = doc_stats[0] or 0
+
+                # 检查RAGFlow连接状态
+                ragflow_service = get_ragflow_service()
+                if ragflow_service:
+                    try:
+                        is_valid, errors = ragflow_service.validate_config()
+                        ragflow_connection_status = 'connected' if is_valid else 'config_error'
+                    except Exception:
+                        ragflow_connection_status = 'connection_failed'
+                else:
+                    ragflow_connection_status = 'not_configured'
+
+            except Exception as e:
+                logger.warning(f"收集知识库指标失败: {str(e)}")
+
             return PerformanceMetric(
                 timestamp=current_time,
                 cpu_percent=cpu_percent,
@@ -193,7 +255,12 @@ class PerformanceMonitor:
                 avg_response_time=avg_response_time,
                 error_rate=error_rate,
                 llm_requests=llm_requests,
-                llm_success_rate=llm_success_rate
+                llm_success_rate=llm_success_rate,
+                kb_total_count=kb_total_count,
+                kb_active_count=kb_active_count,
+                kb_error_count=kb_error_count,
+                kb_total_documents=kb_total_documents,
+                ragflow_connection_status=ragflow_connection_status
             )
 
         except Exception as e:
@@ -210,7 +277,12 @@ class PerformanceMonitor:
                 avg_response_time=0.0,
                 error_rate=0.0,
                 llm_requests=0,
-                llm_success_rate=0.0
+                llm_success_rate=0.0,
+                kb_total_count=0,
+                kb_active_count=0,
+                kb_error_count=0,
+                kb_total_documents=0,
+                ragflow_connection_status='unknown'
             )
 
     def _update_stats(self):
@@ -322,6 +394,41 @@ class PerformanceMonitor:
                     'message': f'LLM调用错误率过高: {llm_error_rate:.1f}%',
                     'value': llm_error_rate,
                     'threshold': self.alert_thresholds['llm_error_rate']
+                })
+
+        # 知识库错误率告警
+        kb_stats = self.stats['kb_stats']['all']
+        if kb_stats['total_operations'] > 0:
+            kb_error_rate = kb_stats['error_rate']
+            if kb_error_rate > self.alert_thresholds['kb_error_rate']:
+                alerts.append({
+                    'type': 'kb_error_rate',
+                    'severity': 'warning',
+                    'message': f'知识库操作错误率过高: {kb_error_rate:.1f}%',
+                    'value': kb_error_rate,
+                    'threshold': self.alert_thresholds['kb_error_rate']
+                })
+
+        # RAGFlow连接状态告警
+        if self.alert_thresholds.get('ragflow_connection_failed') and metric.ragflow_connection_status in ['not_configured', 'connection_failed']:
+            alerts.append({
+                'type': 'ragflow_connection',
+                'severity': 'critical',
+                'message': f'RAGFlow服务连接异常: {metric.ragflow_connection_status}',
+                'value': metric.ragflow_connection_status,
+                'threshold': 'connected'
+            })
+
+        # 知识库错误数量告警
+        if metric.kb_total_count > 0:
+            kb_error_ratio = (metric.kb_error_count / metric.kb_total_count) * 100
+            if kb_error_ratio > 25:  # 超过25%的知识库处于错误状态
+                alerts.append({
+                    'type': 'kb_health',
+                    'severity': 'warning',
+                    'message': f'知识库健康状态异常: {metric.kb_error_count}/{metric.kb_total_count} 个知识库处于错误状态',
+                    'value': kb_error_ratio,
+                    'threshold': 25
                 })
 
         # 触发告警回调
@@ -479,11 +586,132 @@ class PerformanceMonitor:
             self.alert_thresholds[metric_type] = threshold
             logger.info(f"告警阈值已更新: {metric_type} = {threshold}")
 
+    def track_kb_operation(
+        self,
+        operation: str,
+        status: str,
+        response_time: float,
+        knowledge_base_id: Optional[int] = None,
+        dataset_id: Optional[str] = None,
+        document_count: Optional[int] = None,
+        error_message: Optional[str] = None
+    ):
+        """跟踪知识库操作"""
+        try:
+            metric = KnowledgeBaseMetric(
+                timestamp=datetime.now(),
+                operation=operation,
+                status=status,
+                response_time=response_time,
+                knowledge_base_id=knowledge_base_id,
+                dataset_id=dataset_id,
+                document_count=document_count,
+                error_message=error_message
+            )
+
+            self.kb_metrics.append(metric)
+
+            # 更新统计
+            kb_stats = self.stats['kb_stats']['all']
+            kb_stats['total_operations'] += 1
+
+            if status == 'success':
+                kb_stats['success_operations'] += 1
+
+            # 更新平均响应时间
+            total_time = kb_stats['avg_response_time'] * (kb_stats['total_operations'] - 1) + response_time
+            kb_stats['avg_response_time'] = total_time / kb_stats['total_operations']
+
+            # 更新错误率
+            kb_stats['error_rate'] = ((kb_stats['total_operations'] - kb_stats['success_operations']) / kb_stats['total_operations'] * 100)
+
+            logger.debug(f"知识库操作跟踪: {operation} - {status} ({response_time:.3f}s)")
+
+        except Exception as e:
+            logger.error(f"跟踪知识库操作失败: {str(e)}")
+
+    def get_kb_metrics_summary(self, hours: int = 1) -> Dict[str, Any]:
+        """获取知识库操作指标摘要"""
+        try:
+            cutoff_time = datetime.now() - timedelta(hours=hours)
+            recent_kb_metrics = [
+                metric for metric in self.kb_metrics
+                if metric.timestamp >= cutoff_time
+            ]
+
+            if not recent_kb_metrics:
+                return {
+                    'period_hours': hours,
+                    'total_operations': 0,
+                    'success_operations': 0,
+                    'failed_operations': 0,
+                    'success_rate': 0,
+                    'avg_response_time': 0,
+                    'operations_by_type': {},
+                    'errors': []
+                }
+
+            # 按操作类型分组统计
+            operations_by_type = defaultdict(lambda: {
+                'count': 0,
+                'success_count': 0,
+                'avg_response_time': 0
+            })
+
+            total_operations = len(recent_kb_metrics)
+            success_operations = 0
+            total_response_time = 0
+            errors = []
+
+            for metric in recent_kb_metrics:
+                op_type = metric.operation
+                ops = operations_by_type[op_type]
+
+                ops['count'] += 1
+                total_response_time += metric.response_time
+
+                if metric.status == 'success':
+                    ops['success_count'] += 1
+                    success_operations += 1
+                else:
+                    errors.append({
+                        'timestamp': metric.timestamp.isoformat(),
+                        'operation': op_type,
+                        'error': metric.error_message
+                    })
+
+            # 计算平均响应时间
+            for op_type, ops in operations_by_type.items():
+                ops['success_rate'] = (ops['success_count'] / ops['count'] * 100) if ops['count'] > 0 else 0
+                ops['avg_response_time'] = total_response_time / total_operations if total_operations > 0 else 0
+
+            success_rate = (success_operations / total_operations * 100) if total_operations > 0 else 0
+            avg_response_time = total_response_time / total_operations if total_operations > 0 else 0
+
+            return {
+                'period_hours': hours,
+                'total_operations': total_operations,
+                'success_operations': success_operations,
+                'failed_operations': total_operations - success_operations,
+                'success_rate': success_rate,
+                'avg_response_time': avg_response_time,
+                'operations_by_type': dict(operations_by_type),
+                'recent_errors': errors[-10:]  # 最近10个错误
+            }
+
+        except Exception as e:
+            logger.error(f"获取知识库指标摘要失败: {str(e)}")
+            return {
+                'period_hours': hours,
+                'error': str(e)
+            }
+
     def clear_history(self):
         """清空历史数据"""
         self.metrics_history.clear()
         self.request_history.clear()
         self.llm_metrics.clear()
+        self.kb_metrics.clear()
         logger.info("监控历史数据已清空")
 
 

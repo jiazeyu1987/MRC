@@ -173,6 +173,214 @@ class HealthCheckService:
                 response_time=response_time
             )
 
+    async def check_ragflow_health(self) -> HealthCheckResult:
+        """检查RAGFlow服务健康状态"""
+        start_time = datetime.now()
+        try:
+            from app.services.ragflow_service import get_ragflow_service
+
+            service = get_ragflow_service()
+            if not service:
+                response_time = (datetime.now() - start_time).total_seconds()
+                return HealthCheckResult(
+                    component='ragflow_service',
+                    status='unhealthy',
+                    message="RAGFlow服务未配置",
+                    details={'error': 'Service not configured', 'response_time_ms': response_time * 1000},
+                    response_time=response_time
+                )
+
+            # 验证配置
+            is_valid, errors = service.validate_config()
+            response_time = (datetime.now() - start_time).total_seconds()
+
+            details = {
+                'response_time_ms': response_time * 1000,
+                'api_base_url': service.config.api_base_url,
+                'timeout': service.config.timeout,
+                'max_retries': service.config.max_retries
+            }
+
+            if is_valid:
+                status = 'healthy'
+                message = "RAGFlow服务配置有效且连接正常"
+            else:
+                status = 'unhealthy'
+                message = f"RAGFlow服务配置无效: {'; '.join(errors)}"
+                details['validation_errors'] = errors
+
+            return HealthCheckResult(
+                component='ragflow_service',
+                status=status,
+                message=message,
+                details=details,
+                response_time=response_time
+            )
+
+        except Exception as e:
+            response_time = (datetime.now() - start_time).total_seconds()
+            logger.error(f"RAGFlow健康检查失败: {str(e)}")
+            return HealthCheckResult(
+                component='ragflow_service',
+                status='unhealthy',
+                message=f"RAGFlow服务检查失败: {str(e)}",
+                details={'error': str(e), 'response_time_ms': response_time * 1000},
+                response_time=response_time
+            )
+
+    async def check_knowledge_base_health(self) -> HealthCheckResult:
+        """检查知识库系统健康状态"""
+        start_time = datetime.now()
+        try:
+            from app.services.knowledge_base_service import get_knowledge_base_service
+            from app.services.ragflow_service import get_ragflow_service
+            from app.models import KnowledgeBase, RoleKnowledgeBase
+
+            # 初始化服务
+            kb_service = get_knowledge_base_service()
+            ragflow_service = get_ragflow_service()
+
+            # 检查RAGFlow连接
+            ragflow_status = 'unknown'
+            ragflow_message = ''
+            if ragflow_service:
+                try:
+                    is_valid, errors = ragflow_service.validate_config()
+                    if is_valid:
+                        ragflow_status = 'connected'
+                        ragflow_message = 'RAGFlow服务连接正常'
+                    else:
+                        ragflow_status = 'config_error'
+                        ragflow_message = f'RAGFlow配置错误: {"; ".join(errors)}'
+                except Exception as e:
+                    ragflow_status = 'connection_failed'
+                    ragflow_message = f'RAGFlow连接失败: {str(e)}'
+            else:
+                ragflow_status = 'not_configured'
+                ragflow_message = 'RAGFlow服务未配置'
+
+            # 检查知识库数据库状态
+            try:
+                total_kb = KnowledgeBase.query.count()
+                active_kb = KnowledgeBase.query.filter_by(status='active').count()
+                inactive_kb = KnowledgeBase.query.filter_by(status='inactive').count()
+                error_kb = KnowledgeBase.query.filter_by(status='error').count()
+
+                # 检查角色关联
+                total_associations = RoleKnowledgeBase.query.count()
+                active_associations = RoleKnowledgeBase.query.filter_by(is_active=True).count()
+
+                # 计算错误率
+                error_rate = (error_kb / total_kb * 100) if total_kb > 0 else 0
+
+                db_status = 'healthy'
+                db_message = f'知识库数据库正常: {total_kb}个知识库，{active_associations}个活跃关联'
+
+                if error_rate > 20:  # 超过20%的知识库处于错误状态
+                    db_status = 'degraded'
+                    db_message = f'知识库错误率过高: {error_rate:.1f}% ({error_kb}/{total_kb})'
+                elif total_kb == 0:
+                    db_status = 'degraded'
+                    db_message = '暂无知识库配置'
+
+            except Exception as e:
+                db_status = 'unhealthy'
+                db_message = f'知识库数据库访问失败: {str(e)}'
+                total_kb = active_kb = inactive_kb = error_kb = 0
+                total_associations = active_associations = 0
+                error_rate = 0
+
+            # 检查知识库服务操作
+            service_status = 'healthy'
+            service_message = '知识库服务操作正常'
+            operation_test_results = []
+
+            try:
+                # 测试统计信息获取
+                stats = kb_service.get_knowledge_base_statistics()
+                operation_test_results.append({
+                    'operation': 'get_statistics',
+                    'status': 'success',
+                    'response_time_ms': 0
+                })
+            except Exception as e:
+                operation_test_results.append({
+                    'operation': 'get_statistics',
+                    'status': 'failed',
+                    'error': str(e)
+                })
+                service_status = 'degraded'
+                service_message = '部分知识库服务操作失败'
+
+            # 检查最近同步状态（通过检查最近更新的知识库）
+            try:
+                from datetime import timedelta
+                recent_cutoff = datetime.now() - timedelta(hours=24)
+                recent_updates = KnowledgeBase.query.filter(
+                    KnowledgeBase.updated_at >= recent_cutoff
+                ).count()
+
+                sync_status = 'recent' if recent_updates > 0 else 'stale'
+            except Exception:
+                sync_status = 'unknown'
+
+            response_time = (datetime.now() - start_time).total_seconds()
+
+            details = {
+                'ragflow_service': {
+                    'status': ragflow_status,
+                    'message': ragflow_message
+                },
+                'database': {
+                    'status': db_status,
+                    'message': db_message,
+                    'total_knowledge_bases': total_kb,
+                    'active_knowledge_bases': active_kb,
+                    'inactive_knowledge_bases': inactive_kb,
+                    'error_knowledge_bases': error_kb,
+                    'error_rate_percent': round(error_rate, 1),
+                    'total_associations': total_associations,
+                    'active_associations': active_associations
+                },
+                'service_operations': {
+                    'status': service_status,
+                    'message': service_message,
+                    'test_results': operation_test_results
+                },
+                'sync_status': sync_status,
+                'response_time_ms': response_time * 1000
+            }
+
+            # 确定整体状态
+            if ragflow_status in ['not_configured', 'connection_failed'] or db_status == 'unhealthy':
+                status = 'unhealthy'
+                message = f"知识库系统异常: {ragflow_message}, {db_message}"
+            elif ragflow_status == 'config_error' or service_status == 'degraded' or db_status == 'degraded':
+                status = 'degraded'
+                message = f"知识库系统性能降级: {ragflow_message}, {db_message}"
+            else:
+                status = 'healthy'
+                message = "知识库系统运行正常"
+
+            return HealthCheckResult(
+                component='knowledge_base',
+                status=status,
+                message=message,
+                details=details,
+                response_time=response_time
+            )
+
+        except Exception as e:
+            response_time = (datetime.now() - start_time).total_seconds()
+            logger.error(f"知识库健康检查失败: {str(e)}")
+            return HealthCheckResult(
+                component='knowledge_base',
+                status='unhealthy',
+                message=f"知识库系统检查失败: {str(e)}",
+                details={'error': str(e), 'response_time_ms': response_time * 1000},
+                response_time=response_time
+            )
+
     async def check_system_resources(self) -> HealthCheckResult:
         """检查系统资源健康状态"""
         start_time = datetime.now()
@@ -342,6 +550,8 @@ class HealthCheckService:
         check_tasks = [
             self.check_database_health(),
             self.check_llm_health(),
+            self.check_ragflow_health(),
+            self.check_knowledge_base_health(),
             self.check_system_resources(),
             self.check_application_health(),
             self.check_external_dependencies()

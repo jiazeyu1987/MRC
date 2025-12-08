@@ -3,11 +3,13 @@ import asyncio
 from datetime import datetime
 from typing import List, Dict, Optional, Any, Tuple
 from app import db
-from app.models import Session, SessionRole, Message, FlowTemplate, FlowStep, Role
+from app.models import Session, SessionRole, Message, FlowTemplate, FlowStep, Role, RoleKnowledgeBase
 from app.services.session_service import SessionService, SessionError, FlowExecutionError
 from app.services.llm.conversation_service import conversation_llm_service
 from app.services.llm.conversation_service import LLMError
 from app.services.llm_file_record_service import record_llm_interaction
+from app.services.knowledge_base_service import get_knowledge_base_service
+from app.services.ragflow_service import get_ragflow_service, RAGFlowAPIError
 
 # 全局变量存储最新的LLM调试信息
 latest_llm_debug_info = None
@@ -82,7 +84,14 @@ class FlowEngineService:
                 'prompt': prompt_content,
                 'response': llm_response,
                 'timestamp': datetime.utcnow().isoformat(),
-                'context_summary': f"历史消息: {len(context.get('history_messages', []))}条"
+                'context_summary': f"历史消息: {len(context.get('history_messages', []))}条",
+                # 新增：知识库上下文信息
+                'knowledge_base_context': {
+                    'retrieved_items': len(context.get('knowledge_base', {}).get('retrieved_context', [])),
+                    'fallback_used': context.get('knowledge_base', {}).get('fallback_used', False),
+                    'error_message': context.get('knowledge_base', {}).get('error_message'),
+                    'performance_metrics': context.get('knowledge_base', {}).get('performance_metrics', {})
+                }
             }
 
             # 更新全局LLM调试信息变量
@@ -166,6 +175,156 @@ class FlowEngineService:
         return latest_llm_debug_info
 
     @staticmethod
+    def _retrieve_knowledge_base_context(
+        session_id: int,
+        role_ref: str,
+        context_query: str,
+        max_context_items: int = 5
+    ) -> Dict[str, Any]:
+        """
+        为指定角色检索相关知识库上下文
+
+        Args:
+            session_id: 会话ID
+            role_ref: 角色引用
+            context_query: 上下文查询关键词
+            max_context_items: 最大返回上下文条目数
+
+        Returns:
+            Dict[str, Any]: 包含知识库上下文的字典
+        """
+        start_time = datetime.utcnow()
+        knowledge_context = {
+            'retrieved_context': [],
+            'fallback_used': False,
+            'error_message': None,
+            'performance_metrics': {}
+        }
+
+        try:
+            # 获取角色对应的实际角色ID
+            speaker_session_role = SessionService.get_session_role_by_ref(session_id, role_ref)
+            if not speaker_session_role or not speaker_session_role.role_id:
+                knowledge_context['fallback_used'] = True
+                knowledge_context['error_message'] = f"角色 '{role_ref}' 未找到映射的实际角色"
+                return knowledge_context
+
+            role_id = speaker_session_role.role_id
+
+            # 获取角色的关联知识库（按优先级排序）
+            role_knowledge_bases = RoleKnowledgeBase.query.filter_by(
+                role_id=role_id,
+                is_active=True
+            ).order_by(RoleKnowledgeBase.priority).all()
+
+            if not role_knowledge_bases:
+                knowledge_context['fallback_used'] = True
+                knowledge_context['error_message'] = f"角色 '{role_ref}' 未关联任何知识库"
+                return knowledge_context
+
+            # 获取RAGFlow服务
+            ragflow_service = get_ragflow_service()
+            if not ragflow_service:
+                knowledge_context['fallback_used'] = True
+                knowledge_context['error_message'] = "RAGFlow服务不可用"
+                return knowledge_context
+
+            # 为每个知识库检索相关内容
+            all_retrieved_items = []
+            for role_kb in role_knowledge_bases:
+                try:
+                    # 获取知识库信息
+                    kb_service = get_knowledge_base_service()
+                    knowledge_base = kb_service.get_knowledge_base_by_id(role_kb.knowledge_base_id)
+
+                    if not knowledge_base or knowledge_base.status != 'active':
+                        continue
+
+                    # 使用RAGFlow检索相关内容
+                    retrieval_config = role_kb.retrieval_config_dict or {}
+                    top_k = retrieval_config.get('top_k', 3)
+                    similarity_threshold = retrieval_config.get('similarity_threshold', 0.7)
+
+                    # 构建检索查询，结合会话上下文和当前步骤需求
+                    retrieval_query = context_query[:500]  # 限制查询长度
+
+                    chat_response = ragflow_service.chat_with_dataset(
+                        dataset_id=knowledge_base.ragflow_dataset_id,
+                        question=retrieval_query,
+                        **{k: v for k, v in retrieval_config.items() if k in ['top_k', 'similarity_threshold']}
+                    )
+
+                    # 处理检索结果
+                    if chat_response and chat_response.answer:
+                        kb_context = {
+                            'knowledge_base_id': knowledge_base.id,
+                            'knowledge_base_name': knowledge_base.name,
+                            'content': chat_response.answer,
+                            'confidence_score': chat_response.confidence_score,
+                            'references': chat_response.references,
+                            'priority': role_kb.priority,
+                            'retrieval_config': retrieval_config
+                        }
+                        all_retrieved_items.append(kb_context)
+
+                except RAGFlowAPIError as e:
+                    # 记录单个知识库检索失败，但继续尝试其他知识库
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(
+                        f"知识库检索失败 (KB ID: {role_kb.knowledge_base_id}): {str(e)}"
+                    )
+                    continue
+                except Exception as e:
+                    # 记录其他错误，但继续尝试其他知识库
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(
+                        f"知识库检索异常 (KB ID: {role_kb.knowledge_base_id}): {str(e)}"
+                    )
+                    continue
+
+            # 按优先级和置信度排序检索结果
+            all_retrieved_items.sort(key=lambda x: (x['priority'], -x['confidence_score']))
+
+            # 限制返回的上下文条目数量
+            knowledge_context['retrieved_context'] = all_retrieved_items[:max_context_items]
+
+            # 计算性能指标
+            end_time = datetime.utcnow()
+            knowledge_context['performance_metrics'] = {
+                'retrieval_time_ms': int((end_time - start_time).total_seconds() * 1000),
+                'knowledge_bases_tried': len(role_knowledge_bases),
+                'successful_retrievals': len(all_retrieved_items),
+                'items_returned': len(knowledge_context['retrieved_context']),
+                'query_length': len(context_query)
+            }
+
+            # 如果没有检索到任何内容，标记为使用fallback
+            if not knowledge_context['retrieved_context']:
+                knowledge_context['fallback_used'] = True
+                knowledge_context['error_message'] = "未从任何知识库检索到相关内容"
+
+            return knowledge_context
+
+        except Exception as e:
+            # 整体检索失败
+            end_time = datetime.utcnow()
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"知识库上下文检索异常: {str(e)}")
+
+            knowledge_context['fallback_used'] = True
+            knowledge_context['error_message'] = f"知识库检索失败: {str(e)}"
+            knowledge_context['performance_metrics'] = {
+                'retrieval_time_ms': int((end_time - start_time).total_seconds() * 1000),
+                'error': True,
+                'error_type': type(e).__name__
+            }
+
+            return knowledge_context
+
+    @staticmethod
     def _build_context(session: Session, current_step: FlowStep) -> Dict[str, Any]:
         """
         构建对话上下文
@@ -211,7 +370,113 @@ class FlowEngineService:
             'target_role_ref': current_step.target_role_ref
         }
 
+        # 新增：检索并添加知识库上下文
+        knowledge_context = FlowEngineService._retrieve_knowledge_base_context(
+            session_id=session.id,
+            role_ref=current_step.speaker_role_ref,
+            context_query=FlowEngineService._build_context_query(session, current_step, messages),
+            max_context_items=5
+        )
+
+        context['knowledge_base'] = knowledge_context
+
+        # 记录知识库检索性能指标到日志
+        if knowledge_context.get('performance_metrics'):
+            import logging
+            logger = logging.getLogger(__name__)
+            perf_metrics = knowledge_context['performance_metrics']
+
+            if knowledge_context.get('fallback_used'):
+                logger.warning(
+                    f"知识库检索使用fallback (会话: {session.id}, 角色: {current_step.speaker_role_ref}): "
+                    f"{knowledge_context.get('error_message', '未知错误')}"
+                )
+            else:
+                logger.info(
+                    f"知识库检索成功 (会话: {session.id}, 角色: {current_step.speaker_role_ref}): "
+                    f"检索时间 {perf_metrics.get('retrieval_time_ms', 0)}ms, "
+                    f"返回 {perf_metrics.get('items_returned', 0)} 条上下文"
+                )
+
         return context
+
+    @staticmethod
+    def _build_context_query(session: Session, current_step: FlowStep, history_messages: List[Message]) -> str:
+        """
+        构建知识库检索的上下文查询
+
+        Args:
+            session: 会话对象
+            current_step: 当前步骤
+            history_messages: 历史消息列表
+
+        Returns:
+            str: 构建的上下文查询字符串
+        """
+        query_parts = []
+
+        # 添加会话主题
+        if session.topic:
+            query_parts.append(f"主题: {session.topic}")
+
+        # 添加当前步骤的描述
+        if current_step.description:
+            query_parts.append(f"任务: {current_step.description}")
+
+        # 添加任务类型相关的关键词
+        task_keywords = {
+            'ask_question': '提问 问题 询问',
+            'answer_question': '回答 解答 解释',
+            'review_answer': '评价 审查 分析',
+            'question': '质疑 反问 挑战',
+            'summarize': '总结 概要 归纳',
+            'evaluate': '评估 评价 判断',
+            'suggest': '建议 推荐 方案',
+            'challenge': '挑战 质疑 反驳',
+            'support': '支持 论证 证据',
+            'conclude': '结论 总结 结果'
+        }
+
+        if current_step.task_type in task_keywords:
+            query_parts.append(f"类型: {task_keywords[current_step.task_type]}")
+
+        # 添加最近的历史消息内容（最多2条）
+        recent_messages = history_messages[-2:] if history_messages else []
+        for msg in recent_messages:
+            if msg.get('content') and len(msg['content']) > 10:
+                # 截取消息的关键部分，避免查询过长
+                content_preview = msg['content'][:200] + "..." if len(msg['content']) > 200 else msg['content']
+                speaker = msg.get('speaker_role', '未知角色')
+                query_parts.append(f"{speaker}: {content_preview}")
+
+        # 合并查询部分
+        context_query = " ".join(query_parts)
+
+        # 限制查询总长度，确保不超过RAGFlow API限制
+        max_query_length = 800
+        if len(context_query) > max_query_length:
+            # 智能截取：优先保留主题和任务，截取历史消息部分
+            topic_task_parts = []
+            history_parts = []
+
+            for part in query_parts:
+                if part.startswith(('主题:', '任务:', '类型:')):
+                    topic_task_parts.append(part)
+                else:
+                    history_parts.append(part)
+
+            # 保留主题和任务部分
+            context_query = " ".join(topic_task_parts)
+
+            # 添加历史消息部分（截取到长度限制）
+            remaining_length = max_query_length - len(context_query)
+            if remaining_length > 100 and history_parts:  # 至少保留100字符给历史消息
+                history_text = " ".join(history_parts)
+                if len(history_text) > remaining_length:
+                    history_text = history_text[:remaining_length - 3] + "..."
+                context_query += " " + history_text
+
+        return context_query.strip()
 
     @staticmethod
     def _select_context_messages(session: Session, current_step: FlowStep) -> List[Message]:
@@ -391,6 +656,23 @@ class FlowEngineService:
                 content = msg['content'][:100] + "..." if len(msg['content']) > 100 else msg['content']
                 history_info += f"{speaker}: {content}\n"
 
+        # 新增：知识库上下文
+        knowledge_info = ""
+        knowledge_context = context.get('knowledge_base', {})
+        if knowledge_context and not knowledge_context.get('fallback_used', False):
+            retrieved_context = knowledge_context.get('retrieved_context', [])
+            if retrieved_context:
+                knowledge_info = "\n相关知识库参考：\n"
+                for idx, kb_item in enumerate(retrieved_context, 1):
+                    kb_name = kb_item.get('knowledge_base_name', '未知知识库')
+                    content = kb_item.get('content', '')[:300] + "..." if len(kb_item.get('content', '')) > 300 else kb_item.get('content', '')
+                    confidence_score = kb_item.get('confidence_score', 0.0)
+
+                    knowledge_info += f"[{idx}] {kb_name} (置信度: {confidence_score:.2f}): {content}\n"
+        elif knowledge_context and knowledge_context.get('fallback_used', False):
+            error_msg = knowledge_context.get('error_message', '知识库检索失败')
+            knowledge_info = f"\n注：{error_msg}，请基于自身知识进行回答。\n"
+
         # 组合提示词
         prompt = f"""{role_info}
 
@@ -400,7 +682,9 @@ class FlowEngineService:
 
 {history_info}
 
-请根据你的角色设定和当前任务，发表你的观点。"""
+{knowledge_info}
+
+请根据你的角色设定和当前任务，结合提供的知识库参考信息，发表你的观点。"""
 
         return prompt
 
@@ -434,13 +718,26 @@ class FlowEngineService:
         if session_topic and FlowEngineService._has_topic_context(step):
             prompt_parts.append(f"会话主题：{session_topic}")
 
-        
+
         # 添加上下文历史消息（如果有的话）
         history_messages = context.get('history_messages', [])
         if history_messages:
             context_section = FlowEngineService._format_context_for_prompt(history_messages)
             if context_section:
                 prompt_parts.append(context_section)
+
+        # 新增：添加知识库上下文
+        knowledge_context = context.get('knowledge_base', {})
+        if knowledge_context and not knowledge_context.get('fallback_used', False):
+            retrieved_context = knowledge_context.get('retrieved_context', [])
+            if retrieved_context:
+                kb_section = FlowEngineService._format_knowledge_base_for_prompt(retrieved_context)
+                if kb_section:
+                    prompt_parts.append(kb_section)
+        elif knowledge_context and knowledge_context.get('fallback_used', False):
+            # 如果知识库检索失败，添加提示信息
+            error_msg = knowledge_context.get('error_message', '知识库检索失败')
+            prompt_parts.append(f"注：{error_msg}，请基于自身知识进行回答。")
 
         return " ".join(prompt_parts)
 
@@ -470,6 +767,54 @@ class FlowEngineService:
                 context_parts.append(f"{speaker}说：{content}")
 
         return " ".join(context_parts)
+
+    @staticmethod
+    def _format_knowledge_base_for_prompt(retrieved_context: List[Dict[str, Any]]) -> str:
+        """
+        将检索到的知识库上下文格式化为适合LLM提示词的字符串
+
+        Args:
+            retrieved_context: 检索到的知识库上下文列表
+
+        Returns:
+            str: 格式化后的知识库上下文字符串
+        """
+        if not retrieved_context:
+            return ""
+
+        context_parts = []
+        context_parts.append("相关知识库参考：")
+
+        for idx, kb_item in enumerate(retrieved_context, 1):
+            kb_name = kb_item.get('knowledge_base_name', '未知知识库')
+            content = kb_item.get('content', '')
+            confidence_score = kb_item.get('confidence_score', 0.0)
+            references = kb_item.get('references', [])
+
+            if content:
+                # 添加知识库标识和置信度
+                context_parts.append(
+                    f"[{idx}] 来源：{kb_name} (置信度: {confidence_score:.2f})\n"
+                    f"内容：{content}"
+                )
+
+                # 添加引用信息（如果有）
+                if references:
+                    ref_texts = []
+                    for ref in references[:3]:  # 最多显示3个引用
+                        if isinstance(ref, dict):
+                            title = ref.get('title', '') or ref.get('name', '')
+                            if title:
+                                ref_texts.append(title)
+                        elif isinstance(ref, str):
+                            ref_texts.append(ref[:50])  # 截取字符串引用
+
+                    if ref_texts:
+                        context_parts.append(f"参考：{', '.join(ref_texts)}")
+
+                context_parts.append("")  # 添加空行分隔
+
+        return "\n".join(context_parts).strip()
 
     @staticmethod
     def _has_topic_context(step: FlowStep) -> bool:

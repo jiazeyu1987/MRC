@@ -136,6 +136,7 @@ class FlowTemplateService:
                 context_scope=step_data['context_scope'],  # 属性会自动处理JSON
                 context_param=step_data.get('context_param'),   # 属性会自动处理JSON
                 logic_config=step_data.get('logic_config'),     # 属性会自动处理JSON
+                knowledge_base_config=step_data.get('knowledge_base_config'),  # 知识库配置
                 next_step_id=step_data.get('next_step_id'),
                 description=step_data.get('description')
             )
@@ -231,6 +232,73 @@ class FlowTemplateService:
                 ctx_param = step.get('context_param')
                 if not isinstance(ctx_param, dict) or 'n' not in ctx_param:
                     raise StepValidationError("使用'last_n_messages'时必须提供context_param参数")
+
+            # 验证知识库配置
+            FlowTemplateService._validate_knowledge_base_config(step)
+
+    @staticmethod
+    def _validate_knowledge_base_config(step_data: Dict[str, Any]) -> None:
+        """
+        验证知识库配置
+
+        Args:
+            step_data: 步骤数据
+
+        Raises:
+            StepValidationError: 知识库配置验证失败
+        """
+        kb_config = step_data.get('knowledge_base_config')
+
+        # 如果没有知识库配置，则跳过验证
+        if not kb_config:
+            return
+
+        # 验证配置必须是字典类型
+        if not isinstance(kb_config, dict):
+            raise StepValidationError("知识库配置必须是字典格式")
+
+        # 验证必要的配置字段
+        if 'enabled' not in kb_config:
+            raise StepValidationError("知识库配置必须包含'enabled'字段")
+
+        # 如果启用了知识库，验证必要参数
+        if kb_config.get('enabled', False):
+            # 知识库ID是必需的
+            if 'knowledge_base_ids' not in kb_config:
+                raise StepValidationError("启用知识库时必须提供'knowledge_base_ids'字段")
+
+            kb_ids = kb_config['knowledge_base_ids']
+
+            # 验证知识库ID格式
+            if not isinstance(kb_ids, list):
+                raise StepValidationError("knowledge_base_ids必须是数组格式")
+
+            if not kb_ids:  # 不能为空数组
+                raise StepValidationError("knowledge_base_ids不能为空")
+
+            # 验证每个知识库ID都是字符串
+            for kb_id in kb_ids:
+                if not isinstance(kb_id, str) or not kb_id.strip():
+                    raise StepValidationError("知识库ID必须是非空字符串")
+
+            # 验证检索参数（如果提供）
+            retrieval_params = kb_config.get('retrieval_params', {})
+            if retrieval_params and not isinstance(retrieval_params, dict):
+                raise StepValidationError("retrieval_params必须是字典格式")
+
+            # 验证常用的检索参数
+            if retrieval_params:
+                # top_k参数验证
+                if 'top_k' in retrieval_params:
+                    top_k = retrieval_params['top_k']
+                    if not isinstance(top_k, int) or top_k < 1 or top_k > 100:
+                        raise StepValidationError("top_k必须是1-100之间的整数")
+
+                # similarity_threshold参数验证
+                if 'similarity_threshold' in retrieval_params:
+                    threshold = retrieval_params['similarity_threshold']
+                    if not isinstance(threshold, (int, float)) or threshold < 0 or threshold > 1:
+                        raise StepValidationError("similarity_threshold必须是0-1之间的数值")
 
     @staticmethod
     def get_template_by_id(template_id: int, include_steps: bool = True) -> Optional[FlowTemplate]:
@@ -433,9 +501,9 @@ class FlowTemplateService:
                     target_role_ref=source_step.target_role_ref,
                     task_type=source_step.task_type,
                     context_scope=source_step.context_scope,
-                    context_param_dict=source_step.context_param_dict,
-                    loop_config_dict=source_step.loop_config_dict,
-                    condition_config_dict=source_step.condition_config_dict,
+                    context_param=source_step.context_param,
+                    logic_config=source_step.logic_config,
+                    knowledge_base_config=source_step.knowledge_base_config,  # 复制知识库配置
                     next_step_id=source_step.next_step_id,
                     description=source_step.description
                 )
@@ -513,3 +581,65 @@ class FlowTemplateService:
             db.session.rollback()
             current_app.logger.error(f"删除所有模板时发生错误: {str(e)}")
             raise
+
+    @staticmethod
+    def validate_template_knowledge_bases(template_id: int) -> Dict[str, Any]:
+        """
+        验证模板中所有步骤的知识库引用
+
+        Args:
+            template_id: 模板ID
+
+        Returns:
+            Dict[str, Any]: 验证结果，包含有效性状态和详细信息
+        """
+        from app.models import FlowStep
+
+        template = FlowTemplate.query.get(template_id)
+        if not template:
+            raise TemplateNotFoundError(f"模板ID {template_id} 不存在")
+
+        steps = FlowStep.query.filter_by(flow_template_id=template_id).all()
+
+        validation_result = {
+            'valid': True,
+            'total_steps': len(steps),
+            'steps_with_kb': 0,
+            'total_kb_references': 0,
+            'valid_kb_references': 0,
+            'errors': [],
+            'step_details': []
+        }
+
+        for step in steps:
+            step_detail = {
+                'step_id': step.id,
+                'step_order': step.order,
+                'speaker_role_ref': step.speaker_role_ref,
+                'kb_enabled': step.is_knowledge_base_enabled(),
+                'kb_ids': step.get_knowledge_base_ids(),
+                'valid': True,
+                'errors': []
+            }
+
+            if step.is_knowledge_base_enabled():
+                validation_result['steps_with_kb'] += 1
+                validation_result['total_kb_references'] += len(step.get_knowledge_base_ids())
+
+                # 验证知识库引用
+                is_valid, errors = step.validate_knowledge_base_references()
+                step_detail['valid'] = is_valid
+                step_detail['errors'] = errors
+
+                if not is_valid:
+                    validation_result['valid'] = False
+                    validation_result['errors'].extend([
+                        f"步骤{step.order}({step.speaker_role_ref}): {error}"
+                        for error in errors
+                    ])
+                else:
+                    validation_result['valid_kb_references'] += len(step.get_knowledge_base_ids())
+
+            validation_result['step_details'].append(step_detail)
+
+        return validation_result

@@ -45,6 +45,14 @@ class Config:
     MAX_LOOP_COUNT = 10
     LLM_TIMEOUT = 60  # 秒
 
+    # RAGFlow集成配置
+    RAGFLOW_API_BASE_URL = os.environ.get('RAGFLOW_API_BASE_URL', '')
+    RAGFLOW_API_KEY = os.environ.get('RAGFLOW_API_KEY', '')
+    RAGFLOW_TIMEOUT = int(os.environ.get('RAGFLOW_TIMEOUT', '30'))
+    RAGFLOW_MAX_RETRIES = int(os.environ.get('RAGFLOW_MAX_RETRIES', '3'))
+    RAGFLOW_RETRY_DELAY = float(os.environ.get('RAGFLOW_RETRY_DELAY', '1.0'))
+    RAGFLOW_VERIFY_SSL = os.environ.get('RAGFLOW_VERIFY_SSL', 'true').lower() == 'true'
+
 
 class DevelopmentConfig(Config):
     """开发环境配置"""

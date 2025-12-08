@@ -38,7 +38,8 @@ import {
   Key,
   FileCheck,
   Pause,
-  AlertTriangle
+  AlertTriangle,
+  Database
 } from 'lucide-react';
 
 
@@ -46,9 +47,12 @@ import {
 import { roleApi } from './api/roleApi';
 import { flowApi, FlowTemplate, FlowStep } from './api/flowApi';
 import { sessionApi, Session, Message } from './api/sessionApi';
-import { Role, RoleRequest } from './types/role';
+import { Role, RoleRequest, RoleKnowledgeBase } from './types/role';
+import { KnowledgeBase } from './types/knowledge';
+import { knowledgeApi } from './api/knowledgeApi';
 import { handleError } from './utils/errorHandler';
 import SessionTheater from './components/SessionTheater';
+import KnowledgeBaseManagement from './components/KnowledgeBaseManagement';
 
 // --- 主题配置系统 ---
 
@@ -348,9 +352,9 @@ const Card = ({ children, className = '', title, actions }: any) => (
   </div>
 );
 
-const Badge = ({ children, color = 'theme' }: any) => {
+const Badge = ({ children, color = 'theme', size = 'md' }: any) => {
   const { theme } = useTheme();
-  
+
   // Custom theme badge or semantic colors
   let colorClass = "";
   if (color === 'theme') colorClass = theme.badge;
@@ -359,8 +363,14 @@ const Badge = ({ children, color = 'theme' }: any) => {
   else if (color === 'red') colorClass = "bg-red-100 text-red-800";
   else colorClass = "bg-blue-100 text-blue-800"; // fallback
 
+  // Size classes
+  const sizeClasses = {
+    sm: "px-1.5 py-0.5 text-xs",
+    md: "px-2 py-0.5 text-xs"
+  };
+
   return (
-    <span className={`px-2 py-0.5 rounded text-xs font-medium ${colorClass}`}>
+    <span className={`${sizeClasses[size] || sizeClasses.md} rounded font-medium ${colorClass}`}>
       {children}
     </span>
   );
@@ -392,22 +402,320 @@ const EmptyState = ({ message, action }: any) => (
   </div>
 );
 
+// --- Components ---
+
+// Knowledge Base Selector Component for Role Management
+const KnowledgeBaseSelector: React.FC<{
+  selectedAssociations: Array<{
+    knowledge_base_id: number;
+    priority: number;
+    filtering_rules?: {
+      enabled: boolean;
+      confidence_threshold?: number;
+      document_types?: string[];
+      keywords?: string[];
+    };
+  }>;
+  onChange: (associations: Array<{
+    knowledge_base_id: number;
+    priority: number;
+    filtering_rules?: {
+      enabled: boolean;
+      confidence_threshold?: number;
+      document_types?: string[];
+      keywords?: string[];
+    };
+  }>) => void;
+  knowledgeBases: KnowledgeBase[];
+  className?: string;
+}> = ({ selectedAssociations, onChange, knowledgeBases, className = '' }) => {
+  const { theme } = useTheme();
+  const [expandedAssociation, setExpandedAssociation] = useState<number | null>(null);
+
+  const addAssociation = () => {
+    const usedIds = selectedAssociations.map(a => a.knowledge_base_id);
+    const availableKB = knowledgeBases.find(kb => !usedIds.includes(kb.id));
+
+    if (availableKB) {
+      const newAssociations = [
+        ...selectedAssociations,
+        {
+          knowledge_base_id: availableKB.id,
+          priority: Math.max(...selectedAssociations.map(a => a.priority), 0) + 1,
+          filtering_rules: {
+            enabled: false,
+            confidence_threshold: 0.7,
+            document_types: [],
+            keywords: []
+          }
+        }
+      ];
+      onChange(newAssociations);
+    }
+  };
+
+  const updateAssociation = (index: number, field: string, value: any) => {
+    const newAssociations = [...selectedAssociations];
+    if (field === 'filtering_rules') {
+      newAssociations[index] = {
+        ...newAssociations[index],
+        filtering_rules: { ...newAssociations[index].filtering_rules, ...value }
+      };
+    } else {
+      newAssociations[index] = { ...newAssociations[index], [field]: value };
+    }
+    onChange(newAssociations);
+  };
+
+  const removeAssociation = (index: number) => {
+    const newAssociations = selectedAssociations.filter((_, i) => i !== index);
+    // Re-order priorities
+    const reorderedAssociations = newAssociations.map((assoc, i) => ({
+      ...assoc,
+      priority: i + 1
+    }));
+    onChange(reorderedAssociations);
+  };
+
+  const moveAssociation = (fromIndex: number, toIndex: number) => {
+    const newAssociations = [...selectedAssociations];
+    const [moved] = newAssociations.splice(fromIndex, 1);
+    newAssociations.splice(toIndex, 0, moved);
+
+    // Re-order priorities based on new positions
+    const reorderedAssociations = newAssociations.map((assoc, i) => ({
+      ...assoc,
+      priority: i + 1
+    }));
+    onChange(reorderedAssociations);
+  };
+
+  const getKnowledgeBaseName = (kbId: number) => {
+    const kb = knowledgeBases.find(k => k.id === kbId);
+    return kb ? kb.name : `Knowledge Base #${kbId}`;
+  };
+
+  return (
+    <div className={`space-y-3 ${className}`}>
+      <div className="flex justify-between items-center">
+        <label className="block text-sm font-medium text-gray-700">
+          <Database className="inline-block w-4 h-4 mr-1" />
+          关联知识库
+        </label>
+        <Button
+          size="sm"
+          onClick={addAssociation}
+          disabled={selectedAssociations.length >= knowledgeBases.length}
+          icon={Plus}
+        >
+          添加知识库
+        </Button>
+      </div>
+
+      {selectedAssociations.length === 0 ? (
+        <div className="text-center py-4 border-2 border-dashed border-gray-200 rounded-lg text-gray-500">
+          <Database className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+          <p className="text-sm">暂无关联知识库</p>
+          <p className="text-xs mt-1">点击上方按钮添加知识库关联</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {selectedAssociations
+            .sort((a, b) => a.priority - b.priority)
+            .map((association, index) => {
+              const isExpanded = expandedAssociation === index;
+              const kb = knowledgeBases.find(k => k.id === association.knowledge_base_id);
+
+              return (
+                <div key={index} className={`border rounded-lg p-3 ${theme.bgSoft} ${theme.border}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="flex items-center gap-2">
+                        <Database className={`w-4 h-4 ${theme.text}`} />
+                        <span className="font-medium text-sm">
+                          {getKnowledgeBaseName(association.knowledge_base_id)}
+                        </span>
+                        <Badge color="theme" size="sm">
+                          优先级: {association.priority}
+                        </Badge>
+                        {kb?.status === 'active' ? (
+                          <Badge color="green" size="sm">活跃</Badge>
+                        ) : (
+                          <Badge color="gray" size="sm">离线</Badge>
+                        )}
+                      </div>
+
+                      {kb && (
+                        <div className="text-xs text-gray-500">
+                          {kb.document_count} 文档 · {(kb.total_size / 1024 / 1024).toFixed(1)}MB
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => moveAssociation(index, Math.max(0, index - 1))}
+                        disabled={index === 0}
+                        className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                        title="上移"
+                      >
+                        <ChevronDown className="w-4 h-4 rotate-180" />
+                      </button>
+                      <button
+                        onClick={() => moveAssociation(index, Math.min(selectedAssociations.length - 1, index + 1))}
+                        disabled={index === selectedAssociations.length - 1}
+                        className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                        title="下移"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setExpandedAssociation(isExpanded ? null : index)}
+                        className={`p-1 ${isExpanded ? theme.text : 'text-gray-400'} hover:text-gray-600`}
+                        title={isExpanded ? '收起详情' : '展开详情'}
+                      >
+                        <Settings className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => removeAssociation(index)}
+                        className="p-1 text-gray-400 hover:text-red-600"
+                        title="移除关联"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="mt-3 space-y-3 border-t pt-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            知识库
+                          </label>
+                          <select
+                            className={`w-full border rounded px-2 py-1 text-sm ${theme.ring}`}
+                            value={association.knowledge_base_id}
+                            onChange={(e) => updateAssociation(index, 'knowledge_base_id', Number(e.target.value))}
+                          >
+                            <option value="">选择知识库...</option>
+                            {knowledgeBases
+                              .filter(kb => !selectedAssociations.some(a => a.knowledge_base_id === kb.id) || kb.id === association.knowledge_base_id)
+                              .map(kb => (
+                                <option key={kb.id} value={kb.id}>
+                                  {kb.name} ({kb.document_count} 文档)
+                                </option>
+                              ))
+                            }
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            优先级
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            className={`w-full border rounded px-2 py-1 text-sm ${theme.ring}`}
+                            value={association.priority}
+                            onChange={(e) => updateAssociation(index, 'priority', Number(e.target.value))}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <input
+                            type="checkbox"
+                            id={`filtering-enabled-${index}`}
+                            checked={association.filtering_rules?.enabled || false}
+                            onChange={(e) => updateAssociation(index, 'filtering_rules', { enabled: e.target.checked })}
+                            className="rounded"
+                          />
+                          <label htmlFor={`filtering-enabled-${index}`} className="text-sm font-medium text-gray-700">
+                            启用过滤规则
+                          </label>
+                        </div>
+
+                        {association.filtering_rules?.enabled && (
+                          <div className="space-y-2 pl-6">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">
+                                置信度阈值 (0-1)
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                max="1"
+                                step="0.1"
+                                className={`w-full border rounded px-2 py-1 text-sm ${theme.ring}`}
+                                value={association.filtering_rules?.confidence_threshold || 0.7}
+                                onChange={(e) => updateAssociation(index, 'filtering_rules', {
+                                  confidence_threshold: Number(e.target.value)
+                                })}
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">
+                                关键词 (逗号分隔)
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="例如：物理,数学,科学"
+                                className={`w-full border rounded px-2 py-1 text-sm ${theme.ring}`}
+                                value={association.filtering_rules?.keywords?.join(', ') || ''}
+                                onChange={(e) => updateAssociation(index, 'filtering_rules', {
+                                  keywords: e.target.value ? e.target.value.split(',').map(k => k.trim()).filter(k => k) : []
+                                })}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // --- Pages ---
 
 // 1. Role Management
 const RoleManagement = () => {
   const { theme } = useTheme();
   const [roles, setRoles] = useState<Role[]>([]);
+  const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState<Partial<Role>>({});
+  const [editingRole, setEditingRole] = useState<Partial<Role> & { knowledge_base_associations?: any[] }>({});
   const [saving, setSaving] = useState(false);
+
+  const fetchKnowledgeBases = async () => {
+    try {
+      const response = await knowledgeApi.getKnowledgeBases({ page_size: 100 });
+      setKnowledgeBases(response.knowledge_bases);
+    } catch (error: any) {
+      console.error('获取知识库列表失败:', error);
+      // 不显示错误消息，因为这是辅助功能
+      setKnowledgeBases([]);
+    }
+  };
 
   const fetchRoles = async () => {
     try {
       setLoading(true);
-      const response = await roleApi.getRoles();
-      setRoles(response.items);
+      const [rolesResponse] = await Promise.all([
+        roleApi.getRoles(),
+        fetchKnowledgeBases()
+      ]);
+      setRoles(rolesResponse.items);
     } catch (error: any) {
       console.error('获取角色列表失败:', error);
       alert(error.message || '获取角色列表失败');
@@ -431,7 +739,8 @@ const RoleManagement = () => {
 
       const roleData: RoleRequest = {
         name: editingRole.name!,
-        prompt: editingRole.prompt!
+        prompt: editingRole.prompt!,
+        knowledge_base_associations: editingRole.knowledge_base_associations
       };
 
       if (editingRole.id) {
@@ -574,7 +883,17 @@ const RoleManagement = () => {
                     {role.name[0]}
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900">{role.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-gray-900">{role.name}</h3>
+                      {role.knowledge_bases && role.knowledge_bases.length > 0 && (
+                        <div className="flex items-center gap-1">
+                          <Database className="w-3 h-3 text-blue-500" />
+                          <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full">
+                            {role.knowledge_bases.length} KB
+                          </span>
+                        </div>
+                      )}
+                    </div>
                     <p className="text-xs text-gray-500">
                       创建于 {new Date(role.created_at).toLocaleDateString()}
                     </p>
@@ -648,6 +967,18 @@ const RoleManagement = () => {
             />
             <p className="text-xs text-gray-500 mt-1">
               提示词用于定义角色的性格、专业背景、说话风格等特征
+            </p>
+          </div>
+
+          {/* Knowledge Base Association */}
+          <div>
+            <KnowledgeBaseSelector
+              selectedAssociations={editingRole.knowledge_base_associations || []}
+              onChange={(associations) => setEditingRole({...editingRole, knowledge_base_associations: associations})}
+              knowledgeBases={knowledgeBases}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              关联知识库后，角色在对话中可以检索和使用相关知识库的信息
             </p>
           </div>
         </div>
@@ -1899,6 +2230,7 @@ const App = () => {
       case 'roles': return <RoleManagement />;
       case 'flows': return <FlowManagement />;
       case 'sessions': return <SessionManagement onPlayback={playbackSessionId} />;
+      case 'knowledge': return <KnowledgeBaseManagement />;
       case 'history': return <HistoryPage onPlayback={handlePlayback} />;
       case 'settings': return <SettingsPage />;
       default: return <RoleManagement />;
@@ -1927,6 +2259,7 @@ const App = () => {
             <NavItem icon={Users} label="角色管理" active={activeTab === 'roles'} onClick={() => setActiveTab('roles')} />
             <NavItem icon={GitBranch} label="流程模板" active={activeTab === 'flows'} onClick={() => setActiveTab('flows')} />
             <NavItem icon={Play} label="会话剧场" active={activeTab === 'sessions'} onClick={() => setActiveTab('sessions')} />
+            <NavItem icon={Database} label="知识库" active={activeTab === 'knowledge'} onClick={() => setActiveTab('knowledge')} />
             <div className="pt-4 mt-4 border-t border-slate-700">
               <NavItem icon={FileText} label="历史记录" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
               <NavItem icon={Settings} label="系统设置" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />

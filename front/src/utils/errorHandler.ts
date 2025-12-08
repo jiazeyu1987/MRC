@@ -95,7 +95,7 @@ export class ApiErrorHandler {
   /**
    * 显示用户友好的错误消息
    */
-  static showUserMessage(message: string, type: 'error' | 'warning' | 'info' = 'error') {
+  static showUserMessage(message: string) {
     // 如果浏览器支持通知API
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('Multi-Role Chat', {

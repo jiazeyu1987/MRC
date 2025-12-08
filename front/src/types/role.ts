@@ -1,17 +1,44 @@
 // 角色相关的TypeScript类型定义
 
+export interface RoleKnowledgeBase {
+  id: number;
+  knowledge_base_id: number;
+  knowledge_base_name: string;
+  priority: number;
+  filtering_rules?: {
+    enabled: boolean;
+    confidence_threshold?: number;
+    document_types?: string[];
+    keywords?: string[];
+  };
+  created_at: string;
+}
+
 export interface Role {
   id: number;
   name: string;
   prompt: string;
   created_at: string;
   updated_at?: string;
+  // 知识库关联信息
+  knowledge_bases?: RoleKnowledgeBase[];
 }
 
 // 角色创建/更新请求类型
 export interface RoleRequest {
   name: string;
   prompt: string;
+  // 知识库关联信息
+  knowledge_base_associations?: Array<{
+    knowledge_base_id: number;
+    priority: number;
+    filtering_rules?: {
+      enabled: boolean;
+      confidence_threshold?: number;
+      document_types?: string[];
+      keywords?: string[];
+    };
+  }>;
 }
 
 // 角色列表查询参数

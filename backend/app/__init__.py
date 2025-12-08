@@ -88,6 +88,8 @@ def register_api(app):
     from app.api.flows import FlowList, FlowDetail, FlowCopy, FlowStatistics, FlowClearAll
     from app.api.sessions import SessionList, SessionDetail, SessionExecution, SessionControl, SessionBranch, SessionStatistics, LLMDebugInfo
     from app.api.messages import MessageList, MessageDetail, MessageExport, MessageReplies, MessageStatistics, MessageFlow, MessageSearch
+    from app.api.knowledge_bases import (KnowledgeBaseList, KnowledgeBaseDetail,
+                                        KnowledgeBaseStatistics, KnowledgeBaseConversationDetail)
     from app.api.monitoring import (SystemHealth, PerformanceMetrics, PerformanceHistory,
                                   PerformanceSummary, HealthHistory, ComponentHealthTrend,
                                   SystemInfo, MonitoringAlerts, MonitoringControl, MonitoringDashboard)
@@ -142,6 +144,12 @@ def register_api(app):
     # LLM对话接口
     from app.api.llm import register_llm_routes
     register_llm_routes(api)
+
+    # 知识库管理接口
+    api.add_resource(KnowledgeBaseList, '/api/knowledge-bases')
+    api.add_resource(KnowledgeBaseDetail, '/api/knowledge-bases/<int:knowledge_base_id>')
+    api.add_resource(KnowledgeBaseStatistics, '/api/knowledge-bases/statistics')
+    api.add_resource(KnowledgeBaseConversationDetail, '/api/knowledge-bases/<int:knowledge_base_id>/conversations/<int:conversation_id>')
 
     # LLM文件记录接口
     from app.api.llm_file_records import llm_file_records_bp

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **Multi-Role Dialogue System (MRC)** - a comprehensive full-stack application for creating configurable, multi-role conversation environments. The system enables users to orchestrate conversations between multiple virtual roles (teachers, students, experts, officials, etc.) around specific topics using structured dialogue flows with advanced features like loops, conditions, and real-time execution.
+This is a **Multi-Role Dialogue System (MRC)** - a comprehensive full-stack application for creating configurable, multi-role conversation environments with integrated **RAGFlow Knowledge Base System**. The system enables users to orchestrate conversations between multiple virtual roles (teachers, students, experts, officials, etc.) around specific topics using structured dialogue flows with advanced features like loops, conditions, and real-time execution. The knowledge base system provides powerful retrieval-augmented generation capabilities through RAGFlow integration. The project was migrated from `D:\ProjectPackage\MultiRoleChat\backend` on 2025-12-05.
 
 ## Architecture
 
@@ -13,6 +13,7 @@ This is a **Multi-Role Dialogue System (MRC)** - a comprehensive full-stack appl
 - **Frontend**: React 18.2.0 with TypeScript, Vite, Tailwind CSS
 - **Database**: SQLite with migration support
 - **LLM Integration**: OpenAI API (configurable for other providers)
+- **Knowledge Base**: RAGFlow integration for retrieval-augmented generation
 - **Real-time**: WebSocket and Server-Sent Events support
 
 ### Project Structure
@@ -20,16 +21,20 @@ This is a **Multi-Role Dialogue System (MRC)** - a comprehensive full-stack appl
 MRC/
 ├── backend/           # Flask REST API server (port 5010)
 │   ├── app/
-│   │   ├── api/      # API endpoints (roles, flows, sessions, messages, llm)
-│   │   ├── models/   # SQLAlchemy models (Role, FlowTemplate, Session, Message)
+│   │   ├── api/      # API endpoints (roles, flows, sessions, messages, llm, knowledge_bases)
+│   │   ├── models/   # SQLAlchemy models (Role, FlowTemplate, Session, Message, KnowledgeBase)
+│   │   ├── services/ # Business logic services (knowledge_base_service.py, ragflow_service.py)
 │   │   └── utils/    # Utilities (monitoring, error handling)
 │   ├── run.py        # Application entry point with CLI commands
+│   ├── add_knowledge_base_tables.py  # Knowledge base database migration
 │   └── conversations.db  # SQLite database
+├── doc/              # Documentation (ragflow.md - RAGFlow API reference)
 └── front/            # React TypeScript frontend (port 3000)
     ├── src/
-    │   ├── api/      # API client modules
-    │   ├── components/ # React components (some have build issues)
+    │   ├── api/      # API client modules (knowledgeApi.ts)
+    │   ├── components/ # React components (KnowledgeBaseManagement.tsx, KnowledgeBaseList.tsx)
     │   ├── hooks/    # Custom React hooks
+    │   ├── types/    # TypeScript types (knowledge.ts)
     │   └── utils/    # Frontend utilities
     └── vite.config.ts # Development proxy to backend:5010
 ```
@@ -40,6 +45,9 @@ MRC/
 ```bash
 # Navigate to backend directory
 cd backend
+
+# Environment validation and quick start (recommended)
+python quick_start.py          # Comprehensive environment check + validation
 
 # Install dependencies
 pip install -r requirements.txt
@@ -63,6 +71,16 @@ python check_database.py        # Alternative database status check
 python init_database.py         # Initialize database with schema
 python apply_migration.py       # Apply database migrations
 python update_topic_length.py   # Update topic field length migration
+python cleanup_llm_records.py   # Clean LLM interaction records
+
+# Knowledge base system setup
+python add_knowledge_base_tables.py  # Add knowledge base tables to database
+python add_knowledge_base_config_migration.py  # Add knowledge base configuration fields
+
+# Code verification and utilities
+python check_syntax.py          # Check Python syntax
+python verify_fix.py            # Verify applied fixes
+python char_count_monitor.py   # Monitor character usage
 ```
 
 ### Frontend Development
@@ -91,35 +109,51 @@ npm run check
 
 ### Quick Development Workflow
 ```bash
-# Terminal 1: Start backend
-cd backend && python run.py
+# Terminal 1: Start backend (with environment validation)
+cd backend && python quick_start.py
+# Or if environment already validated: python run.py
 
 # Terminal 2: Start frontend (auto-reloads)
-cd front && npm run dev
+cd front && npm run quick-start
+# Or if environment already validated: npm run dev
 
 # Access application at http://localhost:3000
 # API available at http://localhost:3000/api/* (proxied to backend:5010)
 # Health check: http://localhost:3000/api/health
+
+# Knowledge Base Setup (one-time)
+cd backend && python add_knowledge_base_tables.py
+# Configure RAGFlow in .env file (RAGFLOW_API_KEY, RAGFLOW_BASE_URL)
+# Access Knowledge Base tab in the UI to sync datasets
 ```
 
-### Frontend Quick Start Script
+### Quick Start Scripts (Recommended for First-time Setup)
+
+#### Backend Quick Start
+The `backend/quick_start.py` script provides comprehensive environment validation:
+- Checks Python version (requires 3.8+)
+- Validates all dependencies from requirements.txt
+- Verifies database file and schema
+- Checks for required .env configuration
+- Provides step-by-step guidance for setup issues
+
+#### Frontend Quick Start
 The `front/quick-start.js` script provides automated environment validation:
 - Checks Node.js version (requires 16+)
-- Validates project structure and required files
+- Validates project structure and required files (package.json, vite.config.ts, tsconfig.json, src files)
 - Verifies dependencies (auto-installs if missing)
 - Validates backend proxy configuration
-- Starts development server with comprehensive error handling
+- Starts development server with comprehensive error handling and colored output
 
-### Quick Start Scripts
+#### Quick Start Commands
 ```bash
+# Backend quick start (environment check + validation + setup guidance)
+cd backend && python quick_start.py
+
 # Frontend quick start (environment check + auto-install deps + start dev server)
 cd front && npm run quick-start
-
-# Alternative: Use the Node.js script directly
+# Or use the Node.js script directly
 cd front && node quick-start.js
-
-# Backend quick start (if available)
-cd backend && python quick_start.py
 ```
 
 ## Core System Components
@@ -134,6 +168,41 @@ cd backend && python quick_start.py
 - **LLMInteraction** - Detailed LLM API logging with token usage, performance metrics, and provider tracking
 - **StepExecutionLog** - Step execution tracking with performance metrics, loop iteration, and debugging snapshots
 
+#### Knowledge Base System Models
+- **KnowledgeBase** - RAGFlow dataset integration with metadata, document count, and status tracking
+- **KnowledgeBaseConversation** - Test conversation history with RAGFlow responses and reference tracking
+- **RoleKnowledgeBase** - Junction table linking roles to knowledge bases with priority and retrieval configuration
+
+### Backend Services Architecture
+The backend includes a comprehensive services layer (`backend/app/services/`):
+
+#### Core Services
+- **FlowEngineService** (`flow_engine_service.py`) - Core conversation execution engine with step-by-step processing (46KB)
+- **SessionService** (`session_service.py`) - Session management, state tracking, and lifecycle control
+- **MessageService** (`message_service.py`) - Message processing, threading, and conversation history management
+- **FlowService** (`flow_service.py`) - Flow template management, validation, and versioning
+
+#### LLM Integration Services
+- **LLM Service** (`services/llm/`) - Simplified LLM integration focused on Anthropic Claude with automatic provider detection
+- **LLM File Record Service** (`llm_file_record_service.py`) - LLM interaction file recording and management
+- **Conversation Manager** (`conversation_manager.py`) - LLM conversation state management and context handling
+
+#### System Services
+- **CacheService** (`cache_service.py`) - Performance caching mechanisms for frequently accessed data
+- **HealthService** (`health_service.py`) - System health monitoring and status reporting
+- **RateLimitService** (`rate_limit_service.py`) - API rate limiting and request throttling
+- **SecurityService** (`security_service.py`) - Security utilities and input validation
+
+#### Knowledge Base Services
+- **KnowledgeBaseService** (`knowledge_base_service.py`) - Complete knowledge base management with CRUD operations, RAGFlow synchronization, role associations, and statistics
+- **RAGFlowService** (`ragflow_service.py`) - RAGFlow API integration with dataset management, chat assistant functionality, connection management, and retry logic
+
+#### Utility Services
+- **LLM Logger** (`utils/llm_logger.py`) - Specialized LLM request/response logging with detailed metrics
+- **Prompt Optimizer** (`utils/prompt_optimizer.py`) - Prompt optimization and enhancement utilities
+- **Token Counter** (`utils/token_counter.py`) - Usage tracking and token limit management
+- **Request Tracker** (`utils/request_tracker.py`) - Request monitoring and debugging support
+
 ### Database Architecture
 - **Session Isolation**: Sessions use snapshots to preserve template versions at creation time
 - **JSON Configuration**: Complex configurations stored as JSON (termination, logic, context scopes)
@@ -141,12 +210,24 @@ cd backend && python quick_start.py
 - **Multi-level Tracking**: Support for nested loops, rounds, and step execution sequences
 - **Error Handling**: Built-in error tracking and debugging capabilities throughout the schema
 
-### Frontend Components
-- **MultiRoleDialogSystem.tsx** - Main application interface (63KB)
-- **LLMTestPage.tsx** - LLM API testing and validation
-- **SessionTheater.tsx** - Real-time conversation visualization
-- **DebugPanel.tsx** - Comprehensive debugging and monitoring
-- **StepVisualization.tsx** - Multi-view flow visualization
+### Frontend Components (Actual Implementation)
+- **MultiRoleDialogSystem.tsx** - Main application interface with comprehensive role and flow management (78KB)
+- **LLMTestPage.tsx** - LLM API testing and validation interface
+- **SessionTheater.tsx** - Real-time conversation visualization and monitoring
+- **StepProgressDisplay.tsx** - Real-time progress tracking for conversation execution
+- **StepVisualization.tsx** - Multi-view flow visualization and debugging
+
+#### Knowledge Base Components
+- **KnowledgeBaseManagement.tsx** - Main knowledge base interface with connection status monitoring and view management
+- **KnowledgeBaseList.tsx** - Knowledge base listing with search, filtering, and status management
+- **KnowledgeBaseDetails.tsx** - Detailed knowledge base view with statistics, role associations, and test conversation interface
+- **TestConversation.tsx** - Knowledge base test conversation interface with reference tracking and history
+
+#### Note on Frontend Structure
+Some directories mentioned in architectural documentation have limited current implementation:
+- **hooks/** directory is mostly empty (custom hooks mentioned in docs are not yet implemented)
+- **types/** directory is minimal (only basic role types defined)
+- Available components are functional but fewer than initially documented
 
 ### API Endpoints Structure
 - `/api/roles` - Role management (CRUD operations)
@@ -156,6 +237,7 @@ cd backend && python quick_start.py
 - `/api/llm` - LLM integration and interaction tracking
 - `/api/monitoring` - System health and performance metrics
 - `/api/health` - Health check endpoint
+- `/api/knowledge-bases` - Knowledge base management and RAGFlow integration
 
 #### Health Monitoring Endpoints
 - `GET /api/health` - Comprehensive system health check with component status
@@ -171,6 +253,15 @@ cd backend && python quick_start.py
 - `GET /api/llm-interactions/active` - Currently active LLM interactions
 - `GET /api/llm-interactions/errors` - LLM interaction error logs
 - `GET /api/llm-interactions/metrics` - LLM-specific system metrics
+
+#### Knowledge Base Endpoints
+- `GET /api/knowledge-bases` - List knowledge bases with pagination, search, and filtering
+- `POST /api/knowledge-bases` - Execute knowledge base operations (refresh datasets, sync with RAGFlow)
+- `GET /api/knowledge-bases/{id}` - Get detailed knowledge base information with statistics and role associations
+- `POST /api/knowledge-bases/{id}` - Execute test conversations and retrieve conversation history
+- `GET /api/knowledge-bases/statistics` - Get comprehensive knowledge base system statistics
+- `GET /api/knowledge-bases/{id}/conversations/{conversation_id}` - Get detailed test conversation information
+- `DELETE /api/knowledge-bases/{id}/conversations/{conversation_id}` - Delete test conversation records
 
 ## Key Features
 
@@ -197,28 +288,98 @@ cd backend && python quick_start.py
 - Error logging and system metrics
 - Debug visualization tools
 
+### Knowledge Base System (RAGFlow Integration)
+- **RAGFlow Dataset Management**: Sync and manage external knowledge bases from RAGFlow instances
+- **Role-Knowledge Base Associations**: Link knowledge bases to specific roles with priority and retrieval configuration
+- **Test Conversations**: Conduct test dialogues with knowledge bases to validate responses and reference quality
+- **Real-time Connection Monitoring**: Track RAGFlow service availability and connection status
+- **Comprehensive Statistics**: Track document counts, usage patterns, and performance metrics
+- **Reference Tracking**: View source document references and confidence scores for knowledge base responses
+- **Batch Operations**: Bulk update knowledge base status and synchronize datasets from RAGFlow
+- **Caching and Performance**: Optimized data retrieval with intelligent caching mechanisms
+
 ## Development Guidelines
 
 ### Backend Development
-1. **Database Migrations**: Use Flask-Migrate for schema changes
+1. **Database Migrations**: Use Flask-Migrate with Alembic for schema versioning and field updates
 2. **API Responses**: Follow consistent JSON format with success/error structure
-3. **Error Handling**: Centralized error handlers in `app/__init__.py`
-4. **LLM Integration**: Use the LLM abstraction layer for provider flexibility
-5. **Logging**: File logging configured in `logs/` directory
+3. **Error Handling**: Centralized error handlers in `app/__init__.py` with specialized LLM error tracking
+4. **LLM Integration**: Use the simplified LLM service layer focused on Anthropic integration with automatic provider detection
+5. **Service Architecture**: Follow the service layer pattern for business logic separation
+6. **Logging**: Comprehensive file logging with specialized LLM request tracking in `logs/`
+7. **Performance Monitoring**: Built-in health monitoring, rate limiting, and performance metrics
 
 ### Frontend Development
-1. **API Integration**: Use centralized API clients in `src/api/`
-2. **State Management**: Custom hooks in `src/hooks/` for complex state
-3. **Styling**: Use Tailwind CSS with existing theme system
-4. **Icons**: Use Lucide React for consistency
-5. **Build Issues**: Components in `src/components/` currently have TypeScript errors
+1. **API Integration**: Use centralized API clients in `src/api/` with proper TypeScript interfaces
+2. **Component Architecture**: Follow the existing single-page application pattern with React Router
+3. **Styling**: Use Tailwind CSS utility classes with the existing theme system (5 color schemes)
+4. **Icons**: Use Lucide React for consistent iconography throughout the application
+5. **Build Issues**: TypeScript compilation fails due to syntax errors in `src/components/` (development server works correctly)
+6. **State Management**: Currently uses local component state (hooks directory is empty/not implemented)
+7. **Development Environment**: Use Vite dev server with API proxy to backend port 5010
 
 ### Environment Configuration
-- **Backend**: Copy `.env.example` to `.env` and configure API keys (OpenAI API key required for LLM functionality)
-- **Frontend**: Uses Vite proxy, no environment variables required for development
-  - Optional: `VITE_API_BASE_URL_ALT` for alternative API base URL configuration
-- **Database**: SQLite file located at `backend/conversations.db` (auto-created on init)
+
+#### Backend Configuration (.env file)
+```python
+# Flask Configuration
+FLASK_APP=run.py
+FLASK_ENV=development
+SECRET_KEY=dev-secret-key-change-in-production
+
+# Database Configuration
+DATABASE_URL=sqlite:///multi_role_chat.db
+
+# LLM Provider Configuration
+LLM_PROVIDER=openai  # Can be openai, anthropic, or claude_cli
+
+# OpenAI Configuration
+OPENAI_API_KEY=your-openai-api-key
+OPENAI_MODEL=gpt-3.5-turbo
+OPENAI_TEMPERATURE=0.7
+
+# Anthropic Configuration
+ANTHROPIC_API_KEY=your-anthropic-api-key
+ANTHROPIC_MODEL=claude-3-sonnet-20240229
+ANTHROPIC_TEMPERATURE=0.7
+
+# Claude CLI Configuration
+CLAUDE_CLI_COMMAND=claude
+CLAUDE_CLI_TIMEOUT=120
+CLAUDE_CLI_MAX_RETRIES=3
+CLAUDE_CLI_RETRY_DELAY=1
+
+# Default LLM Provider
+LLM_DEFAULT_PROVIDER=claude_cli
+
+# RAGFlow Configuration (Knowledge Base System)
+RAGFLOW_API_KEY=your-ragflow-api-key
+RAGFLOW_BASE_URL=https://your-ragflow-instance.com
+RAGFLOW_TIMEOUT=30
+RAGFLOW_MAX_RETRIES=3
+RAGFLOW_RETRY_DELAY=1.0
+RAGFLOW_VERIFY_SSL=true
+
+# API Configuration
+API_HOST=0.0.0.0
+API_PORT=5010
+API_DEBUG=True
+
+# Logging Configuration
+LOG_LEVEL=INFO
+LOG_FILE=logs/app.log
+```
+
+#### Frontend Environment Variables
+```bash
+# Optional: Alternative API base URL configuration
+VITE_API_BASE_URL_ALT=http://localhost:5010
+```
+
+#### Database and Logging
+- **Database**: SQLite file located at `backend/multi_role_chat.db` (auto-created on init)
 - **Logging**: File logging enabled by default, logs stored in `logs/` directory
+- **LLM Logging**: Specialized LLM request logging to `logs/llm_requests.log`
 
 ## Known Issues
 
@@ -234,8 +395,9 @@ cd backend && python quick_start.py
 cd backend
 python check_db.py              # Validate database integrity
 python check_syntax.py          # Check Python syntax
-python simple_syntax_test.py    # Basic syntax validation
 python verify_fix.py            # Verify applied fixes
+python quick_start.py           # Comprehensive environment validation
+python char_count_monitor.py   # Monitor character usage
 
 # Frontend build validation
 cd front
@@ -243,20 +405,203 @@ npm run check                   # Run lint + build (will fail due to known issue
 npm run build                   # TypeScript compilation only
 npm run lint                    # ESLint check (requires config initialization)
 
-# Integration testing
+# Integration testing (from project root)
 python test_role_reference.py   # Test role reference system
-python test_multi_topics.py     # Test multi-topic functionality
 python simple_test.py           # Basic integration test
+
+# Knowledge base system testing
+cd backend
+python -m pytest tests/test_knowledge_base.py                # Knowledge base service tests
+python -m pytest tests/test_knowledge_base_integration.py     # Integration tests
+python -c "from app.services.knowledge_base_service import get_knowledge_base_service; print('Knowledge base service OK')"  # Quick service test
 ```
 
 ### Quality Assurance Features
 - Backend includes comprehensive health monitoring and performance metrics
 - LLM testing interface available in frontend (`LLMTestPage.tsx`)
-- Database utilities for maintenance, cleanup, and migration
-- Comprehensive error handling and logging throughout the system
-- Real-time debugging capabilities with `DebugPanel.tsx` and monitoring components
-- WebSocket support for real-time conversation updates
+- Database utilities for maintenance, cleanup, and migration with Flask-Migrate support
+- Comprehensive error handling and logging throughout the system with specialized LLM tracking
+- Real-time debugging capabilities with session visualization and step progress monitoring
+- Performance monitoring with rate limiting, caching, and system health tracking
+- Environment validation scripts for both backend and frontend quick setup
+
+## Advanced Architecture Patterns
+
+### Backend Service Architecture
+- **Service Layer Pattern**: Business logic separated into dedicated services with clear responsibilities
+- **Repository Pattern**: Data access through SQLAlchemy models with comprehensive relationships
+- **Factory Pattern**: Flask application factory for environment-specific configurations
+- **Middleware Pattern**: CORS, logging, monitoring, and rate limiting middleware
+- **Observer Pattern**: Health monitoring and performance tracking throughout the system
+
+### LLM Integration Architecture
+- **Service Abstraction**: Simplified LLM service with automatic provider detection (primarily Anthropic-focused)
+- **Request Tracking**: Comprehensive logging and performance monitoring for all LLM interactions
+- **Configuration Management**: Environment-based LLM provider selection with fallback support
+- **Error Handling**: Graceful fallback mechanisms and detailed error reporting with retry logic
+
+### Frontend Component Architecture
+- **Composition Pattern**: Complex components built from smaller, reusable parts
+- **Proxy Pattern**: Vite proxy for API requests during development
+- **Theme Pattern**: Centralized theme system with 5 color schemes (blue, purple, emerald, rose, amber)
+- **Single-Page Application**: React Router-based navigation with state management
+
+## Knowledge Base System Setup and Configuration
+
+### RAGFlow Prerequisites
+
+Before using the knowledge base system, you need:
+
+1. **RAGFlow Instance**: A running RAGFlow server (self-hosted or cloud)
+2. **API Access**: RAGFlow API key with appropriate permissions
+3. **Network Connectivity**: The MRC server must be able to reach your RAGFlow instance
+
+### Database Setup
+
+The knowledge base system requires additional database tables:
+
+```bash
+# Navigate to backend directory
+cd backend
+
+# Add knowledge base tables to existing database
+python add_knowledge_base_tables.py
+
+# Apply configuration field migrations (if needed)
+python add_knowledge_base_config_migration.py
+
+# Verify database integrity
+python check_db.py
+```
+
+### RAGFlow Configuration
+
+1. **Set up RAGFlow**: Install and configure your RAGFlow instance following the official documentation
+2. **Create Datasets**: Upload and process your documents in RAGFlow to create knowledge bases
+3. **Get API Credentials**: Obtain your RAGFlow API key from the RAGFlow admin interface
+4. **Configure Environment**: Update your `.env` file with RAGFlow connection details
+
+### Environment Configuration
+
+Copy `.env.example` to `.env` and configure:
+
+```bash
+# RAGFlow Configuration (Required for Knowledge Base System)
+RAGFLOW_API_KEY=your-actual-ragflow-api-key
+RAGFLOW_BASE_URL=https://your-ragflow-instance.com  # Without trailing slash
+RAGFLOW_TIMEOUT=30                                    # Request timeout in seconds
+RAGFLOW_MAX_RETRIES=3                                # Number of retry attempts
+RAGFLOW_RETRY_DELAY=1.0                              # Delay between retries (seconds)
+RAGFLOW_VERIFY_SSL=true                              # SSL verification for HTTPS
+```
+
+### Initial Knowledge Base Setup
+
+1. **Start the Backend Server**:
+   ```bash
+   cd backend && python run.py
+   ```
+
+2. **Access Knowledge Base Interface**:
+   - Open http://localhost:3000 in your browser
+   - Navigate to the "Knowledge Base" tab
+   - The system will automatically check RAGFlow connectivity
+
+3. **Sync Datasets from RAGFlow**:
+   - Click "Refresh All" to sync datasets from your RAGFlow instance
+   - Or use the API directly: `POST /api/knowledge-bases` with `{"action": "refresh_all"}`
+
+4. **Test Knowledge Base Functionality**:
+   - Select a knowledge base from the list
+   - Use the "Test Conversation" feature to validate responses
+   - Check the conversation history and reference tracking
+
+### Troubleshooting Guide
+
+#### Common Issues and Solutions
+
+**RAGFlow Connection Errors**
+```
+Error: RAGFlow API调用失败: Connection timeout
+```
+- **Solution**: Check `RAGFLOW_BASE_URL` and network connectivity
+- **Verify**: RAGFlow instance is running and accessible from the MRC server
+- **Test**: `curl -H "Authorization: Bearer YOUR_API_KEY" YOUR_RAGFLOW_URL/api/datasets`
+
+**Invalid API Key**
+```
+Error: RAGFlow API调用失败: 401 Unauthorized
+```
+- **Solution**: Verify `RAGFLOW_API_KEY` is correct and has proper permissions
+- **Check**: API key in RAGFlow admin interface
+- **Regenerate**: Create a new API key if needed
+
+**Dataset Sync Issues**
+```
+Error: 数据集同步失败: RAGFlow服务不可用
+```
+- **Solution**: Check RAGFlow service status and permissions
+- **Verify**: API key has dataset read permissions
+- **Manual Check**: Access RAGFlow web interface to confirm datasets exist
+
+**Test Conversation Failures**
+```
+Error: 测试对话执行失败: 500 Internal Server Error
+```
+- **Solution**: Check dataset status in RAGFlow (must be fully processed)
+- **Verify**: Documents are parsed and chunks are generated
+- **Check**: Dataset is active and chat functionality is enabled
+
+**Performance Issues**
+- **Large Datasets**: Consider using retrieval configuration to limit results
+- **Timeouts**: Increase `RAGFLOW_TIMEOUT` for complex queries
+- **Caching**: Enable knowledge base caching in the service configuration
+
+#### Debug Mode for RAGFlow
+
+Enable detailed logging for troubleshooting:
+
+```python
+# In backend/app/services/ragflow_service.py
+import logging
+logging.getLogger('ragflow_service').setLevel(logging.DEBUG)
+```
+
+Or add to your `.env`:
+```bash
+LOG_LEVEL=DEBUG
+```
+
+#### Testing RAGFlow Integration Manually
+
+```bash
+# Test basic connectivity
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+     YOUR_RAGFLOW_URL/api/datasets
+
+# Test chat functionality
+curl -X POST \
+     -H "Authorization: Bearer YOUR_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{"dataset_id": "your_dataset_id", "question": "test query"}' \
+     YOUR_RAGFLOW_URL/api/chat
+```
+
+### Best Practices
+
+1. **API Security**: Store RAGFlow API keys securely and rotate regularly
+2. **Dataset Management**: Keep RAGFlow datasets organized and well-documented
+3. **Performance**: Monitor response times and optimize dataset configurations
+4. **Testing**: Regularly test knowledge base responses for accuracy and relevance
+5. **Monitoring**: Use the built-in statistics tracking to monitor usage patterns
+
+### API Reference Documentation
+
+For complete RAGFlow API documentation, refer to:
+- **Backend Reference**: `doc/ragflow.md` - Comprehensive RAGFlow Python API guide
+- **RAGFlow Official Docs**: https://ragflow.io/docs/api-reference
+- **RAGFlow GitHub**: https://github.com/infiniflow/ragflow
 
 ## Migration Notes
 
-This project was migrated from `D:\ProjectPackage\MultiRoleChat\backend` on 2025-12-05, maintaining complete database structure and functionality while adding enhanced frontend capabilities and monitoring features.
+This project was migrated from `D:\ProjectPackage\MultiRoleChat\backend` on 2025-12-05, maintaining complete database structure and functionality while adding enhanced frontend capabilities, comprehensive monitoring features, a robust services architecture, and the integrated RAGFlow knowledge base system.
