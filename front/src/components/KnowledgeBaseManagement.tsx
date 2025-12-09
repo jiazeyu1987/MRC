@@ -5,16 +5,24 @@ import {
   Wifi,
   WifiOff,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  MessageSquare,
+  Search,
+  Bot,
+  BarChart3
 } from 'lucide-react';
 import { useTheme } from '../theme';
 import { knowledgeApi } from '../api/knowledgeApi';
 import { KnowledgeBase, KnowledgeBaseConversation } from '../types/knowledge';
 import { handleError } from '../utils/errorHandler';
 import KnowledgeBaseList from './KnowledgeBaseList';
-import KnowledgeBaseDetails from './KnowledgeBaseDetails';
+import EnhancedKnowledgeBaseDetails from './EnhancedKnowledgeBaseDetails';
 import TestConversation from './TestConversation';
+import ConversationList from './conversation/ConversationList';
+import SearchAnalyticsList from './search/SearchAnalyticsList';
+import AgentList from './agent/AgentList';
 
+type TabType = 'knowledge-bases' | 'conversations' | 'searches' | 'agents';
 type View = 'list' | 'details' | 'conversation';
 
 interface KnowledgeBaseManagementProps {
@@ -30,6 +38,7 @@ interface ConnectionStatus {
 
 const KnowledgeBaseManagement: React.FC<KnowledgeBaseManagementProps> = ({ manualRefresh = false }) => {
   const { theme } = useTheme();
+  const [activeTab, setActiveTab] = useState<TabType>('knowledge-bases');
   const [view, setView] = useState<View>('list');
   const [selectedKnowledgeBase, setSelectedKnowledgeBase] = useState<KnowledgeBase | null>(null);
   const [selectedConversation, setSelectedConversation] = useState<KnowledgeBaseConversation | null>(null);
@@ -40,6 +49,34 @@ const KnowledgeBaseManagement: React.FC<KnowledgeBaseManagementProps> = ({ manua
     lastChecked: null,
     error: null
   });
+
+  // 选项卡配置
+  const tabs = [
+    {
+      id: 'knowledge-bases' as TabType,
+      name: '知识库管理',
+      icon: Database,
+      description: '管理RAGFlow数据集和文档'
+    },
+    {
+      id: 'conversations' as TabType,
+      name: '对话管理',
+      icon: MessageSquare,
+      description: '管理RAGFlow对话和历史记录'
+    },
+    {
+      id: 'searches' as TabType,
+      name: '搜索分析',
+      icon: BarChart3,
+      description: '查看搜索统计和性能分析'
+    },
+    {
+      id: 'agents' as TabType,
+      name: '智能体管理',
+      icon: Bot,
+      description: '配置和管理AI智能体'
+    }
+  ];
 
   // 检查RAGFlow连接状态
   const checkConnectionStatus = async () => {
@@ -141,6 +178,117 @@ const KnowledgeBaseManagement: React.FC<KnowledgeBaseManagementProps> = ({ manua
     );
   };
 
+  // 选项卡切换处理
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    // 切换选项卡时重置视图状态
+    setView('list');
+    setSelectedKnowledgeBase(null);
+    setSelectedConversation(null);
+  };
+
+  // 对话相关处理函数
+  const handleConversationSelect = (conversation: any) => {
+    // 处理对话选择
+    console.log('Selected conversation:', conversation);
+  };
+
+  const handleNewConversation = () => {
+    // 创建新对话
+    console.log('Creating new conversation');
+  };
+
+  // 搜索相关处理函数
+  const handleDetailedAnalytics = () => {
+    // 切换到详细分析视图
+    console.log('Showing detailed analytics');
+  };
+
+  // 智能体相关处理函数
+  const handleAgentSelect = (agent: any) => {
+    // 处理智能体选择
+    console.log('Selected agent:', agent);
+  };
+
+  const handleNewAgent = () => {
+    // 创建新智能体
+    console.log('Creating new agent');
+  };
+
+  // 渲染选项卡
+  const renderTabs = () => (
+    <div className="border-b-4 border-gray-300 bg-gray-50 p-4">
+      <div className="flex flex-wrap gap-2 mb-4">
+        <p className="text-sm font-bold text-gray-700 w-full">🧪 选项卡测试区域：</p>
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => handleTabChange(tab.id)}
+              className={`
+                inline-flex items-center px-4 py-2 rounded-lg font-medium text-sm transition-all
+                ${isActive
+                  ? 'bg-blue-500 text-white shadow-lg transform scale-105'
+                  : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-100'
+                }
+              `}
+            >
+              <tab.icon
+                className={`mr-2 h-4 w-4`}
+              />
+              {tab.name}
+            </button>
+          );
+        })}
+      </div>
+      <div className="text-xs text-gray-500">
+        当前活跃选项卡: <span className="font-bold text-blue-600">{activeTab}</span>
+      </div>
+    </div>
+  );
+
+  // 渲染选项卡内容
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'knowledge-bases':
+        // 知识库管理 - 保持原有逻辑
+        return renderContent();
+
+      case 'conversations':
+        return (
+          <ConversationList
+            onConversationSelect={handleConversationSelect}
+            onNewConversation={handleNewConversation}
+          />
+        );
+
+      case 'searches':
+        return (
+          <SearchAnalyticsList
+            onDetailedAnalytics={handleDetailedAnalytics}
+          />
+        );
+
+      case 'agents':
+        return (
+          <AgentList
+            onAgentSelect={handleAgentSelect}
+            onNewAgent={handleNewAgent}
+          />
+        );
+
+      default:
+        return renderContent();
+    }
+  };
+
+  // 获取当前选项卡信息
+  const getCurrentTabInfo = () => {
+    const currentTab = tabs.find(tab => tab.id === activeTab);
+    return currentTab || tabs[0];
+  };
+
   // 渲染错误提示
   const renderError = () => {
     if (!error && !connectionStatus.error) return null;
@@ -221,7 +369,7 @@ const KnowledgeBaseManagement: React.FC<KnowledgeBaseManagementProps> = ({ manua
           );
         }
         return (
-          <KnowledgeBaseDetails
+          <EnhancedKnowledgeBaseDetails
             knowledgeBaseId={selectedKnowledgeBase.id}
             onBack={handleBackToList}
             onTestConversation={handleTestConversation}
@@ -258,6 +406,8 @@ const KnowledgeBaseManagement: React.FC<KnowledgeBaseManagementProps> = ({ manua
     }
   };
 
+  const currentTabInfo = getCurrentTabInfo();
+
   return (
     <div className="space-y-6">
       {/* 头部标题和连接状态 */}
@@ -266,12 +416,12 @@ const KnowledgeBaseManagement: React.FC<KnowledgeBaseManagementProps> = ({ manua
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className={`p-3 rounded-lg ${theme.iconBg} bg-opacity-10`}>
-                <Database className={`w-6 h-6 ${theme.text.replace('text-', 'text-')}`} />
+                <currentTabInfo.icon className={`w-6 h-6 ${theme.text.replace('text-', 'text-')}`} />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">知识库管理</h1>
+                <h1 className="text-2xl font-bold text-gray-900">{currentTabInfo.name}</h1>
                 <p className="text-sm text-gray-600 mt-1">
-                  管理和测试RAGFlow知识库，检索相关信息并进行对话测试
+                  {currentTabInfo.description}
                 </p>
               </div>
             </div>
@@ -285,6 +435,9 @@ const KnowledgeBaseManagement: React.FC<KnowledgeBaseManagementProps> = ({ manua
             </div>
           </div>
         </div>
+
+        {/* 选项卡导航 */}
+        {renderTabs()}
       </div>
 
       {/* 错误提示 */}
@@ -300,7 +453,7 @@ const KnowledgeBaseManagement: React.FC<KnowledgeBaseManagementProps> = ({ manua
             </div>
           </div>
         ) : (
-          renderContent()
+          renderTabContent()
         )}
       </div>
     </div>

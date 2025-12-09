@@ -23,7 +23,7 @@ from sqlalchemy import or_, and_, desc, asc, func
 from sqlalchemy.orm import joinedload
 
 from app import db
-from app.models import KnowledgeBase, RoleKnowledgeBase, Role
+from app.models import KnowledgeBase, RoleKnowledgeBase, Role, ConversationHistory, SearchAnalytics
 from app.services.ragflow_service import get_ragflow_service, DatasetInfo, RAGFlowAPIError
 from app.services.cache_service import get_cache_service
 
@@ -56,6 +56,18 @@ class KnowledgeBaseService:
         self.cache_service = get_cache_service()
         self.ragflow_service = get_ragflow_service()
         self.logger = logging.getLogger(__name__)
+
+    def get_knowledge_base(self, knowledge_base_id: int) -> Optional[KnowledgeBase]:
+        """
+        根据ID获取知识库（实例方法）
+
+        Args:
+            knowledge_base_id: 知识库ID
+
+        Returns:
+            Optional[KnowledgeBase]: 知识库对象或None
+        """
+        return self.get_knowledge_base_by_id(knowledge_base_id)
 
     # ==================== 基础CRUD操作 ====================
 
@@ -1200,6 +1212,262 @@ class KnowledgeBaseService:
 
         except Exception as e:
             current_app.logger.warning(f"清除知识库缓存失败: {str(e)}")
+
+    # ==================== 增强统计和活动跟踪 ====================
+
+    def get_enhanced_statistics(self, knowledge_base_id: int, days: int = 30) -> Dict[str, Any]:
+        """
+        获取知识库增强统计信息
+
+        Args:
+            knowledge_base_id: 知识库ID
+            days: 统计天数
+
+        Returns:
+            Dict[str, Any]: 增强统计信息
+        """
+        try:
+            # 基础统计
+            kb = self.get_knowledge_base(knowledge_base_id)
+
+            # 初始化默认值
+            total_conversations = 0
+            unique_users = 0
+            total_searches = 0
+            avg_response_time = 0
+            total_results = 0
+
+            # 对话统计 - 添加错误处理
+            try:
+                conversation_stats = db.session.query(
+                    func.count(ConversationHistory.id).label('total_conversations'),
+                    func.count(func.distinct(ConversationHistory.user_id)).label('unique_users')
+                ).filter(
+                    and_(
+                        ConversationHistory.knowledge_base_id == knowledge_base_id,
+                        ConversationHistory.created_at >= datetime.utcnow() - timedelta(days=days)
+                    )
+                ).first()
+
+                if conversation_stats:
+                    total_conversations = conversation_stats.total_conversations or 0
+                    unique_users = conversation_stats.unique_users or 0
+            except Exception as e:
+                self.logger.warning(f"获取对话统计失败: {e}")
+
+            # 搜索统计 - 添加错误处理
+            try:
+                search_stats = db.session.query(
+                    func.count(SearchAnalytics.id).label('total_searches'),
+                    func.avg(SearchAnalytics.response_time_ms).label('avg_response_time'),
+                    func.sum(SearchAnalytics.results_count).label('total_results')
+                ).filter(
+                    and_(
+                        SearchAnalytics.knowledge_base_id == knowledge_base_id,
+                        SearchAnalytics.created_at >= datetime.utcnow() - timedelta(days=days)
+                    )
+                ).first()
+
+                if search_stats:
+                    total_searches = search_stats.total_searches or 0
+                    avg_response_time = search_stats.avg_response_time or 0
+                    total_results = search_stats.total_results or 0
+            except Exception as e:
+                self.logger.warning(f"获取搜索统计失败: {e}")
+
+            # 简化的活动趋势
+            daily_activity = []
+            for i in range(min(days, 7)):  # 最近7天
+                date = datetime.utcnow() - timedelta(days=i)
+                try:
+                    conversations = ConversationHistory.query.filter(
+                        and_(
+                            ConversationHistory.knowledge_base_id == knowledge_base_id,
+                            func.date(ConversationHistory.created_at) == date.date()
+                        )
+                    ).count()
+
+                    searches = 0  # 暂时设为0，避免SearchAnalytics查询错误
+                    daily_activity.append({
+                        'date': date.strftime('%Y-%m-%d'),
+                        'conversations': conversations,
+                        'searches': searches,
+                        'avg_response_time': 0
+                    })
+                except Exception as e:
+                    self.logger.warning(f"获取日期 {date.date()} 的活动数据失败: {e}")
+                    daily_activity.append({
+                        'date': date.strftime('%Y-%m-%d'),
+                        'conversations': 0,
+                        'searches': 0,
+                        'avg_response_time': 0
+                    })
+
+            return {
+                'knowledge_base': {
+                    'id': kb.id if kb else None,
+                    'name': kb.name if kb else 'Unknown',
+                    'status': kb.status if kb else 'unknown',
+                    'document_count': kb.document_count if kb else 0,
+                    'conversation_count': getattr(kb, 'conversation_count', 0) if kb else 0,
+                    'search_count': getattr(kb, 'search_count', 0) if kb else 0,
+                    'last_activity': kb.last_activity.isoformat() if kb and kb.last_activity else None
+                },
+                'period': {
+                    'days': days,
+                    'start_date': (datetime.utcnow() - timedelta(days=days)).strftime('%Y-%m-%d'),
+                    'end_date': datetime.utcnow().strftime('%Y-%m-%d')
+                },
+                'conversations': {
+                    'total': total_conversations,
+                    'unique_users': unique_users,
+                    'avg_per_day': round(total_conversations / max(days, 1), 2)
+                },
+                'searches': {
+                    'total': total_searches,
+                    'avg_response_time_ms': round(float(avg_response_time), 2),
+                    'total_results': total_results,
+                    'avg_results_per_search': round(total_results / max(total_searches, 1), 2)
+                },
+                'daily_activity': list(reversed(daily_activity)),  # 最近7天
+                'engagement_score': self._calculate_engagement_score(
+                    total_conversations,
+                    total_searches,
+                    days
+                )
+            }
+
+        except Exception as e:
+            self.logger.error(f"获取增强统计失败: {e}")
+            return {
+                'error': str(e),
+                'knowledge_base': None,
+                'period': {'days': days},
+                'conversations': {'total': 0, 'unique_users': 0, 'avg_per_day': 0},
+                'searches': {'total': 0, 'avg_response_time_ms': 0, 'total_results': 0},
+                'daily_activity': [],
+                'engagement_score': 0
+            }
+
+    def update_activity_tracking(self, knowledge_base_id: int, activity_type: str = 'general') -> None:
+        """
+        更新知识库活动跟踪
+
+        Args:
+            knowledge_base_id: 知识库ID
+            activity_type: 活动类型 ('conversation', 'search', 'general')
+        """
+        try:
+            kb = self.get_knowledge_base(knowledge_base_id)
+
+            # 更新最后活动时间
+            kb.last_activity = datetime.utcnow()
+
+            # 根据活动类型更新相应计数
+            if activity_type == 'conversation':
+                kb.conversation_count = (kb.conversation_count or 0) + 1
+            elif activity_type == 'search':
+                kb.search_count = (kb.search_count or 0) + 1
+
+            db.session.commit()
+
+            # 清除相关缓存
+            self._clear_knowledge_base_cache(knowledge_base_id)
+
+        except Exception as e:
+            self.logger.error(f"更新活动跟踪失败: {e}")
+            db.session.rollback()
+
+    def get_top_active_knowledge_bases(self, limit: int = 10, days: int = 30) -> List[Dict[str, Any]]:
+        """
+        获取最活跃的知识库排行
+
+        Args:
+            limit: 返回数量限制
+            days: 统计天数
+
+        Returns:
+            List[Dict[str, Any]]: 活跃知识库列表
+        """
+        try:
+            start_date = datetime.utcnow() - timedelta(days=days)
+
+            # 计算每个知识库的活动分数
+            activity_data = db.session.query(
+                KnowledgeBase.id,
+                KnowledgeBase.name,
+                KnowledgeBase.document_count,
+                func.count(func.distinct(ConversationHistory.id)).label('conversations'),
+                func.count(func.distinct(SearchAnalytics.id)).label('searches'),
+                func.count(func.distinct(ConversationHistory.user_id)).label('unique_users')
+            ).outerjoin(
+                ConversationHistory,
+                and_(
+                    ConversationHistory.knowledge_base_id == KnowledgeBase.id,
+                    ConversationHistory.created_at >= start_date
+                )
+            ).outerjoin(
+                SearchAnalytics,
+                and_(
+                    SearchAnalytics.knowledge_base_id == KnowledgeBase.id,
+                    SearchAnalytics.created_at >= start_date
+                )
+            ).filter(
+                KnowledgeBase.status == 'active'
+            ).group_by(KnowledgeBase.id, KnowledgeBase.name, KnowledgeBase.document_count) \
+             .order_by(
+                 desc(func.count(func.distinct(ConversationHistory.id)) + func.count(func.distinct(SearchAnalytics.id)))
+             ).limit(limit).all()
+
+            result = []
+            for data in activity_data:
+                # 计算活动分数
+                conversation_score = (data.conversations or 0) * 10  # 对话权重更高
+                search_score = data.searches or 0
+                user_diversity_score = (data.unique_users or 0) * 5  # 用户多样性
+                total_score = conversation_score + search_score + user_diversity_score
+
+                result.append({
+                    'knowledge_base_id': data.id,
+                    'name': data.name,
+                    'document_count': data.document_count or 0,
+                    'activity_score': total_score,
+                    'conversations_count': data.conversations or 0,
+                    'searches_count': data.searches or 0,
+                    'unique_users_count': data.unique_users or 0,
+                    'rank': len(result) + 1
+                })
+
+            return result
+
+        except Exception as e:
+            self.logger.error(f"获取活跃知识库排行失败: {e}")
+            return []
+
+    def _calculate_engagement_score(self, conversations: int, searches: int, days: int) -> float:
+        """
+        计算用户参与度分数
+
+        Args:
+            conversations: 对话数量
+            searches: 搜索数量
+            days: 天数
+
+        Returns:
+            float: 参与度分数 (0-100)
+        """
+        if days <= 0:
+            days = 1
+
+        # 基础分数：对话权重更高
+        conversation_score = (conversations / days) * 10  # 每天对话数 * 10
+        search_score = searches / days  # 每天搜索数
+
+        # 综合分数
+        raw_score = conversation_score + search_score
+
+        # 限制在0-100范围内
+        return min(max(round(raw_score, 2), 0), 100)
 
 
 # 全局服务实例

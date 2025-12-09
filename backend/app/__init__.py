@@ -165,9 +165,55 @@ def register_api(app):
     api.add_resource(RAGFlowDocumentResource, '/api/knowledge-bases/<int:knowledge_base_id>/ragflow-documents/<string:document_id>')
     api.add_resource(RAGFlowDocumentChunksResource, '/api/knowledge-bases/<int:knowledge_base_id>/ragflow-documents/<string:document_id>/chunks')
 
+    # 增强功能接口 - 对话历史和管理
+    from app.api.knowledge_bases import (
+        ConversationHistoryResource, ConversationDetailResource,
+        ConversationExportResource, ConversationTemplateResource
+    )
+    api.add_resource(ConversationHistoryResource, '/api/knowledge-bases/<int:knowledge_base_id>/conversations')
+    api.add_resource(ConversationDetailResource, '/api/knowledge-bases/<int:knowledge_base_id>/conversations/<int:conversation_id>')
+    api.add_resource(ConversationExportResource, '/api/knowledge-bases/<int:knowledge_base_id>/conversations/<int:conversation_id>/export')
+    api.add_resource(ConversationTemplateResource, '/api/conversation-templates')
+
+    # 增强功能接口 - 搜索分析和洞察
+    from app.api.knowledge_bases import (
+        SearchAnalyticsResource, SearchInsightsResource, PopularTermsResource
+    )
+    api.add_resource(SearchAnalyticsResource, '/api/knowledge-bases/<int:knowledge_base_id>/search-analytics')
+    api.add_resource(SearchInsightsResource, '/api/knowledge-bases/<int:knowledge_base_id>/search-insights')
+    api.add_resource(PopularTermsResource, '/api/knowledge-bases/<int:knowledge_base_id>/popular-terms')
+
+    # 增强功能接口 - 统计和排行
+    from app.api.knowledge_bases import EnhancedStatisticsResource, TopActiveKnowledgeBasesResource
+    api.add_resource(EnhancedStatisticsResource, '/api/knowledge-bases/<int:knowledge_base_id>/enhanced-statistics')
+    api.add_resource(TopActiveKnowledgeBasesResource, '/api/knowledge-bases/top-active')
+
+    # 增强功能接口 - API文档和游乐场
+    from app.api.knowledge_bases import (
+        APIDocumentationResource, APIPlaygroundResource, APIRateLimitResource
+    )
+    api.add_resource(APIDocumentationResource, '/api/api-documentation')
+    api.add_resource(APIPlaygroundResource, '/api/api-playground')
+    api.add_resource(APIRateLimitResource, '/api/api-rate-limit')
+
     # LLM文件记录接口
     from app.api.llm_file_records import llm_file_records_bp
     app.register_blueprint(llm_file_records_bp)
+
+    # RAGFlow 对话管理接口 (临时注释，等待实现)
+    # from app.api.ragflow_chat import (
+    #     ChatAssistantListResource, ChatAssistantResource,
+    #     ChatSessionListResource, ChatSessionResource,
+    #     ChatCompletionResource, ChatStatisticsResource, RetrievalResource
+    # )
+    # api.add_resource(ChatAssistantListResource, '/api/v1/chats')
+    # api.add_resource(ChatAssistantResource, '/api/v1/chats/<string:chat_id>')
+    # api.add_resource(ChatSessionListResource, '/api/v1/chats/<string:chat_id>/sessions')
+    # api.add_resource(ChatSessionResource, '/api/v1/chats/<string:chat_id>/sessions/<string:session_id>')
+    # api.add_resource(ChatCompletionResource, '/api/v1/chats/<string:chat_id>/completions')
+    # api.add_resource(ChatStatisticsResource, '/api/v1/chats/statistics')
+    # api.add_resource(ChatStatisticsResource, '/api/v1/chats/<string:chat_id>/statistics')
+    # api.add_resource(RetrievalResource, '/api/v1/retrieval')
 
 
 def register_error_handlers(app):

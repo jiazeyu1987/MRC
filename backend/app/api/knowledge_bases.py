@@ -987,3 +987,579 @@ class RAGFlowDocumentChunksResource(Resource):
                 'error_code': 'INTERNAL_ERROR',
                 'message': '获取文档块失败'
             }, 500
+
+
+# ========== Enhanced Features Resources ==========
+
+class ConversationHistoryResource(Resource):
+    """对话历史资源"""
+
+    def get(self, knowledge_base_id):
+        """获取知识库对话历史"""
+        try:
+            # 查询参数
+            page = request.args.get('page', 1, type=int)
+            per_page = min(request.args.get('per_page', 20, type=int), 100)
+            search = request.args.get('search', '', type=str)
+            tags = request.args.getlist('tags')
+            user_id = request.args.get('user_id', '', type=str)
+
+            # 获取对话服务
+            from app.services.conversation_service import get_conversation_service
+            service = get_conversation_service()
+
+            # 获取对话列表
+            conversations, total = service.get_conversations(
+                knowledge_base_id=knowledge_base_id,
+                page=page,
+                per_page=per_page,
+                search=search if search else None,
+                tags=tags if tags else None,
+                user_id=user_id if user_id else None
+            )
+
+            return {
+                'success': True,
+                'data': {
+                    'conversations': conversations,
+                    'pagination': {
+                        'page': page,
+                        'per_page': per_page,
+                        'total': total,
+                        'pages': (total + per_page - 1) // per_page
+                    }
+                }
+            }
+
+        except Exception as e:
+            current_app.logger.error(f"获取对话历史失败: {str(e)}")
+            return {
+                'success': False,
+                'error_code': 'INTERNAL_ERROR',
+                'message': '获取对话历史失败'
+            }, 500
+
+    def post(self, knowledge_base_id):
+        """创建新对话"""
+        try:
+            json_data = request.get_json()
+            if not json_data:
+                return {
+                    'success': False,
+                    'error_code': 'INVALID_REQUEST',
+                    'message': '请求体不能为空'
+                }, 400
+
+            title = json_data.get('title', '新对话')
+            messages = json_data.get('messages', [])
+            tags = json_data.get('tags', [])
+            user_id = json_data.get('user_id', '')
+            template_id = json_data.get('template_id')
+            parameters = json_data.get('parameters', {})
+
+            # 获取对话服务
+            from app.services.conversation_service import get_conversation_service
+            service = get_conversation_service()
+
+            # 创建对话
+            if template_id:
+                conversation = service.apply_template(
+                    template_id=template_id,
+                    knowledge_base_id=knowledge_base_id,
+                    user_id=user_id,
+                    parameters=parameters
+                )
+            else:
+                conversation = service.create_conversation(
+                    knowledge_base_id=knowledge_base_id,
+                    title=title,
+                    messages=messages,
+                    tags=tags,
+                    user_id=user_id
+                )
+
+            return {
+                'success': True,
+                'data': conversation,
+                'message': '对话创建成功'
+            }
+
+        except Exception as e:
+            current_app.logger.error(f"创建对话失败: {str(e)}")
+            return {
+                'success': False,
+                'error_code': 'INTERNAL_ERROR',
+                'message': '创建对话失败'
+            }, 500
+
+
+class ConversationDetailResource(Resource):
+    """对话详情资源"""
+
+    def get(self, knowledge_base_id, conversation_id):
+        """获取对话详情"""
+        try:
+            from app.services.conversation_service import get_conversation_service
+            service = get_conversation_service()
+
+            conversation = service.get_conversation(conversation_id)
+            if not conversation:
+                return {
+                    'success': False,
+                    'error_code': 'NOT_FOUND',
+                    'message': '对话不存在'
+                }, 404
+
+            return {
+                'success': True,
+                'data': conversation
+            }
+
+        except Exception as e:
+            current_app.logger.error(f"获取对话详情失败: {str(e)}")
+            return {
+                'success': False,
+                'error_code': 'INTERNAL_ERROR',
+                'message': '获取对话详情失败'
+            }, 500
+
+    def put(self, knowledge_base_id, conversation_id):
+        """更新对话"""
+        try:
+            json_data = request.get_json()
+            if not json_data:
+                return {
+                    'success': False,
+                    'error_code': 'INVALID_REQUEST',
+                    'message': '请求体不能为空'
+                }, 400
+
+            from app.services.conversation_service import get_conversation_service
+            service = get_conversation_service()
+
+            conversation = service.update_conversation(
+                conversation_id=conversation_id,
+                title=json_data.get('title'),
+                messages=json_data.get('messages'),
+                tags=json_data.get('tags')
+            )
+
+            return {
+                'success': True,
+                'data': conversation,
+                'message': '对话更新成功'
+            }
+
+        except Exception as e:
+            current_app.logger.error(f"更新对话失败: {str(e)}")
+            return {
+                'success': False,
+                'error_code': 'INTERNAL_ERROR',
+                'message': '更新对话失败'
+            }, 500
+
+    def delete(self, knowledge_base_id, conversation_id):
+        """删除对话"""
+        try:
+            from app.services.conversation_service import get_conversation_service
+            service = get_conversation_service()
+
+            success = service.delete_conversation(conversation_id)
+            if not success:
+                return {
+                    'success': False,
+                    'error_code': 'NOT_FOUND',
+                    'message': '对话不存在'
+                }, 404
+
+            return {
+                'success': True,
+                'message': '对话删除成功'
+            }
+
+        except Exception as e:
+            current_app.logger.error(f"删除对话失败: {str(e)}")
+            return {
+                'success': False,
+                'error_code': 'INTERNAL_ERROR',
+                'message': '删除对话失败'
+            }, 500
+
+
+class ConversationExportResource(Resource):
+    """对话导出资源"""
+
+    def get(self, knowledge_base_id, conversation_id):
+        """导出对话"""
+        try:
+            format_type = request.args.get('format', 'json')
+            from app.services.conversation_service import get_conversation_service
+            service = get_conversation_service()
+
+            export_data = service.export_conversation(conversation_id, format_type)
+
+            if format_type == 'json':
+                return export_data, 200, {
+                    'Content-Type': 'application/json',
+                    'Content-Disposition': f'attachment; filename=conversation_{conversation_id}.json'
+                }
+            elif format_type == 'markdown':
+                return export_data, 200, {
+                    'Content-Type': 'text/markdown',
+                    'Content-Disposition': f'attachment; filename=conversation_{conversation_id}.md'
+                }
+            elif format_type == 'txt':
+                return export_data, 200, {
+                    'Content-Type': 'text/plain',
+                    'Content-Disposition': f'attachment; filename=conversation_{conversation_id}.txt'
+                }
+
+        except Exception as e:
+            current_app.logger.error(f"导出对话失败: {str(e)}")
+            return {
+                'success': False,
+                'error_code': 'INTERNAL_ERROR',
+                'message': '导出对话失败'
+            }, 500
+
+
+class ConversationTemplateResource(Resource):
+    """对话模板资源"""
+
+    def get(self):
+        """获取对话模板列表"""
+        try:
+            category = request.args.get('category', '', type=str)
+            is_system = request.args.get('is_system', type=bool)
+
+            from app.services.conversation_service import get_conversation_service
+            service = get_conversation_service()
+
+            templates = service.get_templates(category=category if category else None, is_system=is_system)
+
+            return {
+                'success': True,
+                'data': templates
+            }
+
+        except Exception as e:
+            current_app.logger.error(f"获取对话模板失败: {str(e)}")
+            return {
+                'success': False,
+                'error_code': 'INTERNAL_ERROR',
+                'message': '获取对话模板失败'
+            }, 500
+
+    def post(self):
+        """创建对话模板"""
+        try:
+            json_data = request.get_json()
+            if not json_data:
+                return {
+                    'success': False,
+                    'error_code': 'INVALID_REQUEST',
+                    'message': '请求体不能为空'
+                }, 400
+
+            from app.services.conversation_service import get_conversation_service
+            service = get_conversation_service()
+
+            template = service.create_template(
+                name=json_data.get('name'),
+                description=json_data.get('description'),
+                category=json_data.get('category'),
+                prompt=json_data.get('prompt'),
+                parameters=json_data.get('parameters', []),
+                is_system=json_data.get('is_system', False)
+            )
+
+            return {
+                'success': True,
+                'data': template,
+                'message': '对话模板创建成功'
+            }
+
+        except Exception as e:
+            current_app.logger.error(f"创建对话模板失败: {str(e)}")
+            return {
+                'success': False,
+                'error_code': 'INTERNAL_ERROR',
+                'message': '创建对话模板失败'
+            }, 500
+
+
+class SearchAnalyticsResource(Resource):
+    """搜索分析资源"""
+
+    def get(self, knowledge_base_id):
+        """获取搜索分析数据"""
+        try:
+            days = request.args.get('days', 30, type=int)
+
+            from app.services.search_analytics_service import get_search_analytics_service
+            service = get_search_analytics_service()
+
+            analytics = service.get_search_analytics(knowledge_base_id, days)
+
+            return {
+                'success': True,
+                'data': analytics
+            }
+
+        except Exception as e:
+            current_app.logger.error(f"获取搜索分析失败: {str(e)}")
+            return {
+                'success': False,
+                'error_code': 'INTERNAL_ERROR',
+                'message': '获取搜索分析失败'
+            }, 500
+
+    def post(self, knowledge_base_id):
+        """记录搜索事件"""
+        try:
+            json_data = request.get_json()
+            if not json_data:
+                return {
+                    'success': False,
+                    'error_code': 'INVALID_REQUEST',
+                    'message': '请求体不能为空'
+                }, 400
+
+            search_query = json_data.get('search_query', '')
+            user_id = json_data.get('user_id', '')
+            filters = json_data.get('filters', {})
+            results_count = json_data.get('results_count', 0)
+            response_time_ms = json_data.get('response_time_ms', 0)
+            clicked_documents = json_data.get('clicked_documents', [])
+
+            from app.services.search_analytics_service import get_search_analytics_service
+            service = get_search_analytics_service()
+
+            search_record = service.record_search(
+                knowledge_base_id=knowledge_base_id,
+                search_query=search_query,
+                user_id=user_id,
+                filters=filters,
+                results_count=results_count,
+                response_time_ms=response_time_ms,
+                clicked_documents=clicked_documents
+            )
+
+            return {
+                'success': True,
+                'data': search_record.to_dict(),
+                'message': '搜索事件记录成功'
+            }
+
+        except Exception as e:
+            current_app.logger.error(f"记录搜索事件失败: {str(e)}")
+            return {
+                'success': False,
+                'error_code': 'INTERNAL_ERROR',
+                'message': '记录搜索事件失败'
+            }, 500
+
+
+class SearchInsightsResource(Resource):
+    """搜索洞察资源"""
+
+    def get(self, knowledge_base_id):
+        """获取搜索洞察和优化建议"""
+        try:
+            days = request.args.get('days', 30, type=int)
+
+            from app.services.search_analytics_service import get_search_analytics_service
+            service = get_search_analytics_service()
+
+            insights = service.get_performance_insights(knowledge_base_id, days)
+
+            return {
+                'success': True,
+                'data': insights
+            }
+
+        except Exception as e:
+            current_app.logger.error(f"获取搜索洞察失败: {str(e)}")
+            return {
+                'success': False,
+                'error_code': 'INTERNAL_ERROR',
+                'message': '获取搜索洞察失败'
+            }, 500
+
+
+class PopularTermsResource(Resource):
+    """热门搜索词资源"""
+
+    def get(self, knowledge_base_id):
+        """获取热门搜索词"""
+        try:
+            days = request.args.get('days', 30, type=int)
+            limit = min(request.args.get('limit', 10, type=int), 50)
+
+            from app.services.search_analytics_service import get_search_analytics_service
+            service = get_search_analytics_service()
+
+            popular_terms = service.get_popular_terms(knowledge_base_id, days, limit)
+
+            return {
+                'success': True,
+                'data': popular_terms
+            }
+
+        except Exception as e:
+            current_app.logger.error(f"获取热门搜索词失败: {str(e)}")
+            return {
+                'success': False,
+                'error_code': 'INTERNAL_ERROR',
+                'message': '获取热门搜索词失败'
+            }, 500
+
+
+class EnhancedStatisticsResource(Resource):
+    """增强统计资源"""
+
+    def get(self, knowledge_base_id):
+        """获取知识库增强统计信息"""
+        try:
+            days = request.args.get('days', 30, type=int)
+
+            service = get_knowledge_base_service()
+            statistics = service.get_enhanced_statistics(knowledge_base_id, days)
+
+            return {
+                'success': True,
+                'data': statistics
+            }
+
+        except Exception as e:
+            current_app.logger.error(f"获取增强统计失败: {str(e)}")
+            return {
+                'success': False,
+                'error_code': 'INTERNAL_ERROR',
+                'message': '获取增强统计失败'
+            }, 500
+
+
+class TopActiveKnowledgeBasesResource(Resource):
+    """最活跃知识库排行资源"""
+
+    def get(self):
+        """获取最活跃的知识库排行"""
+        try:
+            limit = min(request.args.get('limit', 10, type=int), 20)
+            days = request.args.get('days', 30, type=int)
+
+            service = get_knowledge_base_service()
+            top_knowledge_bases = service.get_top_active_knowledge_bases(limit, days)
+
+            return {
+                'success': True,
+                'data': top_knowledge_bases
+            }
+
+        except Exception as e:
+            current_app.logger.error(f"获取活跃知识库排行失败: {str(e)}")
+            return {
+                'success': False,
+                'error_code': 'INTERNAL_ERROR',
+                'message': '获取活跃知识库排行失败'
+            }, 500
+
+
+class APIDocumentationResource(Resource):
+    """API文档资源"""
+
+    def get(self):
+        """获取缓存的API文档"""
+        try:
+            force_refresh = request.args.get('force_refresh', False, type=bool)
+            category = request.args.get('category', '', type=str)
+
+            from app.services.api_documentation_service import get_api_documentation_service
+            service = get_api_documentation_service()
+
+            documentation = service.get_cached_documentation(force_refresh, category)
+
+            return {
+                'success': True,
+                'data': documentation
+            }
+
+        except Exception as e:
+            current_app.logger.error(f"获取API文档失败: {str(e)}")
+            return {
+                'success': False,
+                'error_code': 'INTERNAL_ERROR',
+                'message': '获取API文档失败'
+            }, 500
+
+
+class APIPlaygroundResource(Resource):
+    """API测试游乐场资源"""
+
+    def post(self):
+        """执行API端点测试"""
+        try:
+            json_data = request.get_json()
+            if not json_data:
+                return {
+                    'success': False,
+                    'error_code': 'INVALID_REQUEST',
+                    'message': '请求体不能为空'
+                }, 400
+
+            endpoint_path = json_data.get('endpoint_path', '')
+            method = json_data.get('method', 'GET')
+            parameters = json_data.get('parameters', {})
+            headers = json_data.get('headers', {})
+            body = json_data.get('body')
+
+            from app.services.api_documentation_service import get_api_documentation_service
+            service = get_api_documentation_service()
+
+            result = service.execute_endpoint(
+                endpoint_path=endpoint_path,
+                method=method,
+                parameters=parameters,
+                headers=headers,
+                body=body
+            )
+
+            return {
+                'success': True,
+                'data': result,
+                'message': 'API测试执行成功'
+            }
+
+        except Exception as e:
+            current_app.logger.error(f"执行API测试失败: {str(e)}")
+            return {
+                'success': False,
+                'error_code': 'INTERNAL_ERROR',
+                'message': '执行API测试失败'
+            }, 500
+
+
+class APIRateLimitResource(Resource):
+    """API速率限制资源"""
+
+    def get(self):
+        """获取API速率限制状态"""
+        try:
+            from app.services.api_documentation_service import get_api_documentation_service
+            service = get_api_documentation_service()
+
+            status = service.get_rate_limit_status()
+
+            return {
+                'success': True,
+                'data': status
+            }
+
+        except Exception as e:
+            current_app.logger.error(f"获取API速率限制状态失败: {str(e)}")
+            return {
+                'success': False,
+                'error_code': 'INTERNAL_ERROR',
+                'message': '获取API速率限制状态失败'
+            }, 500

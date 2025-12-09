@@ -16,6 +16,12 @@ class KnowledgeBase(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # 新增字段用于增强功能
+    conversation_count = db.Column(db.Integer, default=0)
+    search_count = db.Column(db.Integer, default=0)
+    last_activity = db.Column(db.DateTime, default=datetime.utcnow)
+    settings = db.Column(db.JSON, default={})  # 存储功能偏好设置
+
     # 关系
     role_knowledge_bases = db.relationship('RoleKnowledgeBase', back_populates='knowledge_base', lazy='dynamic')
 
@@ -35,9 +41,40 @@ class KnowledgeBase(db.Model):
             'document_count': self.document_count,
             'total_size': self.total_size,
             'status': self.status,
+            'conversation_count': self.conversation_count,
+            'search_count': self.search_count,
+            'last_activity': self.last_activity.isoformat() if self.last_activity else None,
+            'settings': self.settings,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+
+    def update_activity(self):
+        """更新活动时间"""
+        self.last_activity = datetime.utcnow()
+        db.session.commit()
+
+    def increment_conversation_count(self):
+        """增加对话计数"""
+        self.conversation_count += 1
+        self.update_activity()
+
+    def increment_search_count(self):
+        """增加搜索计数"""
+        self.search_count += 1
+        self.update_activity()
+
+    def get_setting(self, key, default=None):
+        """获取设置值"""
+        return self.settings.get(key, default)
+
+    def set_setting(self, key, value):
+        """设置配置值"""
+        if not self.settings:
+            self.settings = {}
+        self.settings[key] = value
+        self.updated_at = datetime.utcnow()
+        db.session.commit()
 
     def __repr__(self):
         return f'<KnowledgeBase {self.name}>'

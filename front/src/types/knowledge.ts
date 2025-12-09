@@ -185,3 +185,20 @@ export type KnowledgeBaseActionRequest = RefreshAllRequest | RefreshSingleReques
 
 // 知识库详情操作请求类型（用于知识库详情POST操作）
 export type KnowledgeBaseDetailActionRequest = TestConversationRequest | GetConversationsRequest;
+
+// 导入增强功能类型
+export * from './enhanced';
+
+// 扩展知识库类型以支持增强功能
+export interface ExtendedKnowledgeBase extends KnowledgeBase {
+  conversation_count: number;
+  search_count: number;
+  last_activity?: string;
+  settings: Record<string, any>;
+  engagement_score?: number;
+  recent_activity?: {
+    conversations_last_7_days: number;
+    searches_last_7_days: number;
+    unique_users_last_7_days: number;
+  };
+}
