@@ -209,7 +209,8 @@ const SessionTheater: React.FC<SessionTheaterProps> = ({ sessionId, onExit }) =>
     } catch (e) {
       console.error("[Auto Mode] 自动执行失败:", e);
       setAutoExecution(false);
-      alert("自动执行失败");
+      // 移除弹框，让错误信息能够在控制台中完整显示，便于调试
+      // alert("自动执行失败");
     }
   };
 

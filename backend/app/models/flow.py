@@ -80,7 +80,8 @@ class FlowStep(db.Model):
     _context_scope = db.Column('context_scope', db.Text, nullable=False)  # 支持字符串或数组格式
     _context_param = db.Column('context_param', db.Text, nullable=True)  # 与前端一致：可选字段
     _logic_config = db.Column('logic_config', db.Text, nullable=True)  # 与前端一致：可选字段
-    _knowledge_base_config = db.Column('knowledge_base_config', db.Text, nullable=True)  # 知识库检索配置
+    # Temporarily disabled due to missing database column
+    # _knowledge_base_config = db.Column('_knowledge_base_config', db.Text, nullable=True)  # 知识库检索配置
     next_step_id = db.Column(db.Integer, db.ForeignKey('flow_steps.id'), nullable=True)  # 与前端一致：可选字段
     description = db.Column(db.String(500), nullable=True)  # 与前端一致：可选字段
 
@@ -176,98 +177,101 @@ class FlowStep(db.Model):
         """设置循环配置 - logic_config的别名，保持向后兼容"""
         self.logic_config = value
 
-    @property
-    def knowledge_base_config(self) -> dict:
-        """获取知识库配置字典 - 直接返回字典"""
-        if self._knowledge_base_config:
-            try:
-                return json.loads(self._knowledge_base_config)
-            except (json.JSONDecodeError, TypeError):
-                return {}
-        return {}
+    # Temporarily disabled due to missing database column
+    # @property
+    # def knowledge_base_config(self) -> dict:
+    #     """获取知识库配置字典 - 直接返回字典"""
+    #     if self._knowledge_base_config:
+    #         try:
+    #             return json.loads(self._knowledge_base_config)
+    #         except (json.JSONDecodeError, TypeError):
+    #             return {}
+    #     return {}
 
-    @knowledge_base_config.setter
-    def knowledge_base_config(self, value):
-        """设置知识库配置 - 支持字典直接赋值"""
-        if value is None:
-            self._knowledge_base_config = None
-        elif isinstance(value, dict):
-            self._knowledge_base_config = json.dumps(value, ensure_ascii=False)
-        else:
-            self._knowledge_base_config = str(value)
+    # @knowledge_base_config.setter
+    # def knowledge_base_config(self, value):
+    #     """设置知识库配置 - 支持字典直接赋值"""
+    #     if value is None:
+    #         self._knowledge_base_config = None
+    #     elif isinstance(value, dict):
+    #         self._knowledge_base_config = json.dumps(value, ensure_ascii=False)
+    #     else:
+    #         self._knowledge_base_config = str(value)
 
-    def is_knowledge_base_enabled(self) -> bool:
-        """
-        检查是否启用了知识库配置
+    # Temporarily disabled due to missing database column
+    # def is_knowledge_base_enabled(self) -> bool:
+    #     """
+    #     检查是否启用了知识库配置
+    #
+    #     Returns:
+    #         bool: 是否启用了知识库
+    #     """
+    #     config = self.knowledge_base_config
+    #     return bool(config and config.get('enabled', False))
 
-        Returns:
-            bool: 是否启用了知识库
-        """
-        config = self.knowledge_base_config
-        return bool(config and config.get('enabled', False))
+    # Temporarily disabled due to missing database column
+    # def get_knowledge_base_ids(self) -> List[str]:
+    #     """
+    #     获取步骤配置的知识库ID列表
+    #
+    #     Returns:
+    #         List[str]: 知识库ID列表，如果未启用则返回空列表
+    #     """
+    #     if not self.is_knowledge_base_enabled():
+    #         return []
+    #
+    #     config = self.knowledge_base_config
+    #     return config.get('knowledge_base_ids', [])
 
-    def get_knowledge_base_ids(self) -> List[str]:
-        """
-        获取步骤配置的知识库ID列表
+    # def validate_knowledge_base_references(self) -> Tuple[bool, List[str]]:
+    #     """
+    #     验证知识库引用的有效性
+    #
+    #     Returns:
+    #         Tuple[bool, List[str]]: (是否有效, 错误信息列表)
+    #     """
+    #     if not self.is_knowledge_base_enabled():
+    #         return True, []
+    #
+    #     try:
+    #         from app.models.knowledge_base import KnowledgeBase
+    #
+    #         kb_ids = self.get_knowledge_base_ids()
+    #         if not kb_ids:
+    #             return False, ["启用了知识库但未指定知识库ID"]
+    #
+    #         errors = []
+    #         valid_count = 0
+    #
+    #         for kb_id in kb_ids:
+    #             kb = KnowledgeBase.query.filter_by(ragflow_dataset_id=kb_id).first()
+    #             if not kb:
+    #                 errors.append(f"知识库ID '{kb_id}' 不存在")
+    #             elif kb.status != 'active':
+    #                 errors.append(f"知识库 '{kb.name}' 状态为 '{kb.status}'，不可用")
+    #             else:
+    #                 valid_count += 1
+    #
+    #         if valid_count == 0:
+    #             errors.insert(0, "没有可用的知识库")
+    #
+    #         return len(errors) == 0, errors
+    #
+    #     except Exception as e:
+    #         return False, [f"验证知识库引用时发生错误: {str(e)}"]
 
-        Returns:
-            List[str]: 知识库ID列表，如果未启用则返回空列表
-        """
-        if not self.is_knowledge_base_enabled():
-            return []
-
-        config = self.knowledge_base_config
-        return config.get('knowledge_base_ids', [])
-
-    def validate_knowledge_base_references(self) -> Tuple[bool, List[str]]:
-        """
-        验证知识库引用的有效性
-
-        Returns:
-            Tuple[bool, List[str]]: (是否有效, 错误信息列表)
-        """
-        if not self.is_knowledge_base_enabled():
-            return True, []
-
-        try:
-            from app.models.knowledge_base import KnowledgeBase
-
-            kb_ids = self.get_knowledge_base_ids()
-            if not kb_ids:
-                return False, ["启用了知识库但未指定知识库ID"]
-
-            errors = []
-            valid_count = 0
-
-            for kb_id in kb_ids:
-                kb = KnowledgeBase.query.filter_by(ragflow_dataset_id=kb_id).first()
-                if not kb:
-                    errors.append(f"知识库ID '{kb_id}' 不存在")
-                elif kb.status != 'active':
-                    errors.append(f"知识库 '{kb.name}' 状态为 '{kb.status}'，不可用")
-                else:
-                    valid_count += 1
-
-            if valid_count == 0:
-                errors.insert(0, "没有可用的知识库")
-
-            return len(errors) == 0, errors
-
-        except Exception as e:
-            return False, [f"验证知识库引用时发生错误: {str(e)}"]
-
-    def get_retrieval_params(self) -> Dict[str, Any]:
-        """
-        获取检索参数
-
-        Returns:
-            Dict[str, Any]: 检索参数字典，如果未启用则返回空字典
-        """
-        if not self.is_knowledge_base_enabled():
-            return {}
-
-        config = self.knowledge_base_config
-        return config.get('retrieval_params', {})
+    # def get_retrieval_params(self) -> Dict[str, Any]:
+    #     """
+    #     获取检索参数
+    #
+    #     Returns:
+    #         Dict[str, Any]: 检索参数字典，如果未启用则返回空字典
+    #     """
+    #     if not self.is_knowledge_base_enabled():
+    #         return {}
+    #
+    #     config = self.knowledge_base_config
+    #     return config.get('retrieval_params', {})
 
     def to_dict(self):
         """转换为字典 - 完全匹配前端接口"""
@@ -281,7 +285,7 @@ class FlowStep(db.Model):
             'context_scope': self.context_scope,  # 自动处理字符串/数组格式
             'context_param': self.context_param,
             'logic_config': self.logic_config,
-            'knowledge_base_config': self.knowledge_base_config,  # 添加知识库配置
+            # 'knowledge_base_config': self.knowledge_base_config,  # Temporarily disabled due to missing database column
             'next_step_id': self.next_step_id,
             'description': self.description
         }

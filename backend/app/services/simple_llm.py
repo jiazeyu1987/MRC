@@ -226,9 +226,13 @@ class SimpleLLMService:
                 if hasattr(msg, 'role'):
                     role = msg.role
                     content = msg.content
-                else:
+                elif isinstance(msg, dict):
                     role = msg.get('role', 'user')
                     content = msg.get('content', str(msg))
+                else:
+                    # 对于未知类型的对象，尝试安全的属性访问
+                    role = getattr(msg, 'role', 'user')
+                    content = getattr(msg, 'content', str(msg))
 
                 anthropic_message = {
                     "role": role,
@@ -330,7 +334,11 @@ class SimpleLLMService:
             )
 
             # 估算token使用量
-            prompt_text = " ".join([msg.get('content', '') for msg in messages])
+            prompt_text = " ".join([
+                msg.get('content', '') if isinstance(msg, dict) else
+                getattr(msg, 'content', '') if hasattr(msg, 'content') else ''
+                for msg in messages
+            ])
             usage = {
                 'prompt_tokens': len(prompt_text) // 4,
                 'completion_tokens': len(response_content) // 4,

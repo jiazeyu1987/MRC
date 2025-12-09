@@ -126,7 +126,8 @@ class FlowDetail(Resource):
     def get(self, flow_id):
         """获取流程模板详情"""
         try:
-            template = FlowTemplateService.get_template_by_id(flow_id, include_steps=True)
+            # Temporarily disable steps loading due to missing knowledge_base_config column
+            template = FlowTemplateService.get_template_by_id(flow_id, include_steps=False)
             if not template:
                 return {
                     'success': False,

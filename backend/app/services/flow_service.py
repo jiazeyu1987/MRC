@@ -136,7 +136,7 @@ class FlowTemplateService:
                 context_scope=step_data['context_scope'],  # 属性会自动处理JSON
                 context_param=step_data.get('context_param'),   # 属性会自动处理JSON
                 logic_config=step_data.get('logic_config'),     # 属性会自动处理JSON
-                knowledge_base_config=step_data.get('knowledge_base_config'),  # 知识库配置
+                # knowledge_base_config=step_data.get('knowledge_base_config'),  # Temporarily disabled due to missing database column
                 next_step_id=step_data.get('next_step_id'),
                 description=step_data.get('description')
             )

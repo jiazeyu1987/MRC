@@ -443,10 +443,21 @@ class FlowEngineService:
         # 添加最近的历史消息内容（最多2条）
         recent_messages = history_messages[-2:] if history_messages else []
         for msg in recent_messages:
-            if msg.get('content') and len(msg['content']) > 10:
-                # 截取消息的关键部分，避免查询过长
-                content_preview = msg['content'][:200] + "..." if len(msg['content']) > 200 else msg['content']
+            # 检查msg是否为字典类型
+            if isinstance(msg, dict):
+                content = msg.get('content', '')
                 speaker = msg.get('speaker_role', '未知角色')
+            elif hasattr(msg, 'content') and hasattr(msg, 'speaker_role'):
+                # 如果是Message对象
+                content = getattr(msg, 'content', '')
+                speaker = getattr(msg, 'speaker_role', '未知角色')
+            else:
+                # 未知类型，跳过
+                continue
+
+            if content and len(content) > 10:
+                # 截取消息的关键部分，避免查询过长
+                content_preview = content[:200] + "..." if len(content) > 200 else content
                 query_parts.append(f"{speaker}: {content_preview}")
 
         # 合并查询部分
@@ -652,8 +663,19 @@ class FlowEngineService:
         if context['history_messages']:
             history_info = "\n之前的对话：\n"
             for msg in context['history_messages']:
-                speaker = msg['speaker_role'] or '未知角色'
-                content = msg['content'][:100] + "..." if len(msg['content']) > 100 else msg['content']
+                # 检查msg是否为字典类型
+                if isinstance(msg, dict):
+                    speaker = msg.get('speaker_role') or '未知角色'
+                    content = msg.get('content', '')
+                elif hasattr(msg, 'speaker_role') and hasattr(msg, 'content'):
+                    # 如果是Message对象
+                    speaker = getattr(msg, 'speaker_role') or '未知角色'
+                    content = getattr(msg, 'content', '')
+                else:
+                    # 未知类型，跳过
+                    continue
+
+                content = content[:100] + "..." if len(content) > 100 else content
                 history_info += f"{speaker}: {content}\n"
 
         # 新增：知识库上下文
@@ -759,9 +781,19 @@ class FlowEngineService:
         context_parts.append("相关对话背景：")
 
         for msg in history_messages:
-            speaker = msg.get('speaker_role', '未知角色')
-            content = msg.get('content', '')
-            round_idx = msg.get('round_index', 1)
+            # 检查msg是否为字典类型
+            if isinstance(msg, dict):
+                speaker = msg.get('speaker_role', '未知角色')
+                content = msg.get('content', '')
+                round_idx = msg.get('round_index', 1)
+            elif hasattr(msg, 'speaker_role') and hasattr(msg, 'content'):
+                # 如果是Message对象
+                speaker = getattr(msg, 'speaker_role', '未知角色')
+                content = getattr(msg, 'content', '')
+                round_idx = getattr(msg, 'round_index', 1)
+            else:
+                # 未知类型，跳过
+                continue
 
             if content:
                 context_parts.append(f"{speaker}说：{content}")
@@ -1301,8 +1333,18 @@ class FlowEngineService:
 
             # 添加历史消息到history数组
             for msg in history[-10:]:  # 只取最近10条消息避免上下文过长
-                role_name = msg.get('speaker_role', '用户')
-                content = msg.get('content', '')
+                # 检查msg是否为字典类型
+                if isinstance(msg, dict):
+                    role_name = msg.get('speaker_role', '用户')
+                    content = msg.get('content', '')
+                elif hasattr(msg, 'speaker_role') and hasattr(msg, 'content'):
+                    # 如果是Message对象
+                    role_name = getattr(msg, 'speaker_role', '用户')
+                    content = getattr(msg, 'content', '')
+                else:
+                    # 未知类型，跳过
+                    continue
+
                 if content:
                     # 将角色名称转换为简单的user/assistant格式
                     msg_role = 'assistant' if role_name != '用户' else 'user'
@@ -1329,14 +1371,16 @@ class FlowEngineService:
             )
 
             if response.status_code == 200:
-                result = response.json()
-                if result.get('success') and 'data' in result:
-                    llm_response = result['data']['response']
-                    success = True
+                try:
+                    result = response.json()
+                    # 添加类型检查以确保result是字典
+                    if isinstance(result, dict) and result.get('success') and 'data' in result:
+                        llm_response = result['data']['response']
+                        success = True
 
-                    # 记录成功的LLM交互
-                    if session:
-                        end_time = datetime.utcnow()
+                        # 记录成功的LLM交互
+                        if session:
+                            end_time = datetime.utcnow()
                         performance_metrics = {
                             'response_time_ms': int((end_time - start_time).total_seconds() * 1000),
                             'history_messages_count': len(history_messages),
@@ -1383,10 +1427,16 @@ class FlowEngineService:
                             }
                         )
 
-                    return prompt, llm_response
-                else:
-                    error_msg = result.get('message', 'LLM调用失败')
-                    error_message = f"LLM API返回错误: {error_msg}"
+                        return prompt, llm_response
+                    else:
+                        # 如果result不是字典或格式不正确，记录详细信息
+                        current_app.logger.error(f"LLM API响应格式错误: {type(result)} - {result}")
+                        error_message = f"LLM API返回格式错误: 期望字典，实际收到 {type(result)}"
+                        raise FlowExecutionError(error_message)
+                except (ValueError, json.JSONDecodeError) as e:
+                    # JSON解析失败
+                    current_app.logger.error(f"LLM API响应JSON解析失败: {e} - 原始响应: {response.text}")
+                    error_message = f"LLM API响应JSON解析失败: {str(e)}"
                     raise FlowExecutionError(error_message)
             else:
                 error_message = f"LLM API请求失败，状态码: {response.status_code}"
