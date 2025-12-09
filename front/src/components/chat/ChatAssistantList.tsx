@@ -1,50 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { Bot, Plus, Search, Filter, Settings, Play, Pause, Trash2, Edit, MoreHorizontal, Zap, Database, MessageSquare, Brain, Clock, AlertCircle, Loader } from 'lucide-react';
+import { MessageSquare, Plus, Search, Filter, Settings, Play, Pause, Trash2, Edit, MoreHorizontal, Clock, AlertCircle, Loader, Zap } from 'lucide-react';
 import { useTheme } from '../../theme';
-import { ragflowApi, Agent } from '../../api/knowledgeApi';
+import { ragflowApi, ChatAssistant } from '../../api/knowledgeApi';
 
-interface AgentListProps {
-  onAgentSelect: (agent: Agent) => void;
-  onNewAgent: () => void;
+interface ChatAssistantListProps {
+  onAssistantSelect: (assistant: ChatAssistant) => void;
+  onNewAssistant: () => void;
 }
 
-const AgentList: React.FC<AgentListProps> = ({
-  onAgentSelect,
-  onNewAgent
+const ChatAssistantList: React.FC<ChatAssistantListProps> = ({
+  onAssistantSelect,
+  onNewAssistant
 }) => {
   const { theme } = useTheme();
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const [assistants, setAssistants] = useState<ChatAssistant[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 从RAGFlow API获取智能体列表
+  // 从RAGFlow API获取聊天助手列表
   useEffect(() => {
-    const fetchAgents = async () => {
+    const fetchAssistants = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const response = await ragflowApi.getAgents();
-        // apiClient 返回的是直接的 agents 数组，不是完整的响应对象
-        if (Array.isArray(response)) {
-          console.log('🤖 [DEBUG] Agents data received:', response);
-          setAgents(response);
+        const response = await ragflowApi.getChatAssistants();
+        if (response.success) {
+          setAssistants(response.data);
         } else {
-          // 如果是完整响应对象（包含success和data），则使用标准处理
-          console.log('🤖 [DEBUG] Agents response received:', response);
-          setAgents(response.data || []);
+          setError(response.message || '获取聊天助手列表失败');
         }
       } catch (err) {
-        console.error('Failed to fetch agents:', err);
-        setError('获取智能体列表时发生错误: ' + (err as Error).message);
+        console.error('Failed to fetch chat assistants:', err);
+        setError('获取聊天助手列表时发生错误');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAgents();
+    fetchAssistants();
   }, []);
 
   const getStatusBadge = (status?: string) => {
@@ -73,32 +69,6 @@ const AgentList: React.FC<AgentListProps> = ({
     }
   };
 
-  const getTypeIcon = (type?: string) => {
-    switch (type) {
-      case 'chat':
-        return <MessageSquare className="w-4 h-4" />;
-      case 'search':
-        return <Database className="w-4 h-4" />;
-      case 'hybrid':
-        return <Brain className="w-4 h-4" />;
-      default:
-        return <Bot className="w-4 h-4" />;
-    }
-  };
-
-  const getTypeText = (type?: string) => {
-    switch (type) {
-      case 'chat':
-        return '对话';
-      case 'search':
-        return '搜索';
-      case 'hybrid':
-        return '混合';
-      default:
-        return '通用';
-    }
-  };
-
   const formatCreatedAt = (createdAt?: string) => {
     if (!createdAt) return '未知';
     try {
@@ -112,17 +82,24 @@ const AgentList: React.FC<AgentListProps> = ({
     }
   };
 
-  const filteredAgents = agents.filter(agent => {
-    // 处理可能的undefined属性，RAGFlow返回的字段名可能是title而不是name
-    const agentName = agent.name || agent.title || '';
-    const agentDescription = agent.description || '';
-    const agentStatus = agent.status || 'unknown';
-
-    const matchesSearch = agentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          agentDescription.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || agentStatus === statusFilter;
+  const filteredAssistants = assistants.filter(assistant => {
+    const matchesSearch = assistant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (assistant.description && assistant.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesStatus = statusFilter === 'all' || assistant.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const handleChat = async (assistant: ChatAssistant) => {
+    try {
+      // TODO: 实现与聊天助手的对话功能
+      console.log('Starting chat with assistant:', assistant.name);
+      // const response = await ragflowApi.chatWithAssistant(assistant.id, '你好！');
+      // 处理对话响应
+    } catch (err) {
+      console.error('Failed to chat with assistant:', err);
+      setError('与聊天助手对话时发生错误');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -132,7 +109,7 @@ const AgentList: React.FC<AgentListProps> = ({
           <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
           <input
             type="text"
-            placeholder="搜索智能体..."
+            placeholder="搜索聊天助手..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={`pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full ${
@@ -155,11 +132,11 @@ const AgentList: React.FC<AgentListProps> = ({
         </select>
 
         <button
-          onClick={onNewAgent}
+          onClick={onNewAssistant}
           className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
         >
           <Plus className="h-4 w-4" />
-          新建智能体
+          新建聊天助手
         </button>
       </div>
 
@@ -167,7 +144,7 @@ const AgentList: React.FC<AgentListProps> = ({
       {loading && (
         <div className="flex items-center justify-center py-12">
           <Loader className="h-8 w-8 animate-spin mr-3" />
-          <span>正在获取智能体列表...</span>
+          <span>正在获取聊天助手列表...</span>
         </div>
       )}
 
@@ -179,88 +156,96 @@ const AgentList: React.FC<AgentListProps> = ({
         </div>
       )}
 
-      {/* 智能体列表 */}
+      {/* 聊天助手列表 */}
       {!loading && !error && (
         <>
-          {filteredAgents.length === 0 ? (
+          {filteredAssistants.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>暂无智能体数据</p>
+              <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>暂无聊天助手数据</p>
               <p className="text-sm mt-2">请确保RAGFlow服务正常运行</p>
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredAgents.map((agent) => (
+              {filteredAssistants.map((assistant) => (
                 <div
-                  key={agent.id}
-                  onClick={() => onAgentSelect(agent)}
+                  key={assistant.id}
                   className={`border rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer ${
                     theme === 'dark'
                       ? 'bg-gray-800 border-gray-700 hover:bg-gray-700'
                       : 'bg-white border-gray-200 hover:bg-gray-50'
                   }`}
                 >
-                  {/* 智能体头部 */}
+                  {/* 聊天助手头部 */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                        <Bot className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                      <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                        <MessageSquare className="h-6 w-6 text-green-600 dark:text-green-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-lg truncate" title={agent.name || agent.title}>
-                          {agent.name || agent.title || '未命名智能体'}
+                        <h3 className="font-medium text-lg truncate" title={assistant.name}>
+                          {assistant.name}
                         </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400" title={agent.description}>
-                          {agent.description || '暂无描述'}
+                        <p className="text-sm text-gray-500 dark:text-gray-400" title={assistant.description}>
+                          {assistant.description || '暂无描述'}
                         </p>
                       </div>
                     </div>
 
                     {/* 状态徽章 */}
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(agent.status)}`}>
-                      {getStatusText(agent.status)}
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(assistant.status)}`}>
+                      {getStatusText(assistant.status)}
                     </span>
                   </div>
 
-                  {/* 智能体信息 */}
+                  {/* 聊天助手信息 */}
                   <div className="space-y-3">
-                    {/* 类型和语言 */}
+                    {/* 语言和系统提示 */}
                     <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center space-x-2">
-                        {getTypeIcon()}
-                        <span className="text-gray-600 dark:text-gray-400">
-                          {getTypeText()}
-                        </span>
-                      </div>
-                      <span className="text-gray-500 dark:text-gray-400">
-                        {agent.language || 'zh-CN'}
+                      <span className="text-gray-600 dark:text-gray-400">
+                        语言: {assistant.language || 'zh-CN'}
                       </span>
+                      {assistant.system_prompt && (
+                        <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
+                          有系统提示
+                        </span>
+                      )}
                     </div>
 
                     {/* 数据集信息 */}
-                    {agent.datasets && agent.datasets.length > 0 && (
+                    {assistant.datasets && assistant.datasets.length > 0 && (
                       <div className="flex items-center space-x-2 text-sm">
-                        <Database className="h-4 w-4 text-gray-400" />
+                        <Zap className="h-4 w-4 text-purple-500" />
                         <span className="text-gray-600 dark:text-gray-400">
-                          {agent.datasets.length} 个数据集
+                          {assistant.datasets.length} 个数据集
                         </span>
                       </div>
                     )}
 
                     {/* 知识图谱 */}
-                    {agent.knowledge_graph && (
+                    {assistant.knowledge_graph && (
                       <div className="flex items-center space-x-2 text-sm">
-                        <Zap className="h-4 w-4 text-purple-500" />
+                        <div className="h-4 w-4 bg-purple-500 rounded-full" />
                         <span className="text-gray-600 dark:text-gray-400">
                           知识图谱
                         </span>
                       </div>
                     )}
 
+                    {/* 头像 */}
+                    {assistant.avatar && (
+                      <div className="flex items-center space-x-2 text-sm">
+                        <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                          <img src={assistant.avatar} alt={assistant.name} className="w-full h-full rounded-full object-cover" />
+                        </div>
+                        <span className="text-gray-600 dark:text-gray-400">有头像</span>
+                      </div>
+                    )}
+
                     {/* 创建时间 */}
                     <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
                       <Clock className="h-4 w-4" />
-                      <span>创建于 {formatCreatedAt(agent.created_at)}</span>
+                      <span>创建于 {formatCreatedAt(assistant.created_at)}</span>
                     </div>
                   </div>
 
@@ -268,24 +253,18 @@ const AgentList: React.FC<AgentListProps> = ({
                   <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700 mt-4">
                     <div className="flex items-center space-x-2">
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // TODO: 实现对话功能
-                        }}
-                        className="p-2 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        onClick={() => handleChat(assistant)}
+                        className="p-2 text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20 rounded-lg transition-colors"
                         title="开始对话"
                       >
                         <Play className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // TODO: 实现编辑功能
-                        }}
-                        className="p-2 text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                        title="编辑配置"
+                        onClick={() => onAssistantSelect(assistant)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        title="查看详情"
                       >
-                        <Edit className="h-4 w-4" />
+                        <Settings className="h-4 w-4" />
                       </button>
                     </div>
                     <button
@@ -307,13 +286,33 @@ const AgentList: React.FC<AgentListProps> = ({
       )}
 
       {/* 统计信息 */}
-      {!loading && !error && filteredAgents.length > 0 && (
+      {!loading && !error && filteredAssistants.length > 0 && (
         <div className="text-center text-sm text-gray-500 dark:text-gray-400">
-          显示 {filteredAgents.length} 个智能体（共 {agents.length} 个）
+          显示 {filteredAssistants.length} 个聊天助手（共 {assistants.length} 个）
+        </div>
+      )}
+
+      {/* 功能提示 */}
+      {!loading && !error && assistants.length > 0 && (
+        <div className={`p-4 rounded-lg border ${
+          theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-blue-50 border-blue-200'
+        }`}>
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5" />
+            <div className="text-sm text-blue-800 dark:text-blue-200">
+              <p className="font-medium mb-1">聊天助手功能</p>
+              <ul className="text-sm space-y-1 text-blue-700 dark:text-blue-300">
+                <li>• 点击"开始对话"与聊天助手进行交流</li>
+                <li>• 点击"查看详情"查看聊天助手的详细配置</li>
+                <li>• 聊天助手可以连接到知识库进行增强对话</li>
+                <li>• 支持多种语言和系统提示配置</li>
+              </ul>
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
 };
 
-export default AgentList;
+export default ChatAssistantList;

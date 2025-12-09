@@ -24,21 +24,19 @@ export interface ChatSession {
   name: string;
   chat_id: string;
   create_time: number;
+  create_date: string;
   update_time: number;
-  message_count: number;
+  update_date: string;
+  messages: ChatMessage[];
+  user_id: string;
 }
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
-  reference?: {
-    documents: Array<{
-      doc_name: string;
-      page_content: string;
-      similarity: number;
-      doc_id: string;
-    }>;
-  };
+  id?: string;
+  created_at?: number;
+  reference?: Array<any>;  // RAGFlow returns empty array or document references
 }
 
 export interface ChatCompletionRequest {
@@ -86,7 +84,7 @@ export class RAGFlowChatApiService {
   private baseEndpoint: string;
 
   constructor() {
-    this.baseEndpoint = '/api/v1';
+    this.baseEndpoint = '/api/ragflow';
   }
 
   // Chat Assistant 管理

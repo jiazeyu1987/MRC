@@ -202,3 +202,118 @@ export interface ExtendedKnowledgeBase extends KnowledgeBase {
     unique_users_last_7_days: number;
   };
 }
+
+// ===== RAGFlow 聊天助手和智能体类型定义 =====
+
+export interface ChatAssistant {
+  id: string;
+  name: string;
+  description?: string;
+  avatar?: string;
+  created_at?: string;
+  updated_at?: string;
+  status?: string;
+  datasets?: string[];
+  language?: string;
+  system_prompt?: string;
+  knowledge_graph?: boolean;
+}
+
+export interface Agent {
+  id: string;
+  name: string;
+  title?: string;
+  description?: string;
+  avatar?: string;
+  created_at?: string;
+  updated_at?: string;
+  status?: string;
+  datasets?: string[];
+  language?: string;
+  knowledge_graph?: boolean;
+  llm_id?: string;
+  prompt_config?: Record<string, any>;
+}
+
+export interface ChatInteractionRequest {
+  message: string;
+  chat_id?: string;
+  agent_id?: string;
+  stream?: boolean;
+  conversation_id?: string;
+  session_id?: string;
+}
+
+export interface ChatInteractionResponse {
+  success: boolean;
+  data: {
+    response: string;
+    references?: Array<{
+      document_id: string;
+      document_name: string;
+      content: string;
+      score?: number;
+    }>;
+    usage?: {
+      prompt_tokens?: number;
+      completion_tokens?: number;
+      total_tokens?: number;
+    };
+    model?: string;
+    timestamp?: string;
+    conversation_id?: string;
+    message_id?: string;
+  };
+  message?: string;
+}
+
+export interface RetrievalRequest {
+  query: string;
+  dataset_ids: string[];
+  top_k?: number;
+  retrieval_model?: string;
+  similarity_threshold?: number;
+}
+
+export interface RetrievalResult {
+  data: {
+    chunks: Array<{
+      id: string;
+      content: string;
+      document_id: string;
+      document_name: string;
+      score: number;
+      position: number;
+      similarity?: number;
+    }>;
+    total: number;
+    query: string;
+    retrieval_model: string;
+    top_k: number;
+    time_used: number;
+  };
+  success: boolean;
+  message?: string;
+}
+
+// RAGFlow API 响应类型
+export interface RAGFlowApiResponse<T> {
+  success: boolean;
+  data: T;
+  count?: number;
+  total?: number;
+  message?: string;
+  error_code?: string;
+}
+
+// 聊天助手列表响应
+export interface ChatAssistantListResponse extends RAGFlowApiResponse<ChatAssistant[]> {
+}
+
+// 智能体列表响应
+export interface AgentListResponse extends RAGFlowApiResponse<Agent[]> {
+}
+
+// 检索响应
+export interface RetrievalResponse extends RAGFlowApiResponse<RetrievalResult['data']> {
+}

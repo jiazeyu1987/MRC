@@ -14,7 +14,18 @@ import {
   KnowledgeBaseActionRequest,
   KnowledgeBaseDetailActionRequest,
   ApiResponse,
-  ApiError
+  ApiError,
+  // RAGFlow相关类型
+  ChatAssistant,
+  Agent,
+  ChatInteractionRequest,
+  ChatInteractionResponse,
+  RetrievalRequest,
+  RetrievalResult,
+  ChatAssistantListResponse,
+  AgentListResponse,
+  RetrievalResponse,
+  RAGFlowApiResponse
 } from '../types/knowledge';
 
 import {
@@ -534,6 +545,53 @@ export const knowledgeApi = {
     // This would need to be implemented in the backend
     console.log('Cancel upload not yet implemented:', { knowledgeBaseId, uploadId });
     // For now, we'll just log it
+  },
+
+  // ===== RAGFlow 聊天助手和智能体相关方法 =====
+
+  /**
+   * 获取RAGFlow聊天助手列表
+   */
+  async getChatAssistants(): Promise<ChatAssistantListResponse> {
+    return apiClient.get<ChatAssistantListResponse>('/api/ragflow/chats');
+  },
+
+  /**
+   * 与RAGFlow聊天助手对话
+   */
+  async chatWithAssistant(chatId: string, message: string, stream: boolean = false): Promise<ChatInteractionResponse> {
+    return apiClient.post<ChatInteractionResponse>(`/api/ragflow/chats/${chatId}`, {
+      message,
+      stream
+    });
+  },
+
+  /**
+   * 获取RAGFlow智能体列表
+   */
+  async getAgents(): Promise<AgentListResponse> {
+    return apiClient.get<AgentListResponse>('/api/ragflow/agents');
+  },
+
+  /**
+   * 与RAGFlow智能体对话
+   */
+  async chatWithAgent(agentId: string, message: string, stream: boolean = false): Promise<ChatInteractionResponse> {
+    return apiClient.post<ChatInteractionResponse>(`/api/ragflow/agents/${agentId}`, {
+      message,
+      stream
+    });
+  },
+
+  /**
+   * 执行RAGFlow检索
+   */
+  async performRetrieval(query: string, datasetIds: string[], topK: number = 10): Promise<RetrievalResponse> {
+    return apiClient.post<RetrievalResponse>('/api/ragflow/retrieval', {
+      query,
+      dataset_ids: datasetIds,
+      top_k: topK
+    });
   }
 };
 
@@ -542,3 +600,89 @@ export { apiClient };
 
 // 导出API基础URL以便调试
 export { API_BASE_URL };
+
+// ===== RAGFlow 专用API客户端 =====
+
+/**
+ * RAGFlow API 客户端
+ * 专门用于与RAGFlow聊天助手、智能体和检索功能交互
+ */
+export const ragflowApi = {
+  /**
+   * 获取RAGFlow聊天助手列表
+   */
+  async getChatAssistants(): Promise<ChatAssistantListResponse> {
+    return apiClient.get<ChatAssistantListResponse>('/api/ragflow/chats');
+  },
+
+  /**
+   * 与RAGFlow聊天助手对话
+   */
+  async chatWithAssistant(chatId: string, message: string, stream: boolean = false): Promise<ChatInteractionResponse> {
+    return apiClient.post<ChatInteractionResponse>(`/api/ragflow/chats/${chatId}`, {
+      message,
+      stream
+    });
+  },
+
+  /**
+   * 获取RAGFlow智能体列表
+   */
+  async getAgents(): Promise<AgentListResponse> {
+    return apiClient.get<AgentListResponse>('/api/ragflow/agents');
+  },
+
+  /**
+   * 与RAGFlow智能体对话
+   */
+  async chatWithAgent(agentId: string, message: string, stream: boolean = false): Promise<ChatInteractionResponse> {
+    return apiClient.post<ChatInteractionResponse>(`/api/ragflow/agents/${agentId}`, {
+      message,
+      stream
+    });
+  },
+
+  /**
+   * 执行RAGFlow检索
+   */
+  async performRetrieval(query: string, datasetIds: string[], topK: number = 10, retrievalModel: string = "Vector"): Promise<RetrievalResponse> {
+    return apiClient.post<RetrievalResponse>('/api/ragflow/retrieval', {
+      query,
+      dataset_ids: datasetIds,
+      top_k: topK,
+      retrieval_model: retrievalModel
+    });
+  },
+
+  /**
+   * 获取聊天助手详情
+   */
+  async getChatAssistantDetails(chatId: string): Promise<ChatAssistant | null> {
+    try {
+      const assistants = await this.getChatAssistants();
+      if (assistants.success) {
+        return assistants.data.find(assistant => assistant.id === chatId) || null;
+      }
+      return null;
+    } catch (error) {
+      console.error('Failed to get chat assistant details:', error);
+      return null;
+    }
+  },
+
+  /**
+   * 获取智能体详情
+   */
+  async getAgentDetails(agentId: string): Promise<Agent | null> {
+    try {
+      const agents = await this.getAgents();
+      if (agents.success) {
+        return agents.data.find(agent => agent.id === agentId) || null;
+      }
+      return null;
+    } catch (error) {
+      console.error('Failed to get agent details:', error);
+      return null;
+    }
+  }
+};

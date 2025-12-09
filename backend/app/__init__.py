@@ -196,6 +196,20 @@ def register_api(app):
     api.add_resource(APIPlaygroundResource, '/api/api-playground')
     api.add_resource(APIRateLimitResource, '/api/api-rate-limit')
 
+    # RAGFlow聊天助手和智能体接口
+    from app.api.knowledge_bases import (
+        RAGFlowChatAssistantList, RAGFlowChatAssistantInteraction,
+        RAGFlowAgentList, RAGFlowAgentInteraction, RAGFlowRetrieval,
+        RAGFlowChatSessionList, EnhancedSearchAnalytics
+    )
+    api.add_resource(RAGFlowChatAssistantList, '/api/ragflow/chats')
+    api.add_resource(RAGFlowChatAssistantInteraction, '/api/ragflow/chats/<string:chat_id>')
+    api.add_resource(RAGFlowChatSessionList, '/api/ragflow/chats/<string:chat_id>/sessions')
+    api.add_resource(RAGFlowAgentList, '/api/ragflow/agents')
+    api.add_resource(RAGFlowAgentInteraction, '/api/ragflow/agents/<string:agent_id>')
+    api.add_resource(RAGFlowRetrieval, '/api/ragflow/retrieval')
+    api.add_resource(EnhancedSearchAnalytics, '/api/enhanced-search-analytics')
+
     # LLM文件记录接口
     from app.api.llm_file_records import llm_file_records_bp
     app.register_blueprint(llm_file_records_bp)

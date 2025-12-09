@@ -1154,6 +1154,320 @@ class RAGFlowService:
             )
             return []
 
+    def list_chats(self, page: int = 1, page_size: int = 50) -> List[Dict[str, Any]]:
+        """
+        获取RAGFlow聊天助手列表
+
+        Args:
+            page: 页码
+            page_size: 每页数量
+
+        Returns:
+            List[Dict[str, Any]]: 聊天助手列表
+        """
+        try:
+            endpoint = "/api/v1/chats"
+            params = {
+                "page": page,
+                "page_size": page_size,
+                "orderby": "create_time",
+                "desc": True
+            }
+
+            response = self._make_request("GET", endpoint, params=params, request_id="list_chats")
+
+            # RAGFlow返回格式: {"data": [...], "total": N}
+            response_data = response.get('data', [])
+
+            log_llm_info(
+                "RAGFLOW_LIST_CHATS",
+                f"Retrieved {len(response_data)} chat assistants",
+                additional_params={
+                    "page": page,
+                    "page_size": page_size
+                }
+            )
+            return response_data
+
+        except Exception as e:
+            log_llm_error(
+                "RAGFLOW_LIST_CHATS",
+                f"List chats error: {str(e)}",
+                error=str(e)
+            )
+            return []
+
+    def list_chat_sessions(self, chat_id: str, page: int = 1, page_size: int = 50) -> List[Dict[str, Any]]:
+        """
+        获取RAGFlow聊天助手的会话列表
+
+        Args:
+            chat_id: 聊天助手ID
+            page: 页码
+            page_size: 每页数量
+
+        Returns:
+            List[Dict[str, Any]]: 会话列表
+        """
+        try:
+            endpoint = f"/api/v1/chats/{chat_id}/sessions"
+            params = {
+                "page": page,
+                "page_size": page_size,
+                "orderby": "create_time",
+                "desc": True
+            }
+
+            response = self._make_request("GET", endpoint, params=params, request_id="list_chat_sessions")
+
+            # RAGFlow返回格式: {"data": [...], "total": N}
+            response_data = response.get('data', [])
+
+            log_llm_info(
+                "RAGFLOW_LIST_CHAT_SESSIONS",
+                f"Retrieved {len(response_data)} sessions for chat {chat_id}",
+                additional_params={
+                    "chat_id": chat_id,
+                    "page": page,
+                    "page_size": page_size
+                }
+            )
+            return response_data
+
+        except Exception as e:
+            log_llm_error(
+                "RAGFLOW_LIST_CHAT_SESSIONS",
+                f"List chat sessions error: {str(e)}",
+                error=str(e),
+                additional_params={"chat_id": chat_id}
+            )
+            return []
+
+    def chat_with_assistant(self, chat_id: str, message: str, stream: bool = False) -> Dict[str, Any]:
+        """
+        与RAGFlow聊天助手对话
+
+        Args:
+            chat_id: 聊天助手ID
+            message: 用户消息
+            stream: 是否使用流式响应
+
+        Returns:
+            Dict[str, Any]: 对话响应
+        """
+        try:
+            endpoint = f"/api/v1/chats/{chat_id}/completions"
+            body = {
+                "question": message,
+                "stream": stream
+            }
+
+            response = self._make_request("POST", endpoint, body=body, request_id="chat_with_assistant")
+
+            log_llm_info(
+                "RAGFLOW_CHAT_ASSISTANT",
+                f"Chat with assistant {chat_id}",
+                additional_params={
+                    "chat_id": chat_id,
+                    "message_length": len(message),
+                    "stream": stream
+                }
+            )
+            return response
+
+        except Exception as e:
+            log_llm_error(
+                "RAGFLOW_CHAT_ASSISTANT",
+                f"Chat with assistant error: {str(e)}",
+                error=str(e)
+            )
+            return {}
+
+    def list_agents(self, page: int = 1, page_size: int = 50) -> List[Dict[str, Any]]:
+        """
+        获取RAGFlow智能体列表
+
+        Args:
+            page: 页码
+            page_size: 每页数量
+
+        Returns:
+            List[Dict[str, Any]]: 智能体列表
+        """
+        try:
+            endpoint = "/api/v1/agents"
+            params = {
+                "page": page,
+                "page_size": page_size,
+                "orderby": "create_time",
+                "desc": True
+            }
+
+            # 直接使用HTTP请求，参考ragflow_http_demo.py的实现
+            url = f"{self.config.api_base_url}{endpoint}"
+            response = self.session.get(
+                url,
+                params=params,
+                timeout=self.config.timeout,
+                verify=self.config.verify_ssl
+            )
+
+            response.raise_for_status()
+            response_data = response.json()
+
+            # 检查RAGFlow API的响应格式
+            if isinstance(response_data, dict) and response_data.get("code") not in (None, 0):
+                log_llm_error(
+                    "RAGFLOW_LIST_AGENTS",
+                    f"RAGFlow API返回错误: {response_data}",
+                    error_type="RAGFLOW_API_ERROR"
+                )
+                return []
+
+            # RAGFlow返回格式: {"data": [...], "total": N} 或直接返回数组
+            if isinstance(response_data, dict):
+                agents_data = response_data.get("data", [])
+                total = response_data.get("total", len(agents_data))
+                log_llm_info(
+                    "RAGFLOW_LIST_AGENTS",
+                    f"Retrieved {len(agents_data)} agents (total: {total})",
+                    additional_params={
+                        "page": page,
+                        "page_size": page_size,
+                        "total": total
+                    }
+                )
+                return agents_data
+            elif isinstance(response_data, list):
+                log_llm_info(
+                    "RAGFLOW_LIST_AGENTS",
+                    f"Retrieved {len(response_data)} agents (direct array)",
+                    additional_params={
+                        "page": page,
+                        "page_size": page_size,
+                        "total": len(response_data)
+                    }
+                )
+                return response_data
+            else:
+                log_llm_warning(
+                    "RAGFLOW_LIST_AGENTS",
+                    f"Unexpected response format: {type(response_data)}"
+                )
+                return []
+
+        except Exception as e:
+            log_llm_error(
+                "RAGFLOW_LIST_AGENTS",
+                f"List agents error: {str(e)}",
+                error=str(e),
+                error_type=type(e).__name__
+            )
+            return []
+
+    def chat_with_agent(self, agent_id: str, message: str, stream: bool = False) -> Dict[str, Any]:
+        """
+        与RAGFlow智能体对话
+
+        Args:
+            agent_id: 智能体ID
+            message: 用户消息
+            stream: 是否使用流式响应
+
+        Returns:
+            Dict[str, Any]: 对话响应
+        """
+        try:
+            endpoint = f"/api/v1/agents/{agent_id}/completions"
+            body = {
+                "question": message,
+                "stream": stream
+            }
+
+            # 直接使用HTTP请求，参考ragflow_http_demo.py的实现
+            url = f"{self.config.api_base_url}{endpoint}"
+            response = self.session.post(
+                url,
+                json=body,
+                timeout=self.config.timeout,
+                verify=self.config.verify_ssl
+            )
+
+            response.raise_for_status()
+            response_data = response.json()
+
+            # 检查RAGFlow API的响应格式
+            if isinstance(response_data, dict) and response_data.get("code") not in (None, 0):
+                log_llm_error(
+                    "RAGFLOW_CHAT_AGENT",
+                    f"RAGFlow API返回错误: {response_data}",
+                    error_type="RAGFLOW_API_ERROR"
+                )
+                return {}
+
+            log_llm_info(
+                "RAGFLOW_CHAT_AGENT",
+                f"Chat with agent {agent_id}",
+                additional_params={
+                    "agent_id": agent_id,
+                    "message_length": len(message),
+                    "stream": stream,
+                    "response_keys": list(response_data.keys()) if isinstance(response_data, dict) else "non_dict"
+                }
+            )
+            return response_data
+
+        except Exception as e:
+            log_llm_error(
+                "RAGFLOW_CHAT_AGENT",
+                f"Chat with agent error: {str(e)}",
+                error=str(e),
+                error_type=type(e).__name__
+            )
+            return {}
+
+    def retrieve_from_datasets(self, query: str, dataset_ids: List[str], top_k: int = 10) -> Dict[str, Any]:
+        """
+        从多个数据集中检索信息
+
+        Args:
+            query: 查询内容
+            dataset_ids: 数据集ID列表
+            top_k: 返回结果数量
+
+        Returns:
+            Dict[str, Any]: 检索结果
+        """
+        try:
+            endpoint = "/api/v1/retrieval"
+            body = {
+                "question": query,
+                "dataset_ids": dataset_ids,
+                "retrieval_model": "Vector",
+                "top_k": top_k
+            }
+
+            response = self._make_request("POST", endpoint, body=body, request_id="retrieve_datasets")
+
+            log_llm_info(
+                "RAGFLOW_RETRIEVAL",
+                f"Retrieval from datasets",
+                additional_params={
+                    "query_length": len(query),
+                    "dataset_ids": dataset_ids,
+                    "top_k": top_k
+                }
+            )
+            return response
+
+        except Exception as e:
+            log_llm_error(
+                "RAGFLOW_RETRIEVAL",
+                f"Retrieve from datasets error: {str(e)}",
+                error=str(e)
+            )
+            return {}
+
 
 # 全局服务实例
 _ragflow_service: Optional[RAGFlowService] = None
