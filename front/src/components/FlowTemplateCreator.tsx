@@ -78,7 +78,7 @@ const FlowTemplateCreator: React.FC<FlowTemplateCreatorProps> = ({
 
         // Load knowledge bases
         const kbResponse = await knowledgeApi.getKnowledgeBases({ page: 1, page_size: 100 });
-        setKnowledgeBases(kbResponse.items);
+        setKnowledgeBases(kbResponse.knowledge_bases || []);
         setLoadingKnowledgeBases(false);
       } catch (error) {
         console.error('Failed to load data:', error);
@@ -477,6 +477,7 @@ const FlowTemplateCreator: React.FC<FlowTemplateCreatorProps> = ({
 
                       {/* Knowledge Base Configuration */}
                       <div className="border-t border-gray-200 pt-4">
+                        {console.log('Rendering KB config for step:', step.id, step.knowledge_base_config)}
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center">
                             <Database className="w-5 h-5 text-gray-600 mr-2" />
@@ -510,6 +511,7 @@ const FlowTemplateCreator: React.FC<FlowTemplateCreatorProps> = ({
                                 <p className="text-gray-500 text-sm">No knowledge bases available</p>
                               ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                                  {console.log('Rendering knowledge bases:', knowledgeBases)}
                                   {knowledgeBases.map((kb) => (
                                     <label
                                       key={kb.id}

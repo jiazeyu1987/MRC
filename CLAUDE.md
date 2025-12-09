@@ -118,13 +118,13 @@ npm run test:knowledge-base                # Run specific knowledge base tests
 
 ### Quick Development Workflow
 ```bash
-# Terminal 1: Start backend (with environment validation)
-cd backend && python quick_start.py
-# Or if environment already validated: python run.py
+# For new development environments (recommended approach)
+cd backend && python quick_start.py    # Comprehensive environment check + auto-setup
+cd front && npm run quick-start         # Auto-installs deps + starts dev server
 
-# Terminal 2: Start frontend (auto-reloads)
-cd front && npm run quick-start
-# Or if environment already validated: npm run dev
+# For experienced developers with validated environments
+cd backend && python run.py            # Start backend (port 5010)
+cd front && npm run dev                 # Start frontend (port 3000)
 
 # Access application at http://localhost:3000
 # API available at http://localhost:3000/api/* (proxied to backend:5010)
@@ -203,8 +203,21 @@ The backend includes a comprehensive services layer (`backend/app/services/`):
 
 #### LLM Integration Services
 - **LLM Service** (`services/llm/`) - Simplified LLM integration focused on Anthropic Claude with automatic provider detection
+- **Simple LLM Service** (`simple_llm.py`) - Primary LLM service with automatic provider detection and API key discovery
 - **LLM File Record Service** (`llm_file_record_service.py`) - LLM interaction file recording and management
 - **Conversation Manager** (`conversation_manager.py`) - LLM conversation state management and context handling
+
+### LLM Integration Architecture
+The system uses a simplified LLM service layer with automatic provider detection:
+- **Primary Provider**: Anthropic Claude (automatic API key detection from environment or Claude CLI)
+- **Fallback Providers**: OpenAI, Claude CLI
+- **Configuration**: Environment-based provider selection with graceful fallbacks
+- **Features**: Automatic retry logic, comprehensive logging, performance tracking, token usage monitoring
+
+Key Files:
+- `app/services/simple_llm.py` - Simplified LLM service with auto-detection
+- `app/services/llm_file_record_service.py` - LLM interaction recording
+- `utils/llm_logger.py` - Specialized LLM request/response logging
 
 #### System Services
 - **CacheService** (`cache_service.py`) - Performance caching mechanisms for frequently accessed data
@@ -439,6 +452,29 @@ VITE_API_BASE_URL_ALT=http://localhost:5010
 
 ## Testing and Quality Assurance
 
+#### Testing Framework
+The project includes a comprehensive testing strategy:
+
+**Test Files:**
+- `tests/test_knowledge_base.py` (1,395 lines) - Knowledge base service tests
+- `tests/test_knowledge_base_integration.py` (1,211 lines) - Integration tests
+- `tests/test_document_management_integration.py` (665 lines) - Document management tests
+
+**Custom Test Runner:**
+```bash
+python run_tests.py                    # Run all tests with detailed reporting
+python run_tests.py --test TestKnowledgeBaseModel  # Run specific test class
+python run_tests.py --quick           # Quick test run (skip integration tests)
+python run_tests.py --verbose         # Verbose output
+```
+
+**Frontend Testing:**
+```bash
+npm test                              # Jest tests with React Testing Library
+npm run test:coverage                # Test coverage reports
+npm run test:knowledge-base          # Knowledge base specific tests
+```
+
 ### Validation Commands
 ```bash
 # Backend testing and validation
@@ -488,6 +524,31 @@ python -m unittest tests.test_knowledge_base -v  # Run with verbose output
 - Real-time debugging capabilities with session visualization and step progress monitoring
 - Performance monitoring with rate limiting, caching, and system health tracking
 - Environment validation scripts for both backend and frontend quick setup
+
+## Development Patterns and Conventions
+
+### Key Development Patterns
+
+**Service Layer Pattern**: Business logic separated into dedicated services:
+- Core services: `FlowEngineService`, `SessionService`, `MessageService`
+- LLM services: `SimpleLLM`, `LLMFileRecordService`
+- Knowledge base: `KnowledgeBaseService`, `RAGFlowService`
+
+**Repository Pattern**: Data access through SQLAlchemy models with comprehensive relationships and proper indexing.
+
+**Observer Pattern**: Health monitoring integrated throughout the system with real-time performance tracking.
+
+**Error Handling**: Centralized error handlers with specialized LLM tracking and comprehensive logging.
+
+**Configuration Management**: Environment-specific configurations with graceful fallbacks.
+
+### Database Architecture Patterns
+
+- **Session Isolation**: Sessions use snapshots to preserve template versions at creation time
+- **JSON Configuration**: Complex configurations stored as JSON (termination, logic, context scopes)
+- **Performance Optimization**: Comprehensive indexing for common query patterns
+- **Multi-level Tracking**: Support for nested loops, rounds, and step execution sequences
+- **Error Handling**: Built-in error tracking and debugging capabilities throughout the schema
 
 ## Advanced Architecture Patterns
 

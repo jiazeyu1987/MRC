@@ -26,6 +26,7 @@ class FlowStepSchema(Schema):
     # 直接使用前端格式，模型属性会自动处理JSON序列化
     context_param = fields.Dict(allow_none=True)
     logic_config = fields.Dict(allow_none=True)
+    knowledge_base_config = fields.Dict(allow_none=True)  # 知识库配置，通过模型属性处理
     next_step_id = fields.Integer(allow_none=True)
     description = fields.String(allow_none=True, validate=validate.Length(max=500))
 

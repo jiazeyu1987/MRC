@@ -1219,10 +1219,19 @@ const FlowEditor = ({ flow, onSave, onCancel }: any) => {
   const [data, setData] = useState(flow);
   const [steps, setSteps] = useState<FlowStep[]>(flow.steps || []);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [knowledgeBases, setKnowledgeBases] = useState<any[]>([]);
   const [expandedLogicStep, setExpandedLogicStep] = useState<number | null>(null);
 
   useEffect(() => {
+    // 加载角色和知识库数据
     roleApi.getRoles().then(res => setRoles(res.items));
+
+    // 加载知识库数据
+    knowledgeApi.getKnowledgeBases({ page: 1, page_size: 100 }).then(res => {
+      setKnowledgeBases(res.knowledge_bases || []);
+    }).catch(err => {
+      console.error('Failed to load knowledge bases:', err);
+    });
   }, []);
 
   // 当外部传入的 flow 发生变化（例如从后端重新加载模板详情时），同步更新本地表单和步骤状态
@@ -1238,7 +1247,16 @@ const FlowEditor = ({ flow, onSave, onCancel }: any) => {
       order: steps.length + 1,
       speaker_role_ref: roles[0]?.name || '',
       task_type: 'ask_question',
-      context_scope: 'all'
+      context_scope: 'all',
+      knowledge_base_config: {
+        enabled: false,
+        knowledge_base_ids: [],
+        retrieval_params: {
+          top_k: 5,
+          similarity_threshold: 0.7,
+          max_context_length: 2000
+        }
+      }
     };
     setSteps([...steps, newStep]);
   };
@@ -1254,6 +1272,53 @@ const FlowEditor = ({ flow, onSave, onCancel }: any) => {
     const newSteps = [...steps];
     const currentLogic = newSteps[index].logic_config || {};
     newSteps[index].logic_config = { ...currentLogic, [field]: value };
+    setSteps(newSteps);
+  };
+
+  const updateKnowledgeBaseConfig = (index: number, field: string, value: any) => {
+    const newSteps = [...steps];
+    const currentKBConfig = newSteps[index].knowledge_base_config || {
+      enabled: false,
+      knowledge_base_ids: [],
+      retrieval_params: {
+        top_k: 5,
+        similarity_threshold: 0.7,
+        max_context_length: 2000
+      }
+    };
+
+    if (field === 'enabled') {
+      currentKBConfig.enabled = value;
+    } else if (field === 'knowledge_base_ids') {
+      currentKBConfig.knowledge_base_ids = value;
+    } else if (field === 'retrieval_params') {
+      currentKBConfig.retrieval_params = { ...currentKBConfig.retrieval_params, ...value };
+    }
+
+    newSteps[index].knowledge_base_config = currentKBConfig;
+    setSteps(newSteps);
+  };
+
+  const toggleKnowledgeBaseSelection = (index: number, kbId: string) => {
+    const newSteps = [...steps];
+    const currentKBConfig = newSteps[index].knowledge_base_config || {
+      enabled: false,
+      knowledge_base_ids: [],
+      retrieval_params: {
+        top_k: 5,
+        similarity_threshold: 0.7,
+        max_context_length: 2000
+      }
+    };
+
+    const kbIds = currentKBConfig.knowledge_base_ids || [];
+    const isSelected = kbIds.includes(kbId);
+
+    currentKBConfig.knowledge_base_ids = isSelected
+      ? kbIds.filter(id => id !== kbId)
+      : [...kbIds, kbId];
+
+    newSteps[index].knowledge_base_config = currentKBConfig;
     setSteps(newSteps);
   };
 
@@ -1483,8 +1548,115 @@ const FlowEditor = ({ flow, onSave, onCancel }: any) => {
                         </div>
                       </div>
                     )}
+
+                    {/* Knowledge Base Configuration */}
+                    <div className="border-t border-gray-200 pt-4 mt-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center">
+                          <Database className="w-5 h-5 text-gray-600 mr-2" />
+                          <h4 className="text-sm font-medium text-gray-900">知识库配置</h4>
+                        </div>
+                        <button
+                          onClick={() => updateKnowledgeBaseConfig(index, 'enabled', !step.knowledge_base_config?.enabled)}
+                          className={`px-3 py-1 text-xs font-medium rounded-full ${
+                            step.knowledge_base_config?.enabled
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
+                          {step.knowledge_base_config?.enabled ? '已启用' : '已禁用'}
+                        </button>
+                      </div>
+
+                      {step.knowledge_base_config?.enabled && (
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              选择知识库
+                            </label>
+                            {knowledgeBases.length === 0 ? (
+                              <p className="text-gray-500 text-sm">暂无可用知识库</p>
+                            ) : (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                                {knowledgeBases.map((kb) => (
+                                  <label
+                                    key={kb.id}
+                                    className="flex items-center p-2 border border-gray-200 rounded hover:bg-gray-50 cursor-pointer"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={step.knowledge_base_config?.knowledge_base_ids?.includes(kb.id.toString()) || false}
+                                      onChange={() => toggleKnowledgeBaseSelection(index, kb.id.toString())}
+                                      className="mr-2 rounded text-blue-500 focus:ring-blue-500"
+                                    />
+                                    <div>
+                                      <div className="text-sm font-medium text-gray-900">{kb.name}</div>
+                                      <div className="text-xs text-gray-500">
+                                        {kb.document_count || 0} 个文档
+                                      </div>
+                                    </div>
+                                  </label>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Top K 结果
+                              </label>
+                              <input
+                                type="number"
+                                min="1"
+                                max="20"
+                                value={step.knowledge_base_config?.retrieval_params?.top_k || 5}
+                                onChange={(e) => updateKnowledgeBaseConfig(index, 'retrieval_params', {
+                                  top_k: parseInt(e.target.value) || 5
+                                })}
+                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                相似度阈值
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                max="1"
+                                step="0.1"
+                                value={step.knowledge_base_config?.retrieval_params?.similarity_threshold || 0.7}
+                                onChange={(e) => updateKnowledgeBaseConfig(index, 'retrieval_params', {
+                                  similarity_threshold: parseFloat(e.target.value) || 0.7
+                                })}
+                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                最大上下文长度
+                              </label>
+                              <input
+                                type="number"
+                                min="100"
+                                max="10000"
+                                step="100"
+                                value={step.knowledge_base_config?.retrieval_params?.max_context_length || 2000}
+                                onChange={(e) => updateKnowledgeBaseConfig(index, 'retrieval_params', {
+                                  max_context_length: parseInt(e.target.value) || 2000
+                                })}
+                                className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  
+
                   <button onClick={() => deleteStep(index)} className="p-2 text-gray-300 hover:text-red-500 transition-colors">
                     <Trash2 size={16} />
                   </button>
