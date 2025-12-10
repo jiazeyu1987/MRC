@@ -1083,6 +1083,7 @@ const FlowManagement = () => {
         console.log(`  - 上下文范围: ${step.context_scope}`);
         console.log(`  - 上下文参数: ${JSON.stringify(step.context_param || {})}`);
         console.log(`  - 逻辑配置: ${JSON.stringify(step.logic_config || {})}`);
+        console.log(`  - 知识库配置: ${JSON.stringify(step.knowledge_base_config || {})}`);
         console.log(`  - 描述: ${step.description || '无描述'}`);
 
         if (step.next_step_id) {
@@ -1110,6 +1111,18 @@ const FlowManagement = () => {
 
       try {
         console.log("开始调用后端API保存模板...");
+
+        // 验证知识库配置
+        for (let i = 0; i < (flow.steps || []).length; i++) {
+          const step = flow.steps[i];
+          if (step.knowledge_base_config?.enabled) {
+            if (!step.knowledge_base_config.knowledge_base_ids ||
+                step.knowledge_base_config.knowledge_base_ids.length === 0) {
+              alert(`步骤 ${i + 1} 启用了知识库但没有选择任何知识库。请至少选择一个知识库或禁用知识库功能。`);
+              return; // 阻止继续保存
+            }
+          }
+        }
 
         // 判断是新建还是更新
         const isUpdate = flow.id && flow.id > 0;
@@ -1155,6 +1168,11 @@ const FlowManagement = () => {
         setEditingFlow(null);
       } catch (error) {
         console.error("保存模板失败:", error);
+        console.error("错误详情:", {
+          message: (error as Error).message,
+          stack: (error as Error).stack,
+          response: error
+        });
         alert(`保存模板失败: ${(error as Error).message || '未知错误'}`);
       }
     }} onCancel={() => setEditingFlow(null)} />;
@@ -1572,8 +1590,9 @@ const FlowEditor = ({ flow, onSave, onCancel }: any) => {
                         <div className="space-y-3">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              选择知识库
+                              选择知识库 <span className="text-red-500">*</span>
                             </label>
+                            <p className="text-xs text-amber-600 mb-2">启用知识库时，至少需要选择一个知识库</p>
                             {knowledgeBases.length === 0 ? (
                               <p className="text-gray-500 text-sm">暂无可用知识库</p>
                             ) : (
