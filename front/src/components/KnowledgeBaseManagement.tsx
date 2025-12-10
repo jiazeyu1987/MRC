@@ -17,13 +17,12 @@ import { KnowledgeBase, KnowledgeBaseConversation } from '../types/knowledge';
 import { handleError } from '../utils/errorHandler';
 import KnowledgeBaseList from './KnowledgeBaseList';
 import EnhancedKnowledgeBaseDetails from './EnhancedKnowledgeBaseDetails';
-import TestConversation from './TestConversation';
 import ConversationList from './conversation/ConversationList';
 import SearchAnalyticsList from './search/SearchAnalyticsList';
 import AgentList from './agent/AgentList';
 
 type TabType = 'knowledge-bases' | 'conversations' | 'searches' | 'agents';
-type View = 'list' | 'details' | 'conversation';
+type View = 'list' | 'details';
 
 interface KnowledgeBaseManagementProps {
   manualRefresh?: boolean;
@@ -41,7 +40,6 @@ const KnowledgeBaseManagement: React.FC<KnowledgeBaseManagementProps> = ({ manua
   const [activeTab, setActiveTab] = useState<TabType>('knowledge-bases');
   const [view, setView] = useState<View>('list');
   const [selectedKnowledgeBase, setSelectedKnowledgeBase] = useState<KnowledgeBase | null>(null);
-  const [selectedConversation, setSelectedConversation] = useState<KnowledgeBaseConversation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
     connected: false,
@@ -111,25 +109,10 @@ const KnowledgeBaseManagement: React.FC<KnowledgeBaseManagementProps> = ({ manua
     setError(null);
   };
 
-  // 处理测试对话
-  const handleTestConversation = (conversation: KnowledgeBaseConversation) => {
-    setSelectedConversation(conversation);
-    setView('conversation');
-    setError(null);
-  };
-
   // 返回列表视图
   const handleBackToList = () => {
     setView('list');
     setSelectedKnowledgeBase(null);
-    setSelectedConversation(null);
-    setError(null);
-  };
-
-  // 返回详情视图
-  const handleBackToDetails = () => {
-    setView('details');
-    setSelectedConversation(null);
     setError(null);
   };
 
@@ -184,7 +167,6 @@ const KnowledgeBaseManagement: React.FC<KnowledgeBaseManagementProps> = ({ manua
     // 切换选项卡时重置视图状态
     setView('list');
     setSelectedKnowledgeBase(null);
-    setSelectedConversation(null);
   };
 
   // 对话相关处理函数
@@ -372,26 +354,6 @@ const KnowledgeBaseManagement: React.FC<KnowledgeBaseManagementProps> = ({ manua
           <EnhancedKnowledgeBaseDetails
             knowledgeBaseId={selectedKnowledgeBase.id}
             onBack={handleBackToList}
-            onTestConversation={handleTestConversation}
-          />
-        );
-
-      case 'conversation':
-        if (!selectedKnowledgeBase) {
-          return (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-              <div className="text-center">
-                <AlertCircle className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-600">请选择一个知识库进行测试对话</p>
-              </div>
-            </div>
-          );
-        }
-        return (
-          <TestConversation
-            knowledgeBase={selectedKnowledgeBase}
-            conversation={selectedConversation || undefined}
-            onBack={handleBackToDetails}
           />
         );
 
