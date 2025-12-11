@@ -2,6 +2,7 @@ from .role import Role
 from .flow import FlowTemplate, FlowStep
 from .session import Session, SessionRole
 from .message import Message
+from .step_execution_log import StepExecutionLog, LoopResultType
 from .knowledge_base import KnowledgeBase
 from .knowledge_base_conversation import KnowledgeBaseConversation
 from .role_knowledge_base import RoleKnowledgeBase
@@ -15,7 +16,7 @@ from .search_analytics import SearchAnalytics
 from .api_documentation_cache import APIDocumentationCache
 
 __all__ = [
-    'Role', 'FlowTemplate', 'FlowStep', 'Session', 'SessionRole', 'Message',
+    'Role', 'FlowTemplate', 'FlowStep', 'Session', 'SessionRole', 'Message', 'StepExecutionLog', 'LoopResultType',
     'KnowledgeBase', 'KnowledgeBaseConversation', 'RoleKnowledgeBase',
     'Document', 'DocumentChunk', 'ProcessingLog', 'ChunkReference',
     'ConversationHistory', 'ConversationTemplate', 'SearchAnalytics', 'APIDocumentationCache'

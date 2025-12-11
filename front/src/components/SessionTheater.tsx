@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
-import { ArrowRight, Download, Play, CheckCircle, LogOut, GitBranch, Pause } from 'lucide-react';
+import { ArrowRight, Download, Play, CheckCircle, LogOut, GitBranch, Pause, RefreshCw } from 'lucide-react';
 import { sessionApi } from '../api/sessionApi';
 import { Session, Message } from '../api/sessionApi';
 import { useTheme } from '../theme';
@@ -18,6 +18,7 @@ const SessionTheater: React.FC<SessionTheaterProps> = ({ sessionId, onExit }) =>
   const [session, setSession] = useState<Session | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [lastExecutionInfo, setLastExecutionInfo] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto execution states
@@ -76,8 +77,8 @@ const SessionTheater: React.FC<SessionTheaterProps> = ({ sessionId, onExit }) =>
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, generating]);
 
-  const handleNextStep = async () => {
-    if (!session) return;
+  const handleNextStep = async (): Promise<boolean> => {
+    if (!session) return false;
     setGenerating(true);
     try {
       // 调用真实的API执行下一步
@@ -93,8 +94,10 @@ const SessionTheater: React.FC<SessionTheaterProps> = ({ sessionId, onExit }) =>
         updateLLMDebugInfo(result.llm_debug);
       }
 
-      // 更新会话状态（如果后端返回了更新的会话信息）
+      // 保存执行信息用于显示循环状态
       if (result.execution_info) {
+        setLastExecutionInfo(result.execution_info);
+
         // 检查会话是否已完成
         if (result.execution_info.is_finished) {
           setSession(prev => prev ? {
@@ -109,8 +112,17 @@ const SessionTheater: React.FC<SessionTheaterProps> = ({ sessionId, onExit }) =>
       const updatedSession = await sessionApi.getSession(session.id);
       setSession(updatedSession);
 
+      return true;
     } catch (error) {
       handleError(error);
+
+      // 如果是 400 错误且在自动模式下，停止自动执行
+      if (error && (error as any).status === 400 && autoExecution) {
+        console.log('[Auto Mode] 收到 400 错误，停止自动执行');
+        setAutoExecution(false);
+      }
+
+      return false;
     } finally {
       setGenerating(false);
     }
@@ -208,9 +220,17 @@ const SessionTheater: React.FC<SessionTheaterProps> = ({ sessionId, onExit }) =>
 
     } catch (e) {
       console.error("[Auto Mode] 自动执行失败:", e);
-      setAutoExecution(false);
-      // 移除弹框，让错误信息能够在控制台中完整显示，便于调试
-      // alert("自动执行失败");
+
+      // 检查是否是 400 错误，如果是则停止自动执行
+      if (e && (e as any).status === 400) {
+        console.log('[Auto Mode] 检测到 400 错误，停止自动执行以避免无限重试');
+        setAutoExecution(false);
+        alert("执行步骤时发生错误，已停止自动执行。请检查控制台获取详细信息。");
+      } else {
+        // 其他错误也停止自动执行，但提供更温和的提示
+        console.log('[Auto Mode] 发生未知错误，停止自动执行');
+        setAutoExecution(false);
+      }
     }
   };
 
@@ -384,10 +404,22 @@ const SessionTheater: React.FC<SessionTheaterProps> = ({ sessionId, onExit }) =>
                 {isFinished ? '已结束' : '进行中'}
               </Badge>
             </h2>
-            <div className="text-xs text-gray-500 mt-0.5 flex gap-2">
+            <div className="text-xs text-gray-500 mt-0.5 flex gap-2 flex-wrap">
               <span>Template ID: {session.flow_template_id}</span>
               <span>•</span>
               <span>Round: {session.current_round + 1}</span>
+              {lastExecutionInfo?.flow_logic_applied && (
+                <>
+                  <span>•</span>
+                  <span className="flex items-center gap-1">
+                    <RefreshCw className="w-3 h-3" />
+                    Loop: {lastExecutionInfo.flow_logic_applied.executed_loops + 1}/{lastExecutionInfo.flow_logic_applied.max_loops}
+                    {lastExecutionInfo.flow_logic_applied.max_loops_reached && (
+                      <span className="text-orange-500">(Max reached)</span>
+                    )}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -598,6 +630,24 @@ const SessionTheater: React.FC<SessionTheaterProps> = ({ sessionId, onExit }) =>
                </div>
              </div>
           </div>
+
+          {/* Loop Status Debug Panel */}
+          {lastExecutionInfo?.flow_logic_applied && (
+            <div className={`${theme.bgSoft} border ${theme.border} rounded-lg p-4 mb-4`}>
+              <h3 className={`font-semibold ${theme.text} mb-2 flex items-center gap-2`}>
+                <RefreshCw className="w-4 h-4" />
+                循环执行状态
+              </h3>
+              <div className={`text-xs ${theme.text} space-y-1 font-mono opacity-75`}>
+                <div>Next Step Order: {lastExecutionInfo.flow_logic_applied.next_step_order || 'N/A'}</div>
+                <div>Executed Loops: {lastExecutionInfo.flow_logic_applied.executed_loops}</div>
+                <div>Max Loops: {lastExecutionInfo.flow_logic_applied.max_loops}</div>
+                <div>Loop Mode: {lastExecutionInfo.flow_logic_applied.loop_mode}</div>
+                <div>Max Loops Reached: {lastExecutionInfo.flow_logic_applied.max_loops_reached ? 'Yes' : 'No'}</div>
+                <div>Exit Condition Met: {lastExecutionInfo.flow_logic_applied.exit_condition_met ? 'Yes' : 'No'}</div>
+              </div>
+            </div>
+          )}
 
           {/* LLM Debug Panel - uses global context */}
           <SimpleLLMDebugPanel />

@@ -3,6 +3,16 @@ from app import db
 import json
 
 
+# 循环相关结果类型常量
+class LoopResultType:
+    """循环结果类型常量"""
+    SUCCESS = 'success'
+    LOOP_CONTINUE = 'loop_continue'
+    LOOP_BREAK = 'loop_break'
+    LOOP_ENTRY = 'loop_entry'
+    ERROR = 'error'
+
+
 class StepExecutionLog(db.Model):
     """步骤执行日志模型"""
     __tablename__ = 'step_execution_logs'
@@ -23,6 +33,9 @@ class StepExecutionLog(db.Model):
         db.Index('idx_step_logs_duration', 'duration_ms'),
         db.Index('idx_step_logs_result_type', 'result_type'),
         db.Index('idx_step_logs_session_status_execution', 'session_id', 'status', 'execution_order'),
+        # 新增：优化循环计数的复合索引
+        db.Index('idx_step_logs_session_step_count', 'session_id', 'step_id'),  # 用于快速计算某会话中某步骤的执行次数
+        db.Index('idx_step_logs_session_step_iteration', 'session_id', 'step_id', 'loop_iteration'),  # 用于循环迭代查询
     )
 
     # 执行信息
@@ -226,6 +239,58 @@ class StepExecutionLog(db.Model):
             'current_step': current_step,
             'progress_percentage': round(progress_percentage, 2)
         }
+
+    @classmethod
+    def get_step_iteration_count(cls, session_id: int, step_id: int) -> int:
+        """
+        获取指定会话中步骤的执行次数（用于循环计数）
+
+        Args:
+            session_id: 会话ID
+            step_id: 步骤ID
+
+        Returns:
+            int: 该步骤的执行次数
+        """
+        try:
+            # 使用优化查询，利用idx_step_logs_session_step_count索引
+            query = cls.query.filter(
+                cls.session_id == session_id,
+                cls.step_id == step_id
+            )
+
+            # 对于大数据集，使用更高效的计数方法
+            count = query.with_entities(
+                db.func.count(cls.id)
+            ).scalar()
+
+            return int(count) if count else 0
+        except Exception as e:
+            # 记录错误日志用于调试
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"查询步骤执行次数失败: {str(e)}, session_id={session_id}, step_id={step_id}")
+            return 0
+
+    def is_loop_iteration(self) -> bool:
+        """判断是否为循环迭代（增强版本，区分初始执行和循环执行）"""
+        return self.loop_iteration > 0
+
+    def get_loop_status(self) -> str:
+        """
+        获取循环状态描述
+
+        Returns:
+            str: 循环状态描述
+        """
+        if self.loop_iteration == 0:
+            return "initial_execution"
+        elif self.result_type == LoopResultType.LOOP_CONTINUE:
+            return "continuing_loop"
+        elif self.result_type == LoopResultType.LOOP_BREAK:
+            return "exiting_loop"
+        else:
+            return "loop_iteration"
 
     def __repr__(self):
         return f'<StepExecutionLog {self.id}:Session{self.session_id}-Step{self.step_id}-{self.status}>'

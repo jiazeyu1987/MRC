@@ -53,6 +53,9 @@ export interface ExecutionInfo {
     next_step_order?: number;
     exit_condition_met?: boolean;
     max_loops_reached?: boolean;
+    executed_loops?: number;
+    max_loops?: number;
+    loop_mode?: string;
   };
 }
 

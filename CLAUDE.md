@@ -139,10 +139,17 @@ The system uses a **simplified LLM service** with automatic provider detection:
 ```
 
 **Key Components:**
-- **SimpleLLMService**: Primary interface with auto-detection
+- **SimpleLLMService**: Primary interface with auto-detection (`backend/app/services/simple_llm.py`)
 - **LLMFileRecordService**: Comprehensive interaction logging
 - **ConversationManager**: Context state management
 - **LLMLogger**: Specialized request/response logging
+
+**Service Features:**
+- Auto-detection of available LLM providers
+- Streaming response support for long conversations
+- Comprehensive error handling and fallback mechanisms
+- Request tracking and performance monitoring
+- Support for both simple prompts and complex conversation flows
 
 ### Knowledge Base System (RAGFlow Integration)
 
@@ -294,6 +301,8 @@ npm run check                                 # Lint + build validation
 3. **API Responses**: Consistent JSON format with success/error structure
 4. **Error Handling**: Centralized error handlers with comprehensive logging
 5. **LLM Integration**: Use SimpleLLMService for all LLM interactions
+6. **File Organization**: Services in `backend/app/services/`, models in `backend/app/models/`
+7. **Configuration**: Environment-based config with `.env` file support
 
 ### Frontend Development
 1. **Component Architecture**: Follow composition pattern with reusable parts
@@ -301,6 +310,8 @@ npm run check                                 # Lint + build validation
 3. **API Integration**: Use centralized API clients in `src/api/`
 4. **Styling**: Use Tailwind CSS utilities with the theme system
 5. **State Management**: Use React hooks for local state, context for global state
+6. **File Organization**: Components in `src/components/`, API clients in `src/api/`
+7. **Development Server**: Vite dev server with hot reload and API proxy
 
 ### Database Development
 1. **Migration First**: Always create migrations before model changes
@@ -314,6 +325,8 @@ npm run check                                 # Lint + build validation
 - **Development Environment**: Issues don't affect the Vite dev server functionality
 - **ESLint Configuration**: Frontend linting requires proper ESLint setup
 - **LLM Provider Configuration**: Requires proper API key configuration for each provider
+- **Database Path**: SQLite database file location may need adjustment for different environments
+- **RAGFlow Integration**: Requires external RAGFlow instance configuration for knowledge base features
 
 ## Monitoring and Debugging
 

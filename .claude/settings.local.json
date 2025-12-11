@@ -8,7 +8,8 @@
       "Bash(dir:*)",
       "Bash(sqlite3:*)",
       "Bash(find:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

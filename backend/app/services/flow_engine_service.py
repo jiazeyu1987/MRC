@@ -2,8 +2,10 @@ import json
 import asyncio
 from datetime import datetime
 from typing import List, Dict, Optional, Any, Tuple
+from dataclasses import dataclass
 from app import db
-from app.models import Session, SessionRole, Message, FlowTemplate, FlowStep, Role, RoleKnowledgeBase
+from app.models import Session, SessionRole, Message, FlowTemplate, FlowStep, Role, RoleKnowledgeBase, StepExecutionLog
+from app.models.step_execution_log import LoopResultType
 from app.services.session_service import SessionService, SessionError, FlowExecutionError
 from app.services.llm.conversation_service import conversation_llm_service
 from app.services.llm.conversation_service import LLMError
@@ -17,6 +19,112 @@ latest_llm_debug_info = None
 
 class FlowEngineService:
     """流程引擎服务类 - 负责执行对话流程"""
+
+    @dataclass
+    class LoopConfig:
+        """循环配置数据类"""
+        next_step_order: Optional[int] = None
+        max_loops: Optional[int] = None
+        loop_mode: str = "iteration"  # "iteration" | "round" (legacy)
+
+        @classmethod
+        def from_step(cls, step: 'FlowStep') -> 'LoopConfig':
+            """
+            从步骤对象中提取循环配置
+
+            Args:
+                step: 步骤对象
+
+            Returns:
+                LoopConfig: 循环配置对象
+            """
+            if not step.logic_config:
+                return cls()
+
+            logic_config = step.logic_config if isinstance(step.logic_config, dict) else {}
+
+            return cls(
+                next_step_order=logic_config.get('next_step_order'),
+                max_loops=logic_config.get('max_loops'),
+                loop_mode=logic_config.get('loop_mode', 'iteration')
+            )
+
+        def is_loop_configured(self) -> bool:
+            """
+            检查是否配置了循环
+
+            Returns:
+                bool: True表示配置了循环
+            """
+            return (
+                self.next_step_order is not None and
+                self.max_loops is not None and
+                self.max_loops > 0
+            )
+
+        def should_continue_loop(self, executed_loops: int, current_round: int = None) -> bool:
+            """
+            判断是否应该继续循环
+
+            Args:
+                executed_loops: 已执行的循环次数
+                current_round: 当前轮次（仅用于legacy模式）
+
+            Returns:
+                bool: True表示应该继续循环
+            """
+            if not self.is_loop_configured():
+                return False
+
+            if self.loop_mode == "round" and current_round is not None:
+                # Legacy模式：基于current_round
+                return current_round < self.max_loops
+            else:
+                # 新模式：基于实际执行的循环次数
+                return executed_loops < self.max_loops
+
+    @staticmethod
+    def _get_step_loop_iteration(session: Session, step: FlowStep) -> int:
+        """
+        获取当前会话中某步骤已执行的循环次数（从0开始）
+
+        Args:
+            session: 会话对象
+            step: 步骤对象
+
+        Returns:
+            int: 该步骤已执行的循环次数（0表示第一次执行）
+        """
+        try:
+            # 查询该会话中该步骤的执行次数
+            executed_count = StepExecutionLog.query.filter_by(
+                session_id=session.id,
+                step_id=step.id
+            ).count()
+
+            # 循环迭代次数从0开始，所以执行次数减1
+            return max(0, executed_count - 1)
+
+        except Exception as e:
+            # 查询失败时记录日志并回滚事务，避免后续操作使用已失败的 session
+            import logging
+            from app import db
+
+            logger = logging.getLogger(__name__)
+            logger.warning(
+                f"查询步骤循环迭代次数失败: {str(e)}, "
+                f"session_id={session.id}, step_id={step.id}"
+            )
+            try:
+                db.session.rollback()
+                logger.info("已回滚数据库事务")
+            except Exception as rollback_error:
+                # 回滚本身失败就忽略，继续用保守默认值
+                logger.warning(f"回滚事务失败: {str(rollback_error)}")
+                pass
+
+            # 保守处理：视为还没有循环，返回 0
+            return 0
 
     @staticmethod
     def execute_next_step(session_id: int) -> Tuple[Message, Dict[str, Any]]:
@@ -115,8 +223,108 @@ class FlowEngineService:
             db.session.add(message)
             db.session.flush()  # 获取消息ID
 
+            # 创建步骤执行日志记录（包含循环迭代信息）
+            try:
+                executed_loops = FlowEngineService._get_step_loop_iteration(session, current_step)
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"获取循环迭代次数失败，使用默认值0: {str(e)}, session_id={session.id}, step_id={current_step.id}")
+                executed_loops = 0
+
+            try:
+                execution_log = StepExecutionLog(
+                    session_id=session.id,
+                    step_id=current_step.id,
+                    round_index=session.current_round,
+                    loop_iteration=executed_loops,
+                    execution_order=session.executed_steps_count + 1,
+                    status='completed',
+                    result_type='loop_continue' if executed_loops > 0 else 'success'
+                )
+
+                # 如果步骤有循环配置，保存步骤快照
+                loop_config = FlowEngineService.LoopConfig.from_step(current_step)
+                if loop_config.is_loop_configured():
+                    try:
+                        execution_log.step_snapshot_dict = {
+                            'loop_config': {
+                                'next_step_order': loop_config.next_step_order,
+                                'max_loops': loop_config.max_loops,
+                                'loop_mode': loop_config.loop_mode
+                            },
+                            'executed_loops': executed_loops,
+                            'step_order': current_step.order
+                        }
+                    except Exception as e:
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.warning(f"保存步骤快照失败: {str(e)}, session_id={session.id}, step_id={current_step.id}")
+
+                db.session.add(execution_log)
+                db.session.flush()  # 获取日志ID
+
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"创建步骤执行日志失败: {str(e)}, session_id={session.id}, step_id={current_step.id}")
+                # 继续执行，不因日志创建失败而中断
+
             # 更新会话状态
             FlowEngineService._update_session_after_step_execution(session, current_step)
+
+            # 准备循环状态信息（用于API响应）
+            flow_logic_applied = {}
+            try:
+                loop_config = FlowEngineService.LoopConfig.from_step(current_step)
+                if loop_config.is_loop_configured():
+                    try:
+                        executed_loops = FlowEngineService._get_step_loop_iteration(session, current_step)
+                        max_loops_reached = executed_loops >= loop_config.max_loops
+
+                        flow_logic_applied = {
+                            'next_step_order': loop_config.next_step_order,
+                            'max_loops_reached': max_loops_reached,
+                            'executed_loops': executed_loops,
+                            'max_loops': loop_config.max_loops,
+                            'loop_mode': loop_config.loop_mode,
+                            'exit_condition_met': False  # 可以在后续实现中检查退出条件
+                        }
+
+                        # 更新最新的执行日志的result_type（如果有的话）
+                        if execution_log:
+                            try:
+                                if max_loops_reached:
+                                    execution_log.result_type = LoopResultType.LOOP_BREAK
+                                elif executed_loops > 0:
+                                    execution_log.result_type = LoopResultType.LOOP_CONTINUE
+                            except Exception as e:
+                                import logging
+                                logger = logging.getLogger(__name__)
+                                logger.warning(f"更新执行日志result_type失败: {str(e)}, session_id={session.id}, step_id={current_step.id}")
+
+                    except Exception as e:
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.error(f"计算循环状态失败: {str(e)}, session_id={session.id}, step_id={current_step.id}")
+                        # 提供基本的循环状态信息
+                        flow_logic_applied = {
+                            'next_step_order': loop_config.next_step_order,
+                            'max_loops_reached': False,
+                            'executed_loops': 0,
+                            'max_loops': loop_config.max_loops,
+                            'loop_mode': loop_config.loop_mode,
+                            'exit_condition_met': False,
+                            'error': '循环状态计算失败'
+                        }
+
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"解析循环配置失败: {str(e)}, session_id={session.id}, step_id={current_step.id}")
+                flow_logic_applied = {
+                    'error': '循环配置解析失败'
+                }
 
             # 记录带有消息ID的LLM交互（补充信息）
             if hasattr(FlowEngineService, '_last_llm_interaction_data'):
@@ -152,6 +360,7 @@ class FlowEngineService:
                 'executed_steps_count': session.executed_steps_count,
                 'next_step_id': session.current_step_id,
                 'is_finished': session.status == 'finished',
+                'flow_logic_applied': flow_logic_applied,
                 'llm_debug': llm_debug_info  # 添加LLM调试信息
             }
 
@@ -1043,16 +1252,14 @@ class FlowEngineService:
     @staticmethod
     def _determine_next_step_v2(session: Session, current_step: FlowStep) -> Optional[int]:
         """
-        改进版：确定下一步骤ID，使「最大循环次数」在循环结束后可以继续到后续步骤。
+        改进版：基于per-step iteration counting确定下一步骤ID，使「最大循环次数」真正表示循环片段的重复次数。
 
         逻辑说明：
         - 先检查退出条件，满足则结束会话；
-        - 然后读取当前流程模板的全部步骤，定位当前步骤下标；
-        - 如果当前步骤配置了 next_step_order + max_loops：
-          * 当 current_round < max_loops 时，优先按 next_step_order 回跳形成循环；
-          * 当 current_round >= max_loops 时，不再回跳，按顺序进入下一步骤；
-        - 若未配置循环逻辑，则始终按顺序进入下一步骤；
-        - 若已经是最后一个步骤且没有可走的下一步，则结束会话。
+        - 使用FlowEngineService.LoopConfig解析循环配置；
+        - 获取当前步骤的已执行循环次数（基于StepExecutionLog）；
+        - 根据loop_mode和循环配置决定是否继续循环或顺序推进；
+        - 支持legacy模式（基于current_round）和新的iteration模式（基于实际执行次数）。
         """
         print(f"[DEBUG] v2 确定下一步骤 - 当前步骤ID: {current_step.id}, 当前轮次: {session.current_round}")
 
@@ -1085,57 +1292,78 @@ class FlowEngineService:
 
         print(f"[DEBUG] v2 当前步骤在列表中的位置 {current_index}")
 
-        # 4. 读取当前步骤的流转 / 循环配置（与前端 FlowTemplate 的 logic_config 对齐）
-        logic_config = current_step.logic_config_dict or {}
-        if not isinstance(logic_config, dict):
-            logic_config = {}
+        # 4. 使用LoopConfig解析循环配置
+        loop_config = FlowEngineService.LoopConfig.from_step(current_step)
+        print(f"[DEBUG] v2 循环配置: next_step_order={loop_config.next_step_order}, "
+              f"max_loops={loop_config.max_loops}, loop_mode={loop_config.loop_mode}")
 
-        # 循环相关配置
-        next_step_order = logic_config.get('next_step_order')
-        max_loops_raw = logic_config.get('max_loops')
-        exit_condition = logic_config.get('exit_condition')
+        # 验证循环配置的有效性
+        if loop_config.is_loop_configured():
+            if loop_config.next_step_order is not None and loop_config.next_step_order <= 0:
+                print(f"[DEBUG] v2 无效的next_step_order: {loop_config.next_step_order}，忽略循环配置")
+                loop_config = FlowEngineService.LoopConfig()  # 重置为无效配置
+            elif loop_config.max_loops is not None and loop_config.max_loops <= 0:
+                print(f"[DEBUG] v2 无效的max_loops: {loop_config.max_loops}，忽略循环配置")
+                loop_config = FlowEngineService.LoopConfig()  # 重置为无效配置
 
-        # 兼容字符串类型的 max_loops
-        max_loops: Optional[int] = None
-        if max_loops_raw is not None:
+        # 5. 获取当前步骤的已执行循环次数（带错误处理）
+        try:
+            executed_loops = FlowEngineService._get_step_loop_iteration(session, current_step)
+            print(f"[DEBUG] v2 当前步骤已执行循环次数: {executed_loops}")
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"获取循环迭代次数失败: {str(e)}, session_id={session.id}, step_id={current_step.id}")
+            executed_loops = 0  # 保守处理，假设没有循环执行
+
+        # 6. 判断是否应该继续循环（带错误处理）
+        try:
+            should_continue = loop_config.should_continue_loop(executed_loops, session.current_round)
+            has_loop_logic = loop_config.is_loop_configured()
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"循环判断逻辑失败: {str(e)}, session_id={session.id}, step_id={current_step.id}")
+            should_continue = False
+            has_loop_logic = False
+
+        print(f"[DEBUG] v2 循环判断: should_continue={should_continue}, has_loop_logic={has_loop_logic}")
+
+        # 7. 如配置了循环逻辑且应该继续循环，则按循环逻辑跳转（带错误处理）
+        if has_loop_logic and should_continue:
             try:
-                max_loops = int(max_loops_raw)
-            except (TypeError, ValueError):
-                max_loops = None
+                print(f"[DEBUG] v2 满足循环条件，执行循环跳转")
+                next_step_order = int(loop_config.next_step_order)
 
-        print(
-            f"[DEBUG] v2 逻辑配置: next_step_order={next_step_order}, "
-            f"max_loops={max_loops}, exit_condition={exit_condition}"
-        )
+                if 1 <= next_step_order <= len(all_steps):
+                    loop_step_id = all_steps[next_step_order - 1].id
+                    print(f"[DEBUG] v2 循环到步骤顺序 {next_step_order}，ID: {loop_step_id}")
+                    return loop_step_id
+                else:
+                    # 回跳目标超出范围时的错误处理
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"循环步骤顺序 {next_step_order} 超出范围 (1-{len(all_steps)})，回到第一步")
+                    print(f"[DEBUG] v2 循环步骤顺序 {next_step_order} 超出范围，循环到第一步")
+                    return all_steps[0].id if all_steps else None
 
-        has_loop_logic = next_step_order is not None and max_loops is not None and max_loops > 0
+            except (ValueError, TypeError) as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"循环步骤跳转失败，无效的next_step_order: {loop_config.next_step_order}, 错误: {str(e)}")
+                print(f"[DEBUG] v2 循环步骤跳转失败，改为顺序执行")
+                # 降级为顺序执行
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"循环步骤跳转发生意外错误: {str(e)}, session_id={session.id}, step_id={current_step.id}")
+                print(f"[DEBUG] v2 循环步骤跳转发生意外错误，改为顺序执行")
 
-        # 5. 如配置了循环逻辑且未达到最大循环次数，则优先按循环逻辑跳转
-        if has_loop_logic and session.current_round < max_loops:
-            print(
-                f"[DEBUG] v2 满足循环条件，当前轮次 {session.current_round} < "
-                f"最大循环次数 {max_loops}"
-            )
-            if 1 <= int(next_step_order) <= len(all_steps):
-                loop_step_id = all_steps[int(next_step_order) - 1].id
-                print(f"[DEBUG] v2 循环到步骤顺序 {next_step_order}，ID: {loop_step_id}")
-                return loop_step_id
-            else:
-                # 回跳目标超出范围时，回到第一步，避免死循环
-                print(
-                    f"[DEBUG] v2 循环步骤顺序 {next_step_order} 超出范围，"
-                    f"循环到第一步"
-                )
-                return all_steps[0].id if all_steps else None
-
-        # 6. 循环未配置或已达到最大次数：按顺序进入“下一个流程步骤”
+        # 8. 循环未配置或已达到最大次数：按顺序进入"下一个流程步骤"
         if current_index < len(all_steps) - 1:
             next_step_id = all_steps[current_index + 1].id
-            if has_loop_logic and max_loops is not None and session.current_round >= max_loops:
-                print(
-                    f"[DEBUG] v2 已达到最大循环次数 {max_loops}，"
-                    f"继续到顺序下一步 ID: {next_step_id}"
-                )
+            if has_loop_logic:
+                print(f"[DEBUG] v2 已达到最大循环次数 {loop_config.max_loops}，继续到顺序下一步 ID: {next_step_id}")
             else:
                 print(f"[DEBUG] v2 未配置循环逻辑，顺序推进到下一步 ID: {next_step_id}")
             return next_step_id
