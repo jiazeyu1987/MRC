@@ -3,3 +3,5 @@
 /backend/logs/*.log
 *.bak
 /backend/nul
+/backend/logs
+logs

@@ -966,7 +966,7 @@ class FlowEngineService:
             session.current_round += 1
 
         # 确定下一步骤
-        next_step_id = FlowEngineService._determine_next_step(session, executed_step)
+        next_step_id = FlowEngineService._determine_next_step_v2(session, executed_step)
         if next_step_id:
             session.current_step_id = next_step_id
         else:
@@ -1039,6 +1039,110 @@ class FlowEngineService:
 
         # 其他类型的退出条件可以在此扩展
         return False
+
+    @staticmethod
+    def _determine_next_step_v2(session: Session, current_step: FlowStep) -> Optional[int]:
+        """
+        改进版：确定下一步骤ID，使「最大循环次数」在循环结束后可以继续到后续步骤。
+
+        逻辑说明：
+        - 先检查退出条件，满足则结束会话；
+        - 然后读取当前流程模板的全部步骤，定位当前步骤下标；
+        - 如果当前步骤配置了 next_step_order + max_loops：
+          * 当 current_round < max_loops 时，优先按 next_step_order 回跳形成循环；
+          * 当 current_round >= max_loops 时，不再回跳，按顺序进入下一步骤；
+        - 若未配置循环逻辑，则始终按顺序进入下一步骤；
+        - 若已经是最后一个步骤且没有可走的下一步，则结束会话。
+        """
+        print(f"[DEBUG] v2 确定下一步骤 - 当前步骤ID: {current_step.id}, 当前轮次: {session.current_round}")
+
+        # 1. 优先检查退出条件
+        exit_met = FlowEngineService._check_exit_condition(session, current_step)
+        print(f"[DEBUG] v2 退出条件检查结果: {exit_met}")
+        if exit_met:
+            print("[DEBUG] v2 满足退出条件，结束会话")
+            return None
+
+        # 2. 获取当前会话对应的流程模板与全部步骤
+        flow_template = FlowTemplate.query.get(session.flow_template_id)
+        if not flow_template:
+            print("[DEBUG] v2 流程模板不存在")
+            return None
+
+        all_steps = flow_template.steps.order_by(FlowStep.order).all()
+        print(f"[DEBUG] v2 流程模板共有 {len(all_steps)} 个步骤")
+
+        # 3. 定位当前步骤在步骤列表中的索引
+        current_index: Optional[int] = None
+        for i, step in enumerate(all_steps):
+            if step.id == current_step.id:
+                current_index = i
+                break
+
+        if current_index is None:
+            print(f"[DEBUG] v2 找不到当前步骤 {current_step.id}")
+            return None
+
+        print(f"[DEBUG] v2 当前步骤在列表中的位置 {current_index}")
+
+        # 4. 读取当前步骤的流转 / 循环配置（与前端 FlowTemplate 的 logic_config 对齐）
+        logic_config = current_step.logic_config_dict or {}
+        if not isinstance(logic_config, dict):
+            logic_config = {}
+
+        # 循环相关配置
+        next_step_order = logic_config.get('next_step_order')
+        max_loops_raw = logic_config.get('max_loops')
+        exit_condition = logic_config.get('exit_condition')
+
+        # 兼容字符串类型的 max_loops
+        max_loops: Optional[int] = None
+        if max_loops_raw is not None:
+            try:
+                max_loops = int(max_loops_raw)
+            except (TypeError, ValueError):
+                max_loops = None
+
+        print(
+            f"[DEBUG] v2 逻辑配置: next_step_order={next_step_order}, "
+            f"max_loops={max_loops}, exit_condition={exit_condition}"
+        )
+
+        has_loop_logic = next_step_order is not None and max_loops is not None and max_loops > 0
+
+        # 5. 如配置了循环逻辑且未达到最大循环次数，则优先按循环逻辑跳转
+        if has_loop_logic and session.current_round < max_loops:
+            print(
+                f"[DEBUG] v2 满足循环条件，当前轮次 {session.current_round} < "
+                f"最大循环次数 {max_loops}"
+            )
+            if 1 <= int(next_step_order) <= len(all_steps):
+                loop_step_id = all_steps[int(next_step_order) - 1].id
+                print(f"[DEBUG] v2 循环到步骤顺序 {next_step_order}，ID: {loop_step_id}")
+                return loop_step_id
+            else:
+                # 回跳目标超出范围时，回到第一步，避免死循环
+                print(
+                    f"[DEBUG] v2 循环步骤顺序 {next_step_order} 超出范围，"
+                    f"循环到第一步"
+                )
+                return all_steps[0].id if all_steps else None
+
+        # 6. 循环未配置或已达到最大次数：按顺序进入“下一个流程步骤”
+        if current_index < len(all_steps) - 1:
+            next_step_id = all_steps[current_index + 1].id
+            if has_loop_logic and max_loops is not None and session.current_round >= max_loops:
+                print(
+                    f"[DEBUG] v2 已达到最大循环次数 {max_loops}，"
+                    f"继续到顺序下一步 ID: {next_step_id}"
+                )
+            else:
+                print(f"[DEBUG] v2 未配置循环逻辑，顺序推进到下一步 ID: {next_step_id}")
+            return next_step_id
+
+        # 已经是最后一步且没有可以继续的步骤，结束会话
+        print("[DEBUG] v2 已经是最后一步，且无可继续的步骤，结束会话")
+        return None
 
     @staticmethod
     def _determine_next_step(session: Session, current_step: FlowStep) -> Optional[int]:
