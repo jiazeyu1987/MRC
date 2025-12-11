@@ -120,7 +120,7 @@ export const sessionApi = {
       page: number;
       page_size: number;
       pages: number;
-    }>('/api/sessions', queryParams);
+    }>('/sessions', queryParams);
 
     return {
       items: response.sessions,
@@ -135,21 +135,21 @@ export const sessionApi = {
    * 获取会话详情
    */
   async getSession(id: number): Promise<Session> {
-    return apiClient.get<Session>(`/api/sessions/${id}`);
+    return apiClient.get<Session>(`/sessions/${id}`);
   },
 
   /**
    * 创建新会话
    */
   async createSession(sessionData: CreateSessionRequest): Promise<Session> {
-    return apiClient.post<Session>('/api/sessions', sessionData);
+    return apiClient.post<Session>('/sessions', sessionData);
   },
 
   /**
    * 开始会话执行
    */
   async startSession(sessionId: number): Promise<Session> {
-    return apiClient.post<Session>(`/api/sessions/${sessionId}/control`, {
+    return apiClient.post<Session>(`/sessions/${sessionId}/control`, {
       action: 'start'
     });
   },
@@ -158,14 +158,14 @@ export const sessionApi = {
    * 更新会话
    */
   async updateSession(id: number, sessionData: Partial<CreateSessionRequest>): Promise<Session> {
-    return apiClient.put<Session>(`/api/sessions/${id}`, sessionData);
+    return apiClient.put<Session>(`/sessions/${id}`, sessionData);
   },
 
   /**
    * 删除会话
    */
   async deleteSession(id: number): Promise<void> {
-    return apiClient.delete<void>(`/api/sessions/${id}`);
+    return apiClient.delete<void>(`/sessions/${id}`);
   },
 
   /**
@@ -196,7 +196,7 @@ export const sessionApi = {
         timestamp: string;
         context_summary: string;
       };
-    }>(`/api/sessions/${sessionId}/run-next-step`, executionData || {});
+    }>(`/sessions/${sessionId}/run-next-step`, executionData || {});
 
     // 提取调试信息
     return {
@@ -209,21 +209,21 @@ export const sessionApi = {
    * 暂停会话
    */
   async pauseSession(sessionId: number): Promise<Session> {
-    return apiClient.post<Session>(`/api/sessions/${sessionId}/pause`);
+    return apiClient.post<Session>(`/sessions/${sessionId}/pause`);
   },
 
   /**
    * 恢复会话
    */
   async resumeSession(sessionId: number): Promise<Session> {
-    return apiClient.post<Session>(`/api/sessions/${sessionId}/resume`);
+    return apiClient.post<Session>(`/sessions/${sessionId}/resume`);
   },
 
   /**
    * 终止会话
    */
   async terminateSession(sessionId: number): Promise<Session> {
-    return apiClient.post<Session>(`/api/sessions/${sessionId}/terminate`);
+    return apiClient.post<Session>(`/sessions/${sessionId}/terminate`);
   },
 
   /**
@@ -244,7 +244,7 @@ export const sessionApi = {
       page: number;
       page_size: number;
       pages: number;
-    }>(`/api/sessions/${sessionId}/messages`, queryParams);
+    }>(`/sessions/${sessionId}/messages`, queryParams);
 
     return {
       items: response.messages,

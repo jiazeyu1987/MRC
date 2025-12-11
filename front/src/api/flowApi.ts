@@ -82,7 +82,7 @@ export const flowApi = {
       is_active: params?.is_active,
     };
 
-    const response = await apiClient.get<FlowListResponse>('/api/flows', queryParams);
+    const response = await apiClient.get<FlowListResponse>('/flows', queryParams);
 
     return {
       items: response.flows,
@@ -97,21 +97,21 @@ export const flowApi = {
    * 获取流程模板详情
    */
   async getFlow(id: number): Promise<FlowTemplate> {
-    return apiClient.get<FlowTemplate>(`/api/flows/${id}`);
+    return apiClient.get<FlowTemplate>(`/flows/${id}`);
   },
 
   /**
    * 创建新的流程模板
    */
   async createFlow(flowData: FlowTemplateRequest): Promise<FlowTemplate> {
-    return apiClient.post<FlowTemplate>('/api/flows', flowData);
+    return apiClient.post<FlowTemplate>('/flows', flowData);
   },
 
   /**
    * 更新流程模板
    */
   async updateFlow(id: number, flowData: Partial<FlowTemplateRequest>): Promise<FlowTemplate> {
-    return apiClient.put<FlowTemplate>(`/api/flows/${id}`, flowData);
+    return apiClient.put<FlowTemplate>(`/flows/${id}`, flowData);
   },
 
   /**
@@ -119,8 +119,8 @@ export const flowApi = {
    */
   async deleteFlow(id: number, softDelete: boolean = true): Promise<void> {
     const endpoint = softDelete
-      ? `/api/flows/${id}?soft_delete=true`
-      : `/api/flows/${id}`;
+      ? `/flows/${id}?soft_delete=true`
+      : `/flows/${id}`;
     return apiClient.delete<void>(endpoint);
   },
 
@@ -129,7 +129,7 @@ export const flowApi = {
    */
   async duplicateFlow(id: number, newName: string, description?: string): Promise<FlowTemplate> {
     // 后端对应路由为 /api/flows/<id>/copy
-    return apiClient.post<FlowTemplate>(`/api/flows/${id}/copy`, {
+    return apiClient.post<FlowTemplate>(`/flows/${id}/copy`, {
       name: newName,
       description: description,
     });
@@ -144,7 +144,7 @@ export const flowApi = {
     inactive_templates: number;
     type_distribution: Record<string, number>;
   }> {
-    return apiClient.get<any>('/api/flows/statistics');
+    return apiClient.get<any>('/flows/statistics');
   },
 
   /**
@@ -154,6 +154,6 @@ export const flowApi = {
     deleted_templates: number;
     deleted_steps: number;
   }> {
-    return apiClient.delete<any>('/api/flows/clear-all');
+    return apiClient.delete<any>('/flows/clear-all');
   },
 };
