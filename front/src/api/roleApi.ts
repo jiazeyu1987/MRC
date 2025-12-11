@@ -8,12 +8,8 @@ import {
   ApiError
 } from '../types/role';
 
-// API基础URL配置 - 使用不常用端口（默认 5010）
-// 优先读取新的环境变量 VITE_API_BASE_URL_ALT，兼容旧的 VITE_API_BASE_URL
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL_ALT ||
-  import.meta.env.VITE_API_BASE_URL ||
-  'http://localhost:5010';
+// API基础URL配置 - 使用相对路径以利用Vite代理
+const API_BASE_URL = '/api';
 
 // HTTP请求辅助函数
 class ApiClient {
@@ -75,16 +71,19 @@ class ApiClient {
   }
 
   async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
-    const url = new URL(endpoint, this.baseURL);
+    let url = endpoint;
     if (params) {
+      const searchParams = new URLSearchParams();
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
-          url.searchParams.append(key, String(value));
+          searchParams.append(key, String(value));
         }
       });
+      const queryString = searchParams.toString();
+      url = `${endpoint}${queryString ? '?' + queryString : ''}`;
     }
 
-    return this.request<T>(url.pathname + url.search);
+    return this.request<T>(url);
   }
 
   async post<T>(endpoint: string, data?: any): Promise<T> {
@@ -102,16 +101,19 @@ class ApiClient {
   }
 
   async delete<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
-    const url = new URL(endpoint, this.baseURL);
+    let url = endpoint;
     if (params) {
+      const searchParams = new URLSearchParams();
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
-          url.searchParams.append(key, String(value));
+          searchParams.append(key, String(value));
         }
       });
+      const queryString = searchParams.toString();
+      url = `${endpoint}${queryString ? '?' + queryString : ''}`;
     }
 
-    return this.request<T>(url.pathname + url.search, {
+    return this.request<T>(url, {
       method: 'DELETE',
     });
   }
@@ -132,7 +134,7 @@ export const roleApi = {
       type: params?.type,
     };
 
-    const response = await apiClient.get<RoleListResponse>('/api/roles', queryParams);
+    const response = await apiClient.get<RoleListResponse>('/roles', queryParams);
 
     return {
       items: response.roles,
@@ -146,28 +148,28 @@ export const roleApi = {
    * 获取角色详情
    */
   async getRole(id: number): Promise<Role> {
-    return apiClient.get<Role>(`/api/roles/${id}`);
+    return apiClient.get<Role>(`/roles/${id}`);
   },
 
   /**
    * 创建新角色
    */
   async createRole(roleData: RoleRequest): Promise<Role> {
-    return apiClient.post<Role>('/api/roles', roleData);
+    return apiClient.post<Role>('/roles', roleData);
   },
 
   /**
    * 更新角色
    */
   async updateRole(id: number, roleData: RoleRequest): Promise<Role> {
-    return apiClient.put<Role>(`/api/roles/${id}`, roleData);
+    return apiClient.put<Role>(`/roles/${id}`, roleData);
   },
 
   /**
    * 删除角色
    */
   async deleteRole(id: number): Promise<void> {
-    return apiClient.delete<void>(`/api/roles/${id}`);
+    return apiClient.delete<void>(`/roles/${id}`);
   },
 
   /**
@@ -179,7 +181,7 @@ export const roleApi = {
     used_roles: number;
     search_filter: string;
   }> {
-    return apiClient.post<any>('/api/roles', {
+    return apiClient.post<any>('/roles', {
       action: 'get_deletion_statistics',
       search_filter: searchFilter || ''
     });
@@ -202,7 +204,7 @@ export const roleApi = {
     params.append('confirm', confirm.toString());
     params.append('action', 'bulk_delete');
 
-    return apiClient.delete<any>(`/api/roles?${params}`);
+    return apiClient.delete<any>(`/roles?${params}`);
   },
 };
 

@@ -1,34 +1,261 @@
-// API服务统一导出
+/**
+ * API客户端统一入口
+ *
+ * 提供所有API客户端的统一访问接口和管理功能
+ */
 
-// 导入现有的API
+// 导入新的模块化API客户端
+import { knowledgeBaseApi } from './knowledge/knowledgeBaseApi';
+import { documentApi } from './documents/documentApi';
+import { conversationApi } from './conversations/conversationApi';
+import { ragflowApi } from './ragflow/ragflowApi';
+import { analyticsApi } from './analytics/analyticsApi';
+
+// 导入共享工具和类型
+import { httpClient, ApiErrorHandler } from './shared/http-client';
+import { CacheManager } from './shared/cache-manager';
+import type { CacheOptions } from './types/common';
+
+// 保留向后兼容的导出
 export * from './knowledgeApi';
 export * from './roleApi';
 export * from './flowApi';
 export * from './sessionApi';
 
-// 导入增强功能API
-export * from './conversationApi';
-export * from './searchAnalyticsApi';
-export * from './apiDocumentationApi';
-export * from './ragflowChatApi';
+/**
+ * API客户端集合
+ */
+export interface ApiClients {
+  knowledgeBase: typeof knowledgeBaseApi;
+  documents: typeof documentApi;
+  conversations: typeof conversationApi;
+  ragflow: typeof ragflowApi;
+  analytics: typeof analyticsApi;
+}
 
-// 统一的API服务实例
-import { conversationApi, conversationTemplateApi } from './conversationApi';
-import { searchAnalyticsApi, enhancedStatisticsApi } from './searchAnalyticsApi';
-import { apiDocumentationApi } from './apiDocumentationApi';
+/**
+ * API配置接口
+ */
+export interface ApiConfig {
+  baseUrl?: string;
+  timeout?: number;
+  retryAttempts?: number;
+  enableCache?: boolean;
+  cacheOptions?: CacheOptions;
+  headers?: Record<string, string>;
+  interceptors?: {
+    request?: Array<(config: Request) => Request>;
+    response?: Array<(response: Response) => Response>;
+  };
+}
 
+/**
+ * API客户端管理器
+ */
+export class ApiManager {
+  private static instance: ApiManager;
+  private config: ApiConfig;
+  private cacheManager: CacheManager;
+  private clients: ApiClients;
+
+  private constructor(config: ApiConfig = {}) {
+    this.config = {
+      baseUrl: import.meta.env.VITE_API_BASE_URL || '/api',
+      timeout: 30000,
+      retryAttempts: 3,
+      enableCache: true,
+      cacheOptions: {
+        ttl: 5 * 60 * 1000, // 5分钟默认缓存
+      },
+      ...config,
+    };
+
+    this.cacheManager = new CacheManager(this.config.cacheOptions);
+    this.clients = this.createClients();
+  }
+
+  /**
+   * 获取API管理器单例
+   */
+  static getInstance(config?: ApiConfig): ApiManager {
+    if (!ApiManager.instance) {
+      ApiManager.instance = new ApiManager(config);
+    }
+    return ApiManager.instance;
+  }
+
+  /**
+   * 创建API客户端实例
+   */
+  private createClients(): ApiClients {
+    return {
+      knowledgeBase: knowledgeBaseApi,
+      documents: documentApi,
+      conversations: conversationApi,
+      ragflow: ragflowApi,
+      analytics: analyticsApi,
+    };
+  }
+
+  /**
+   * 获取所有API客户端
+   */
+  getClients(): ApiClients {
+    return this.clients;
+  }
+
+  /**
+   * 获取特定API客户端
+   */
+  getClient<K extends keyof ApiClients>(clientName: K): ApiClients[K] {
+    return this.clients[clientName];
+  }
+
+  /**
+   * 更新配置
+   */
+  updateConfig(newConfig: Partial<ApiConfig>): void {
+    this.config = { ...this.config, ...newConfig };
+
+    // 更新HTTP客户端配置 - 暂时注释，需要在shared/http-client中实现updateConfig方法
+    // httpClient.updateConfig({
+    //   baseUrl: this.config.baseUrl,
+    //   timeout: this.config.timeout,
+    //   retryAttempts: this.config.retryAttempts,
+    //   headers: this.config.headers,
+    // });
+
+    // 更新缓存配置
+    if (this.config.cacheOptions) {
+      this.cacheManager.updateConfig(this.config.cacheOptions);
+    }
+  }
+
+  /**
+   * 获取当前配置
+   */
+  getConfig(): ApiConfig {
+    return { ...this.config };
+  }
+
+  /**
+   * 清除所有缓存
+   */
+  clearCache(): void {
+    this.cacheManager.clear();
+  }
+
+  /**
+   * 清除特定缓存
+   */
+  clearCacheByPattern(pattern: string): void {
+    this.cacheManager.clearByPattern(pattern);
+  }
+
+  /**
+   * 获取缓存统计
+   */
+  getCacheStats() {
+    return this.cacheManager.getStats();
+  }
+
+  /**
+   * 测试所有API连接
+   */
+  async testConnections(): Promise<Record<string, boolean>> {
+    const results: Record<string, boolean> = {};
+
+    try {
+      // 测试知识库API
+      await this.clients.knowledgeBase.listKnowledgeBases({ page: 1, pageSize: 1 });
+      results.knowledgeBase = true;
+    } catch (error) {
+      results.knowledgeBase = false;
+    }
+
+    try {
+      // 测试RAGFlow API
+      const ragflowResult = await this.clients.ragflow.testConnection();
+      results.ragflow = ragflowResult.success;
+    } catch (error) {
+      results.ragflow = false;
+    }
+
+    try {
+      // 测试分析API
+      await this.clients.analytics.getSystemOverview();
+      results.analytics = true;
+    } catch (error) {
+      results.analytics = false;
+    }
+
+    return results;
+  }
+}
+
+/**
+ * 创建默认API管理器实例
+ */
+export const apiManager = ApiManager.getInstance();
+
+/**
+ * 导出所有API客户端（新架构）
+ */
+export const api = apiManager.getClients();
+
+/**
+ * 导出单个API客户端（便捷访问）
+ */
+export const {
+  knowledgeBase,
+  documents,
+  conversations,
+  ragflow,
+  analytics,
+} = api;
+
+/**
+ * 向后兼容的enhancedApi导出
+ * 映射到新的API结构以保持现有组件兼容性
+ */
 export const enhancedApi = {
-  // 对话相关
-  conversation: conversationApi,
-  conversationTemplate: conversationTemplateApi,
-
-  // 搜索分析相关
-  searchAnalytics: searchAnalyticsApi,
-  enhancedStatistics: enhancedStatisticsApi,
-
-  // API文档相关
-  apiDocumentation: apiDocumentationApi
+  searchAnalytics: analytics,
+  conversation: {
+    ...conversations,
+    templates: conversations // 映射conversation.templates
+  },
+  enhancedStatistics: {
+    getEnhancedStatistics: analytics.getSearchAnalytics,
+    getTopActiveKnowledgeBases: analytics.getSystemOverview
+  },
+  apiDocumentation: {
+    // 临时占位符，需要实现API文档功能
+    getDocumentation: async (knowledgeBaseId: number) => ({ message: 'API Documentation - temporarily disabled' }),
+    exportDocumentation: async (knowledgeBaseId: number, format: string) => ({ message: 'Export - temporarily disabled' })
+  }
 };
+
+/**
+ * 导出工具类和类型
+ */
+export { httpClient, ApiErrorHandler } from './shared/http-client';
+export { CacheManager } from './shared/cache-manager';
+export * from './types/common';
+export * from './types/knowledge.types';
+
+/**
+ * 初始化API客户端
+ */
+export function initializeApi(config?: ApiConfig): ApiManager {
+  return ApiManager.getInstance(config);
+}
+
+/**
+ * 重置API管理器（主要用于测试）
+ */
+export function resetApiManager(): void {
+  (ApiManager as any).instance = null;
+}
 
 // 导出默认配置
 export const API_CONFIG = {
@@ -173,8 +400,7 @@ export class HttpClient {
   }
 }
 
-// 创建默认HTTP客户端实例
-export const httpClient = new HttpClient();
+// HTTP客户端现在从shared/http-client导入
 
 // API状态枚举
 export enum ApiStatus {

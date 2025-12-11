@@ -265,26 +265,12 @@ API_PORT=5010
 
 ## Testing and Quality Assurance
 
-### Backend Testing
-```bash
-# Knowledge base system testing
-python -m pytest tests/test_knowledge_base.py
-python -m pytest tests/test_knowledge_base_integration.py
-
-# Document management testing
-python -m pytest tests/test_document_management_integration.py
-
-# Custom test runner
-python run_tests.py                             # Comprehensive test suite
-python run_tests.py --quick                    # Skip integration tests
-python run_tests.py --verbose                  # Detailed output
-```
-
 ### Frontend Testing
 ```bash
 npm test                                       # Jest tests with React Testing Library
+npm run test:watch                            # Jest tests in watch mode
 npm run test:coverage                         # Coverage reports
-npm run test:knowledge-base                   # Knowledge base tests
+npm run test:knowledge-base                   # Knowledge base specific tests
 ```
 
 ### Validation Commands
@@ -292,7 +278,8 @@ npm run test:knowledge-base                   # Knowledge base tests
 # Backend validation
 cd backend
 python check_db.py                            # Database integrity
-python quick_start.py                         # Environment validation
+python verify_fix.py                          # Verify applied fixes
+python check_syntax.py                        # Check Python syntax
 
 # Frontend validation
 cd front

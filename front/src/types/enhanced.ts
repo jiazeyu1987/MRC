@@ -1,5 +1,10 @@
 // 增强功能的TypeScript类型定义 - 对话历史、搜索分析、API文档
 
+import type { ApiResponse as BaseApiResponse } from './common';
+
+// 重新导出基础API响应类型
+export type ApiResponse<T = any> = BaseApiResponse<T>;
+
 // ==================== 对话历史相关类型 ====================
 
 // 对话消息类型

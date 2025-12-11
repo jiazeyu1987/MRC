@@ -16,11 +16,8 @@ import {
   KnowledgeBase
 } from '../types/knowledge';
 
-// API基础URL配置
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL_ALT ||
-  import.meta.env.VITE_API_BASE_URL ||
-  'http://localhost:5010';
+// API基础URL配置 - 使用相对路径以利用Vite代理
+const API_BASE_URL = '/api';
 
 // HTTP请求辅助函数
 class ApiClient {

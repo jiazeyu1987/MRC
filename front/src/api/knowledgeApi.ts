@@ -41,11 +41,8 @@ import {
 } from '../types/document';
 
 // API基础URL配置 - 使用不常用端口（默认 5010）
-// 优先读取新的环境变量 VITE_API_BASE_URL_ALT，兼容旧的 VITE_API_BASE_URL
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL_ALT ||
-  import.meta.env.VITE_API_BASE_URL ||
-  'http://localhost:5010';
+// 使用相对路径以利用Vite代理
+const API_BASE_URL = '/api';
 
 // HTTP请求辅助函数
 class ApiClient {
@@ -107,16 +104,19 @@ class ApiClient {
   }
 
   async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
-    const url = new URL(endpoint, this.baseURL);
+    let url = endpoint;
     if (params) {
+      const searchParams = new URLSearchParams();
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
-          url.searchParams.append(key, String(value));
+          searchParams.append(key, String(value));
         }
       });
+      const queryString = searchParams.toString();
+      url = `${endpoint}${queryString ? '?' + queryString : ''}`;
     }
 
-    return this.request<T>(url.pathname + url.search);
+    return this.request<T>(url);
   }
 
   async post<T>(endpoint: string, data?: any): Promise<T> {
@@ -134,16 +134,19 @@ class ApiClient {
   }
 
   async delete<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
-    const url = new URL(endpoint, this.baseURL);
+    let url = endpoint;
     if (params) {
+      const searchParams = new URLSearchParams();
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
-          url.searchParams.append(key, String(value));
+          searchParams.append(key, String(value));
         }
       });
+      const queryString = searchParams.toString();
+      url = `${endpoint}${queryString ? '?' + queryString : ''}`;
     }
 
-    return this.request<T>(url.pathname + url.search, {
+    return this.request<T>(url, {
       method: 'DELETE',
     });
   }
@@ -204,7 +207,7 @@ export const knowledgeApi = {
       sort_order: params?.sort_order || 'desc',
     };
 
-    return apiClient.get<KnowledgeBaseListResponse>('/api/knowledge-bases', queryParams);
+    return apiClient.get<KnowledgeBaseListResponse>('/knowledge-bases', queryParams);
   },
 
   /**
@@ -215,14 +218,14 @@ export const knowledgeApi = {
       action: 'refresh_all'
     };
 
-    return apiClient.post<SyncResult>('/api/knowledge-bases', request);
+    return apiClient.post<SyncResult>('/knowledge-bases', request);
   },
 
   /**
    * 获取知识库详情和统计信息
    */
   async getKnowledgeBaseDetails(id: number): Promise<KnowledgeBase & { statistics: KnowledgeBaseStatistics }> {
-    return apiClient.get<KnowledgeBase & { statistics: KnowledgeBaseStatistics }>(`/api/knowledge-bases/${id}`);
+    return apiClient.get<KnowledgeBase & { statistics: KnowledgeBaseStatistics }>(`/knowledge-bases/${id}`);
   },
 
   /**
@@ -234,7 +237,7 @@ export const knowledgeApi = {
       knowledge_base_id: id
     };
 
-    return apiClient.post<RefreshResult>(`/api/knowledge-bases/${id}`, request);
+    return apiClient.post<RefreshResult>(`/knowledge-bases/${id}`, request);
   },
 
   /**
@@ -247,7 +250,7 @@ export const knowledgeApi = {
       title: title || `测试对话 - ${new Date().toLocaleString('zh-CN')}`
     };
 
-    return apiClient.post<KnowledgeBaseConversation>(`/api/knowledge-bases/${id}`, request);
+    return apiClient.post<KnowledgeBaseConversation>(`/knowledge-bases/${id}`, request);
   },
 
   /**
@@ -266,21 +269,21 @@ export const knowledgeApi = {
       status
     };
 
-    return apiClient.post<ConversationListResponse>(`/api/knowledge-bases/${id}`, request);
+    return apiClient.post<ConversationListResponse>(`/knowledge-bases/${id}`, request);
   },
 
   /**
    * 获取知识库统计信息
    */
   async getKnowledgeBaseStatistics(): Promise<KnowledgeBaseStatistics> {
-    return apiClient.get<KnowledgeBaseStatistics>('/api/knowledge-bases/statistics');
+    return apiClient.get<KnowledgeBaseStatistics>('/knowledge-bases/statistics');
   },
 
   /**
    * 执行知识库相关的操作（通用操作接口）
    */
   async performKnowledgeBaseAction(actionRequest: KnowledgeBaseActionRequest): Promise<SyncResult | RefreshResult[]> {
-    return apiClient.post<SyncResult | RefreshResult[]>('/api/knowledge-bases', actionRequest);
+    return apiClient.post<SyncResult | RefreshResult[]>('/knowledge-bases', actionRequest);
   },
 
   /**
@@ -291,7 +294,7 @@ export const knowledgeApi = {
     actionRequest: KnowledgeBaseDetailActionRequest
   ): Promise<KnowledgeBaseConversation | ConversationListResponse> {
     return apiClient.post<KnowledgeBaseConversation | ConversationListResponse>(
-      `/api/knowledge-bases/${id}`,
+      `/knowledge-bases/${id}`,
       actionRequest
     );
   },
@@ -315,7 +318,7 @@ export const knowledgeApi = {
       sort_order: filters?.sort_order || 'desc',
     };
 
-    return apiClient.get<DocumentListResponse>(`/api/knowledge-bases/${knowledgeBaseId}/documents`, queryParams);
+    return apiClient.get<DocumentListResponse>(`/knowledge-bases/${knowledgeBaseId}/documents`, queryParams);
   },
 
   /**
@@ -335,7 +338,7 @@ export const knowledgeApi = {
 
     try {
       const response = await apiClient.upload<UploadResponse>(
-        `/api/knowledge-bases/${knowledgeBaseId}/documents/upload`,
+        `/knowledge-bases/${knowledgeBaseId}/documents/upload`,
         formData,
         onProgress
       );
@@ -352,7 +355,7 @@ export const knowledgeApi = {
    */
   async getDocument(knowledgeBaseId: string, documentId: string): Promise<Document> {
     const response = await apiClient.get<{ success: boolean; data: Document }>(
-      `/api/knowledge-bases/${knowledgeBaseId}/ragflow-documents/${documentId}`
+      `/knowledge-bases/${knowledgeBaseId}/ragflow-documents/${documentId}`
     );
 
     if (response.success && response.data) {
@@ -369,7 +372,7 @@ export const knowledgeApi = {
     console.log('🗑️ [DEBUG] Deleting document:', { knowledgeBaseId, documentId });
 
     // Use direct fetch for delete operation since API format is inconsistent
-    const url = `${API_BASE_URL}/api/knowledge-bases/${knowledgeBaseId}/ragflow-documents/${documentId}`;
+    const url = `${API_BASE_URL}/knowledge-bases/${knowledgeBaseId}/ragflow-documents/${documentId}`;
 
     try {
       const response = await fetch(url, {
@@ -418,7 +421,7 @@ export const knowledgeApi = {
     };
 
     const response = await apiClient.post<{ success: boolean; data: ChunkSearchResult }>(
-      `/api/knowledge-bases/${knowledgeBaseId}/chunks/search`,
+      `/knowledge-bases/${knowledgeBaseId}/chunks/search`,
       requestData
     );
 
@@ -455,7 +458,7 @@ export const knowledgeApi = {
     if (filters?.sort_by) queryParams.sort_by = filters.sort_by;
     if (filters?.sort_order) queryParams.sort_order = filters.sort_order;
 
-    const apiUrl = `/api/knowledge-bases/${knowledgeBaseId}/ragflow-documents/${documentId}/chunks`;
+    const apiUrl = `/knowledge-bases/${knowledgeBaseId}/ragflow-documents/${documentId}/chunks`;
     console.log('🌐 [DEBUG] Making API request to:', apiUrl, 'with params:', queryParams);
 
     try {
@@ -503,7 +506,7 @@ export const knowledgeApi = {
       data: {
         document_statistics?: DocumentStatistics;
       };
-    }>(`/api/knowledge-bases/${knowledgeBaseId}`);
+    }>(`/knowledge-bases/${knowledgeBaseId}`);
 
     if (response.success && response.data?.document_statistics) {
       return response.data.document_statistics;
@@ -533,7 +536,7 @@ export const knowledgeApi = {
     const response = await apiClient.get<{
       success: boolean;
       data?: UploadProgress;
-    }>(`/api/knowledge-bases/${knowledgeBaseId}/documents/upload?upload_id=${uploadId}`);
+    }>(`/knowledge-bases/${knowledgeBaseId}/documents/upload?upload_id=${uploadId}`);
 
     return response.success && response.data ? response.data : null;
   },
@@ -553,14 +556,14 @@ export const knowledgeApi = {
    * 获取RAGFlow聊天助手列表
    */
   async getChatAssistants(): Promise<ChatAssistantListResponse> {
-    return apiClient.get<ChatAssistantListResponse>('/api/ragflow/chats');
+    return apiClient.get<ChatAssistantListResponse>('/ragflow/chats');
   },
 
   /**
    * 与RAGFlow聊天助手对话
    */
   async chatWithAssistant(chatId: string, message: string, stream: boolean = false): Promise<ChatInteractionResponse> {
-    return apiClient.post<ChatInteractionResponse>(`/api/ragflow/chats/${chatId}`, {
+    return apiClient.post<ChatInteractionResponse>(`/ragflow/chats/${chatId}`, {
       message,
       stream
     });
@@ -570,14 +573,14 @@ export const knowledgeApi = {
    * 获取RAGFlow智能体列表
    */
   async getAgents(): Promise<AgentListResponse> {
-    return apiClient.get<AgentListResponse>('/api/ragflow/agents');
+    return apiClient.get<AgentListResponse>('/ragflow/agents');
   },
 
   /**
    * 与RAGFlow智能体对话
    */
   async chatWithAgent(agentId: string, message: string, stream: boolean = false): Promise<ChatInteractionResponse> {
-    return apiClient.post<ChatInteractionResponse>(`/api/ragflow/agents/${agentId}`, {
+    return apiClient.post<ChatInteractionResponse>(`/ragflow/agents/${agentId}`, {
       message,
       stream
     });
@@ -587,7 +590,7 @@ export const knowledgeApi = {
    * 执行RAGFlow检索
    */
   async performRetrieval(query: string, datasetIds: string[], topK: number = 10): Promise<RetrievalResponse> {
-    return apiClient.post<RetrievalResponse>('/api/ragflow/retrieval', {
+    return apiClient.post<RetrievalResponse>('/ragflow/retrieval', {
       query,
       dataset_ids: datasetIds,
       top_k: topK
@@ -612,14 +615,14 @@ export const ragflowApi = {
    * 获取RAGFlow聊天助手列表
    */
   async getChatAssistants(): Promise<ChatAssistantListResponse> {
-    return apiClient.get<ChatAssistantListResponse>('/api/ragflow/chats');
+    return apiClient.get<ChatAssistantListResponse>('/ragflow/chats');
   },
 
   /**
    * 与RAGFlow聊天助手对话
    */
   async chatWithAssistant(chatId: string, message: string, stream: boolean = false): Promise<ChatInteractionResponse> {
-    return apiClient.post<ChatInteractionResponse>(`/api/ragflow/chats/${chatId}`, {
+    return apiClient.post<ChatInteractionResponse>(`/ragflow/chats/${chatId}`, {
       message,
       stream
     });
@@ -629,14 +632,14 @@ export const ragflowApi = {
    * 获取RAGFlow智能体列表
    */
   async getAgents(): Promise<AgentListResponse> {
-    return apiClient.get<AgentListResponse>('/api/ragflow/agents');
+    return apiClient.get<AgentListResponse>('/ragflow/agents');
   },
 
   /**
    * 与RAGFlow智能体对话
    */
   async chatWithAgent(agentId: string, message: string, stream: boolean = false): Promise<ChatInteractionResponse> {
-    return apiClient.post<ChatInteractionResponse>(`/api/ragflow/agents/${agentId}`, {
+    return apiClient.post<ChatInteractionResponse>(`/ragflow/agents/${agentId}`, {
       message,
       stream
     });
@@ -646,7 +649,7 @@ export const ragflowApi = {
    * 执行RAGFlow检索
    */
   async performRetrieval(query: string, datasetIds: string[], topK: number = 10, retrievalModel: string = "Vector"): Promise<RetrievalResponse> {
-    return apiClient.post<RetrievalResponse>('/api/ragflow/retrieval', {
+    return apiClient.post<RetrievalResponse>('/ragflow/retrieval', {
       query,
       dataset_ids: datasetIds,
       top_k: topK,

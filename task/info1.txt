@@ -1,0 +1,60 @@
+整体思路很清晰，而且优先级排序也合理，我会给你几个“小调整建议”，让它更落地、可执行一些。
+
+1. 优先级与顺序
+
+先从 MultiRoleDialogSystem.tsx 入手是对的，它通常是“痛感最强”的地方，也能给后续前端结构定调。
+第二、三阶段（API + 服务）紧挨着排在一起也合理，但建议在动 app/api/knowledge_bases.py 前，先画一张“领域模型 + 资源边界”图，避免拆完之后模块边界模糊。
+第四阶段（API 客户端 + Conversation UI）可以和前端第一阶段交叉进行：
+在拆 MultiRoleDialogSystem.tsx 的过程中，就顺便摸清 knowledgeApi.ts 和 ConversationInterface.tsx 的职责和调用模式，后面改起来会更顺畅。
+2. 每个阶段可以更具体一点
+
+建议给每个大文件加一个“目标状态”描述 + 2~3 个验收标准：
+
+MultiRoleDialogSystem.tsx
+
+目标：拆成“页面容器 + UI 组件 + hooks + service 层（调用 API）”。
+验收：
+单个组件/文件不超过 ~300 行。
+UI 组件与业务逻辑基本解耦（可在 Storybook 或独立渲染中复用）。
+页面行为通过 hooks/service 进行编排。
+app/api/knowledge_bases.py
+
+目标：按资源边界划分模块，例如：datasets, documents, indexes, settings 等。
+验收：
+每个模块有独立的 serializer/schema 与 service。
+API path 不变（向后兼容），只是内部调用重定向到新的 service。
+新旧逻辑在测试中表现一致（回归测试通过）。
+ragflow_service.py / flow_engine_service.py
+
+目标：拆出“客户端封装 + 认证/重试 + 纯业务 orchestrator”。
+验收：
+HTTP/SDK 调用集中在 client 层，业务函数不直接操作底层请求。
+重试、超时、日志等横切逻辑统一封装。
+knowledgeApi.ts / ConversationInterface.tsx
+
+目标：形成一个清晰的“前端 API 层 + 对话 UI 组件树 + 状态管理(hooks/store)”结构。
+验收：
+API 方法按资源/功能分组，可独立 mock。
+ConversationInterface.tsx 只负责布局 & 页面级状态，不直接堆业务细节。
+3. 重构方法上的补充建议
+
+“增量式重构，可测试”这条非常好，可以再具体到操作层面：
+每次重构只完成一种“切割”：例如先“抽 UI 组件”，再“抽 hooks”，最后“抽 service”。
+对每个抽离的单元加最小单元测试/集成测试，尤其是 service + API 层。
+建议采用“绞杀者模式”：
+保持对外接口不变，内部增加新模块；
+逐步将旧逻辑迁移到新模块，再删除旧实现。
+依赖关系上：
+尽量保证依赖方向从“UI → hooks → service → client → infra”，不要反向引用。
+明确哪些模块可以跨 feature 复用（如通用的 HTTP client、错误处理、鉴权）。
+4. 可以补充的工具与度量
+
+在计划里加上“度量标准”，方便判断重构是否成功：
+例如：单文件行数、圈复杂度、测试覆盖率、bug 回归次数。
+如果项目中还没有：
+加一个简单的 lint/format + CI 检查，确保重构过程中不容易引入语法/风格问题。
+总体来说，你的计划方向非常正确：从“最复杂的前端页面” → “集中式 API” → “后端服务” → “API 客户端 + UI 对话层”，顺序合理、目标明确。下一步可以选一个文件（比如 MultiRoleDialogSystem.tsx），先画一个“目标拆分结构图”（模块树 + 依赖方向），再开始按小步迭代落地。
+
+如果你愿意，我可以帮你：
+
+先针对 MultiRoleDialogSystem.tsx，设计一个具体的拆分方案（目录结构 + 拆分粒度 + 命名建议）。

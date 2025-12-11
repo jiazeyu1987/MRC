@@ -88,10 +88,16 @@ def register_api(app):
     from app.api.flows import FlowList, FlowDetail, FlowCopy, FlowStatistics, FlowClearAll
     from app.api.sessions import SessionList, SessionDetail, SessionExecution, SessionControl, SessionBranch, SessionStatistics, LLMDebugInfo
     from app.api.messages import MessageList, MessageDetail, MessageExport, MessageReplies, MessageStatistics, MessageFlow, MessageSearch
-    from app.api.knowledge_bases import (KnowledgeBaseList, KnowledgeBaseDetail,
-                                        KnowledgeBaseStatistics, KnowledgeBaseConversationDetail,
-                                        DocumentListResource, DocumentResource, DocumentUploadResource,
-                                        ChunkSearchResource, DocumentChunksResource)
+    from app.api.knowledge_bases import (KnowledgeBaseListView, KnowledgeBaseDetailView,
+                                        KnowledgeBaseStatisticsView, ConversationDetailView,
+                                        DocumentListView, DocumentDetailView, DocumentUploadView,
+                                        DocumentChunksView, ConversationListView, ConversationExportView,
+                                        ConversationTemplateView, SearchAnalyticsView, SearchInsightsView,
+                                        PopularTermsView, EnhancedStatisticsView, TopActiveKnowledgeBasesView,
+                                        EnhancedSearchAnalyticsView, RAGFlowChatAssistantListView,
+                                        RAGFlowChatAssistantInteractionView, RAGFlowAgentListView,
+                                        RAGFlowAgentInteractionView, RAGFlowChatSessionListView,
+                                        RAGFlowRetrievalView)
     from app.api.monitoring import (SystemHealth, PerformanceMetrics, PerformanceHistory,
                                   PerformanceSummary, HealthHistory, ComponentHealthTrend,
                                   SystemInfo, MonitoringAlerts, MonitoringControl, MonitoringDashboard)
@@ -148,67 +154,54 @@ def register_api(app):
     register_llm_routes(api)
 
     # 知识库管理接口
-    api.add_resource(KnowledgeBaseList, '/api/knowledge-bases')
-    api.add_resource(KnowledgeBaseDetail, '/api/knowledge-bases/<int:knowledge_base_id>')
-    api.add_resource(KnowledgeBaseStatistics, '/api/knowledge-bases/statistics')
-    api.add_resource(KnowledgeBaseConversationDetail, '/api/knowledge-bases/<int:knowledge_base_id>/conversations/<int:conversation_id>')
+    api.add_resource(KnowledgeBaseListView, '/api/knowledge-bases')
+    api.add_resource(KnowledgeBaseDetailView, '/api/knowledge-bases/<int:knowledge_base_id>')
+    api.add_resource(KnowledgeBaseStatisticsView, '/api/knowledge-bases/<int:knowledge_base_id>/statistics')
+    api.add_resource(ConversationDetailView, '/api/knowledge-bases/<int:knowledge_base_id>/conversations/<int:conversation_id>')
 
     # 文档管理接口
-    api.add_resource(DocumentListResource, '/api/knowledge-bases/<int:knowledge_base_id>/documents')
-    api.add_resource(DocumentResource, '/api/knowledge-bases/<int:knowledge_base_id>/documents/<int:document_id>')
-    api.add_resource(DocumentUploadResource, '/api/knowledge-bases/<int:knowledge_base_id>/documents/upload')
-    api.add_resource(ChunkSearchResource, '/api/knowledge-bases/<int:knowledge_base_id>/chunks/search')
-    api.add_resource(DocumentChunksResource, '/api/knowledge-bases/<int:knowledge_base_id>/documents/<int:document_id>/chunks')
+    api.add_resource(DocumentListView, '/api/knowledge-bases/<int:knowledge_base_id>/documents')
+    api.add_resource(DocumentDetailView, '/api/knowledge-bases/<int:knowledge_base_id>/documents/<int:document_id>')
+    api.add_resource(DocumentUploadView, '/api/knowledge-bases/<int:knowledge_base_id>/documents/upload')
+    api.add_resource(DocumentChunksView, '/api/knowledge-bases/<int:knowledge_base_id>/documents/<int:document_id>/chunks')
 
     # RAGFlow文档管理接口 (使用字符串文档ID)
-    from app.api.knowledge_bases import RAGFlowDocumentResource, RAGFlowDocumentChunksResource
-    api.add_resource(RAGFlowDocumentResource, '/api/knowledge-bases/<int:knowledge_base_id>/ragflow-documents/<string:document_id>')
-    api.add_resource(RAGFlowDocumentChunksResource, '/api/knowledge-bases/<int:knowledge_base_id>/ragflow-documents/<string:document_id>/chunks')
+    # TODO: 需要重新实现RAGFlow文档管理功能
+    # from app.api.knowledge_bases import RAGFlowDocumentResource, RAGFlowDocumentChunksResource
+    # api.add_resource(RAGFlowDocumentResource, '/api/knowledge-bases/<int:knowledge_base_id>/ragflow-documents/<string:document_id>')
+    # api.add_resource(RAGFlowDocumentChunksResource, '/api/knowledge-bases/<int:knowledge_base_id>/ragflow-documents/<string:document_id>/chunks')
 
     # 增强功能接口 - 对话历史和管理
-    from app.api.knowledge_bases import (
-        ConversationHistoryResource, ConversationDetailResource,
-        ConversationExportResource, ConversationTemplateResource
-    )
-    api.add_resource(ConversationHistoryResource, '/api/knowledge-bases/<int:knowledge_base_id>/conversations')
-    api.add_resource(ConversationDetailResource, '/api/knowledge-bases/<int:knowledge_base_id>/conversations/<int:conversation_id>')
-    api.add_resource(ConversationExportResource, '/api/knowledge-bases/<int:knowledge_base_id>/conversations/<int:conversation_id>/export')
-    api.add_resource(ConversationTemplateResource, '/api/conversation-templates')
+    api.add_resource(ConversationListView, '/api/knowledge-bases/<int:knowledge_base_id>/conversations')
+    # ConversationDetailView 已在第156行注册，避免重复
+    api.add_resource(ConversationExportView, '/api/knowledge-bases/<int:knowledge_base_id>/conversations/<int:conversation_id>/export')
+    api.add_resource(ConversationTemplateView, '/api/conversation-templates')
 
     # 增强功能接口 - 搜索分析和洞察
-    from app.api.knowledge_bases import (
-        SearchAnalyticsResource, SearchInsightsResource, PopularTermsResource
-    )
-    api.add_resource(SearchAnalyticsResource, '/api/knowledge-bases/<int:knowledge_base_id>/search-analytics')
-    api.add_resource(SearchInsightsResource, '/api/knowledge-bases/<int:knowledge_base_id>/search-insights')
-    api.add_resource(PopularTermsResource, '/api/knowledge-bases/<int:knowledge_base_id>/popular-terms')
+    api.add_resource(SearchAnalyticsView, '/api/knowledge-bases/<int:knowledge_base_id>/search-analytics')
+    api.add_resource(SearchInsightsView, '/api/knowledge-bases/<int:knowledge_base_id>/search-insights')
+    api.add_resource(PopularTermsView, '/api/knowledge-bases/<int:knowledge_base_id>/popular-terms')
 
     # 增强功能接口 - 统计和排行
-    from app.api.knowledge_bases import EnhancedStatisticsResource, TopActiveKnowledgeBasesResource
-    api.add_resource(EnhancedStatisticsResource, '/api/knowledge-bases/<int:knowledge_base_id>/enhanced-statistics')
-    api.add_resource(TopActiveKnowledgeBasesResource, '/api/knowledge-bases/top-active')
+    api.add_resource(EnhancedStatisticsView, '/api/knowledge-bases/<int:knowledge_base_id>/enhanced-statistics')
+    api.add_resource(TopActiveKnowledgeBasesView, '/api/knowledge-bases/top-active')
 
     # 增强功能接口 - API文档和游乐场
-    from app.api.knowledge_bases import (
-        APIDocumentationResource, APIPlaygroundResource, APIRateLimitResource
-    )
-    api.add_resource(APIDocumentationResource, '/api/api-documentation')
-    api.add_resource(APIPlaygroundResource, '/api/api-playground')
-    api.add_resource(APIRateLimitResource, '/api/api-rate-limit')
+    # TODO: 重新实现API文档功能
+    # from app.api.knowledge_bases import (
+    #     APIDocumentationResource, APIPlaygroundResource, APIRateLimitResource
+    # )
+    # api.add_resource(APIDocumentationResource, '/api/api-documentation')
+    # api.add_resource(APIPlaygroundResource, '/api/api-playground')
+    # api.add_resource(APIRateLimitResource, '/api/api-rate-limit')
 
     # RAGFlow聊天助手和智能体接口
-    from app.api.knowledge_bases import (
-        RAGFlowChatAssistantList, RAGFlowChatAssistantInteraction,
-        RAGFlowAgentList, RAGFlowAgentInteraction, RAGFlowRetrieval,
-        RAGFlowChatSessionList, EnhancedSearchAnalytics
-    )
-    api.add_resource(RAGFlowChatAssistantList, '/api/ragflow/chats')
-    api.add_resource(RAGFlowChatAssistantInteraction, '/api/ragflow/chats/<string:chat_id>')
-    api.add_resource(RAGFlowChatSessionList, '/api/ragflow/chats/<string:chat_id>/sessions')
-    api.add_resource(RAGFlowAgentList, '/api/ragflow/agents')
-    api.add_resource(RAGFlowAgentInteraction, '/api/ragflow/agents/<string:agent_id>')
-    api.add_resource(RAGFlowRetrieval, '/api/ragflow/retrieval')
-    api.add_resource(EnhancedSearchAnalytics, '/api/enhanced-search-analytics')
+    api.add_resource(RAGFlowChatAssistantListView, '/api/ragflow/chats')
+    api.add_resource(RAGFlowChatAssistantInteractionView, '/api/ragflow/chats/<string:chat_id>')
+    api.add_resource(RAGFlowChatSessionListView, '/api/ragflow/chats/<string:chat_id>/sessions')
+    api.add_resource(RAGFlowAgentListView, '/api/ragflow/agents')
+    api.add_resource(RAGFlowAgentInteractionView, '/api/ragflow/agents/<string:agent_id>')
+    api.add_resource(RAGFlowRetrievalView, '/api/ragflow/retrieval')
 
     # LLM文件记录接口
     from app.api.llm_file_records import llm_file_records_bp
