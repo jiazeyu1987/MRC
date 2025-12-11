@@ -256,10 +256,19 @@ export const sessionApi = {
   },
 
   /**
+   * 导出会话记录
+   */
+  async exportSession(sessionId: number, format: 'json' | 'markdown' | 'text' = 'json'): Promise<any> {
+    // 后端路由为 /api/sessions/<session_id>/export
+    // 这里使用相对路径，由 ApiClient 统一加上 /api 前缀
+    return apiClient.get<any>(`/sessions/${sessionId}/export?format=${format}`);
+  },
+
+  /**
    * 获取单条消息详情
    */
   async getMessage(sessionId: number, messageId: number): Promise<Message> {
-    return apiClient.get<Message>(`/api/sessions/${sessionId}/messages/${messageId}`);
+    return apiClient.get<Message>(`/sessions/${sessionId}/messages/${messageId}`);
   },
 
   /**
@@ -272,7 +281,7 @@ export const sessionApi = {
     total_steps: number;
     progress_percentage: number;
   }> {
-    return apiClient.get<any>(`/api/sessions/${sessionId}/flow`);
+    return apiClient.get<any>(`/sessions/${sessionId}/flow`);
   },
 
   /**
@@ -292,7 +301,7 @@ export const sessionApi = {
     params.append('confirm', confirm.toString());
     params.append('action', 'bulk_delete');
 
-    return apiClient.delete<any>(`/api/sessions?${params}`);
+    return apiClient.delete<any>(`/sessions?${params}`);
   },
 
   /**
@@ -304,7 +313,7 @@ export const sessionApi = {
     running_sessions: number;
   }> {
     // Use POST with action parameter for statistics
-    return apiClient.post<any>('/api/sessions', {
+    return apiClient.post<any>('/sessions', {
       action: 'get_deletion_statistics',
       status_filter: statusFilter
     });
@@ -317,7 +326,7 @@ export const sessionApi = {
     force_deleted: boolean;
     was_running: boolean;
   }> {
-    return apiClient.delete<any>(`/api/sessions/${sessionId}?force=true`);
+    return apiClient.delete<any>(`/sessions/${sessionId}?force=true`);
   },
 
   /**
@@ -338,14 +347,27 @@ export const sessionApi = {
     params.append('force', 'true');
     params.append('action', 'bulk_delete');
 
-    return apiClient.delete<any>(`/api/sessions?${params}`);
+    return apiClient.delete<any>(`/sessions?${params}`);
   },
 
   /**
    * 导出会话记录
    */
-  async exportSession(sessionId: number, format: 'json' | 'csv' | 'txt' = 'json'): Promise<any> {
-    return apiClient.get<any>(`/api/sessions/${sessionId}/export?format=${format}`);
+  async exportSession(sessionId: number, format: 'json' | 'markdown' | 'text' = 'json'): Promise<any> {
+    const endpoint = `/sessions/${sessionId}/export?format=${format}`;
+    // 在前端开发环境下，请求 /api 前缀由 Vite 代理到后端
+    const url = `/api${endpoint}`;
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Export failed: HTTP ${response.status}`);
+    }
+
+    if (format === 'json') {
+      return response.json();
+    }
+
+    return response.text();
   },
 
   /**
@@ -359,6 +381,6 @@ export const sessionApi = {
     total_execution_time: number;
     rounds_completed: number;
   }> {
-    return apiClient.get<any>(`/api/sessions/${sessionId}/messages/statistics`);
+    return apiClient.get<any>(`/sessions/${sessionId}/messages/statistics`);
   },
 };

@@ -451,8 +451,9 @@ class MessageService:
                 current_round = msg.round_index
                 content += f"\n### 第 {current_round} 轮对话\n\n"
 
-            speaker = msg.speaker_role.role_detail.name if msg.speaker_role else '未知角色'
-            target = f" (回复: {msg.target_role.role_detail.name})" if msg.target_role else ""
+            # SessionRole 上只有 role 关系，没有 role_detail
+            speaker = msg.speaker_role.role.name if msg.speaker_role and msg.speaker_role.role else '未知角色'
+            target = f" (回复: {msg.target_role.role.name})" if msg.target_role and msg.target_role.role else ""
 
             content += f"**{speaker}{target}**: {msg.content}\n\n"
 
@@ -471,8 +472,9 @@ class MessageService:
         content += "=" * 50 + "\n\n"
 
         for msg in messages:
-            speaker = msg.speaker_role.role_detail.name if msg.speaker_role else '未知角色'
-            target = f" (回复: {msg.target_role.role_detail.name})" if msg.target_role else ""
+            # SessionRole 上只有 role 关系，没有 role_detail
+            speaker = msg.speaker_role.role.name if msg.speaker_role and msg.speaker_role.role else '未知角色'
+            target = f" (回复: {msg.target_role.role.name})" if msg.target_role and msg.target_role.role else ""
             timestamp = msg.created_at.strftime('%H:%M:%S') if msg.created_at else 'N/A'
 
             content += f"[{timestamp}] 第{msg.round_index}轮 {speaker}{target}:\n"

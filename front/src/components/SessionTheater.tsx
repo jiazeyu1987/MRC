@@ -392,7 +392,46 @@ const SessionTheater: React.FC<SessionTheaterProps> = ({ sessionId, onExit }) =>
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="ghost" size="sm" icon={Download}>下载</Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={Download}
+            onClick={async () => {
+              if (!session) return;
+              try {
+                const format: 'json' | 'markdown' | 'text' = 'markdown';
+                const exportData = await sessionApi.exportSession(session.id, format);
+
+                let blob: Blob;
+                let filename: string;
+
+                if (format === 'json') {
+                  const jsonString = JSON.stringify(exportData, null, 2);
+                  blob = new Blob([jsonString], { type: 'application/json' });
+                  filename = `session_${session.id}.json`;
+                } else {
+                  const textContent = typeof exportData === 'string' ? exportData : String(exportData);
+                  blob = new Blob([textContent], {
+                    type: format === 'markdown' ? 'text/markdown' : 'text/plain',
+                  });
+                  filename = `session_${session.id}.${format === 'markdown' ? 'md' : 'txt'}`;
+                }
+
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              } catch (error) {
+                handleError(error);
+              }
+            }}
+          >
+            下载
+          </Button>
 
           {/* Auto/Manual Mode Toggle */}
           <div className="bg-green-500 text-white px-3 py-1 rounded-lg">
